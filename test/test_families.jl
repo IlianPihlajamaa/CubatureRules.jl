@@ -1,0 +1,95 @@
+using CubatureRules, Test, StaticArrays
+const CR = CubatureRules
+
+@testset "Gauss–Jacobi" begin
+    for n in (1, 2, 5, 20, 64)
+        r = rule(GaussLegendre(), Interval(); npoints = n)
+        @test npoints(r) == n
+        @test degree(r) == 2n - 1
+        @test issorted(nodes(r))
+        @test sum(weights(r)) ≈ 2
+        @test passed(check(r))
+    end
+    # known values
+    r3 = rule(GaussLegendre(), Interval(); npoints = 3, digits = 50)
+    @test abs(nodes(r3)[3] - sqrt(big(3) / 5)) < big(10.0)^-49
+    @test abs(weights(r3)[2] - big(8) / 9) < big(10.0)^-49
+    # Jacobi weights live on a weighted domain
+    wd = WeightedDomain(Interval(), JacobiWeight(2, 1))
+    rj = rule(wd; degree = 9)
+    @test domain(rj) == wd
+    @test sum(weights(rj)) ≈ Float64(measure(wd))
+    @test passed(check(rj))
+    rj2 = rule(WeightedDomain(Interval(), JacobiWeight(-0.5, -0.5)); degree = 11, digits = 40)
+    @test abs(sum(weights(rj2)) - big(pi)) < big(10.0)^-38          # Chebyshev: ∫ = π
+    @test passed(check(rj2))
+    @test_throws ArgumentError GaussJacobi(-1, 0)
+end
+
+@testset "Grundmann–Möller, exact rationals, any dimension" begin
+    for D in 1:4, d in (1, 3, 5, 7)
+        D == 1 && continue
+        r = rule(GrundmannMöller(), Simplex{D}(); degree = d, T = Rational{BigInt})
+        @test eltype(r) == Rational{BigInt}
+        @test sum(weights(r)) == 1 // factorial(D)
+        @test npoints(r) == npoints(GrundmannMöller(), Simplex{D}(), d)
+        v = check(r)
+        @test v.exact
+        @test v.sharp === true
+        @test v.symmetric === true
+        @test v.positive == (d == 1)
+    end
+    # even degree requests round up to the next odd degree
+    @test degree(rule(GrundmannMöller(), Simplex{2}(); degree = 4)) == 5
+    @test GrundmannMoeller === GrundmannMöller
+    # floating output is the exact rule rounded once
+    rf = rule(GrundmannMöller(), Simplex{3}(); degree = 5, digits = 40)
+    re = rule(GrundmannMöller(), Simplex{3}(); degree = 5, T = Rational{BigInt})
+    @test all(abs.(weights(rf) .- weights(re)) .< big(10.0)^-40)
+end
+
+@testset "conical product, any dimension" begin
+    for D in (2, 3), d in (1, 4, 9)
+        r = rule(ConicalProduct(), Simplex{D}(); degree = d)
+        @test npoints(r) == cld(d + 1, 2)^D
+        @test sum(weights(r)) ≈ 1 / factorial(D)
+        v = check(r)
+        @test v.exact && v.sharp === true && v.positive && v.interior
+    end
+    @test_throws NoRuleError rule(ConicalProduct(), Simplex{2}(); degree = 3, T = Rational{BigInt})
+end
+
+@testset "Xiao–Gimbutas: every shipped degree verifies (Float64)" begin
+    counts = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79]
+    @test degree_range(XiaoGimbutas(), Simplex{2}()) == 0:20
+    for d in 1:20
+        r = rule(XiaoGimbutas(), Simplex{2}(); degree = d)
+        @test npoints(r) == counts[d] || (d == 3 && npoints(r) == 6)
+        v = check(r)
+        @test v.exact
+        @test v.positive && v.interior && v.symmetric === true
+        @test v.sharp !== false
+        @test certificate(r).residual < 1e-14
+    end
+end
+
+@testset "Xiao–Gimbutas at arbitrary precision (the cornerstone)" begin
+    r = rule(Simplex{2}(); degree = 20, digits = 200)
+    @test family(r) == "XiaoGimbutas"
+    @test npoints(r) == 79
+    @test precision(first(weights(r))) == CR.digits_to_bits(200)
+    v = check(r)
+    @test v.exact                       # exact at degree 20 …
+    @test v.sharp === true              # … and not at 21
+    @test v.max_residual < big(10.0)^-195
+    @test v.symmetric === true && v.positive && v.interior
+    c = certificate(r)
+    @test c.residual < big(10.0)^-199
+    @test c.iterations >= 1
+    # refinement agrees with the Float64 rule to Float64 precision
+    r64 = rule(Simplex{2}(); degree = 20)
+    @test maximum(abs.(Float64.(weights(r)) .- weights(r64))) < 1e-16
+    # higher precision is consistent with lower precision
+    r100 = rule(Simplex{2}(); degree = 20, digits = 100)
+    @test maximum(abs.(weights(r) .- weights(r100))) < big(10.0)^-99
+end

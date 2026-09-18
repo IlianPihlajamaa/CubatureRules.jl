@@ -1,0 +1,8 @@
+# SHA-256 content hashes of reference rules; see test/test_reproducibility.jl.
+conical_triangle_d11_80digits = "ecf4942e1261dcb51ec7d2e50fae02cdac821744279b0d9a92ca2b7b588e81ba"
+gauss_jacobi_21_float64 = "28c0aec7eb4d5dc85d4d540142c3cc82ea9f990442bf6e759fe27fa2b9e0d6c2"
+gauss_legendre_n40_100digits = "07680568358c7bd217ae272fc97770669f0af511dea4862ad7997a36f924d149"
+gm_tet_d7_rational = "37dcdf5b087b8f7cde4c149078add4569586ba65077e3502f35c9e30f48f7aa8"
+xg_triangle_d10_float64 = "37ac9837305530e188eca2fbe48ffabbc78c7df53a9be2e4de00d661ecd5cfa8"
+xg_triangle_d15_50digits = "e8983fcce47329af3e46792be87325e8bb31b6531350c6ca308e1e7ea92425eb"
+xg_triangle_d20_200digits = "3f662bf5827d11e5a4255d899238b41da6983700325bdedf6b0f82d1f1aa4520"

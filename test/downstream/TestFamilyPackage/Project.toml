@@ -1,0 +1,7 @@
+name = "TestFamilyPackage"
+uuid = "ab1f8fd3-5847-4419-aab3-04f535a8c99e"
+version = "0.1.0"
+
+[deps]
+CubatureRules = "0f38d63d-e18c-4973-acfc-eb502c230362"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"

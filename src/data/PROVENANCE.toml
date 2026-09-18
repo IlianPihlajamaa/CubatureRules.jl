@@ -1,0 +1,24 @@
+# Provenance manifest for every data file shipped in src/data (PLAN §0.2).
+#
+# Policy: every stored table records its original author, the paper DOI, the exact source
+# the numbers were taken from, its licence and the date retrieved. Nothing is transcribed
+# from the GPL quadpy fork. The CI check in test/test_provenance.jl fails the build for any
+# file in this directory without an entry here.
+
+[[file]]
+path = "triangle_s3_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully S3-symmetric, positive,
+interior triangle rules of degrees 1-20 at the minimal point counts reported by Xiao &
+Gimbutas (2010)."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_triangle_seeds.jl: multistart Levenberg-Marquardt on
+the S3-invariant moment system from random interior starts, with only the orbit structure
+fixed, then refined to 100 digits and rounded to Float64. No numerical table was consulted.
+The point counts (a combinatorial fact stated in the paper's prose and tables, not the
+tabulated nodes or weights) are from Xiao & Gimbutas (2010)."""
+license = "MIT"
+retrieved = "2026-09-18"
+citation = "H. Xiao and Z. Gimbutas, Comput. Math. Appl. 59 (2010) 663-676, doi:10.1016/j.camwa.2009.10.027"
+generator = "scripts/generate_triangle_seeds.jl"
