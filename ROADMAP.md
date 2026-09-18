@@ -210,9 +210,9 @@ families and tooling on top of what lands here.
 ### Infrastructure
 
 - [x] `src/data/PROVENANCE.toml` and the CI check that fails on any unrecorded data file
-- [ ] Reproducibility CI job: rule hashes compared across two Julia versions and two
-      platforms (§5 item 9) *(configured: every CI cell checks `test/reference_hashes.toml`;
-      awaiting the first run)*
+- [x] Reproducibility CI job: rule hashes compared across two Julia versions and two
+      platforms (§5 item 9) *(every CI cell checks `test/reference_hashes.toml`: Julia 1.10
+      and 1.x on Linux, Windows and macOS)*
 - [x] `benchmark_construction(domain; degrees, T, digits)` — the performance regression
       test, tracked from the start
 - [x] Number types in CI: `Float64`, `BigFloat` at several precisions, `Double64`,
@@ -229,8 +229,8 @@ families and tooling on top of what lands here.
 - [x] All three triangle families verify across their full declared degree range
 - [x] `available(Simplex{2}(); degree = 17)` ranks XG, Grundmann–Möller and conical product
       correctly by node count
-- [ ] Identical `rule(...)` calls produce bitwise-identical output across Julia versions and
-      platforms in CI *(pending the first CI run)*
+- [x] Identical `rule(...)` calls produce bitwise-identical output across Julia versions and
+      platforms in CI
 - [x] A test package adding a family is found by the selector without registration
 - [x] Every shipped data file has a provenance entry
 - [x] Zero allocations in the `static` inner loop
