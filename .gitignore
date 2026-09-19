@@ -6,3 +6,4 @@ Manifest-v*.toml
 *.jl.*.cov
 *.jl.mem
 .DS_Store
+/literature/
