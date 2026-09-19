@@ -253,11 +253,11 @@ which governs how much of Tier 3 is reachable at all.
 
 ### Orbit algebra in 3D
 
-- [ ] Orbit types for $S_4$ on the tetrahedron
-- [ ] $S_4$-invariant basis, with the same Molien dimension check
+- [x] Orbit types for $S_4$ on the tetrahedron
+- [x] $S_4$-invariant basis, with the same Molien dimension check
 - [ ] Establish the feasibility numbers §6 Tier 3 asks for: free-parameter count at degree
       15, Jacobian density and structure, cost of one refinement at 200 digits
-- [ ] Extend the exact-moment machinery to $d = 3$ (already generic — needs tests, not code)
+- [x] Extend the exact-moment machinery to $d = 3$ (already generic — needs tests, not code)
 
 ### Families
 
@@ -265,7 +265,7 @@ which governs how much of Tier 3 is reachable at all.
 - [ ] `WitherdenVincent`
 - [ ] `JaskowiecSukumar`
 - [ ] `Dunavant`, `ZhangCuiLiu` where they add coverage the others lack
-- [ ] `GrundmannMöller` and `ConicalProduct` verified at $d = 3, 4$
+- [x] `GrundmannMöller` and `ConicalProduct` verified at $d = 3, 4$
 
 ### Mesh integration (§3.2)
 
@@ -286,7 +286,7 @@ which governs how much of Tier 3 is reachable at all.
 - [ ] A degree-15 tetrahedron rule at 100 digits, verified sharp
 - [ ] Integration over $10^6$ triangles within a small constant factor of a hand-written
       kernel, with zero allocations
-- [ ] Verification basis extended to 3D (Koornwinder–Dubiner on the tetrahedron)
+- [x] Verification basis extended to 3D (Koornwinder–Dubiner on the tetrahedron)
 - [ ] The Tier 3 feasibility numbers written down and published in the docs
 
 ---

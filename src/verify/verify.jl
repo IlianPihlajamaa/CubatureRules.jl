@@ -1,8 +1,8 @@
 # Verification (PLAN §8): is this rule what it claims to be? Distinct from the Certificate,
 # which only says that Newton converged on the system it was given.
 #
-# Exactness is tested against *orthonormal* bases (Dubiner on triangles, Legendre/Jacobi
-# on intervals) at twice the rule's precision; monomials would produce false failures at
+# Exactness is tested against *orthonormal* bases (Dubiner on triangles and tetrahedra,
+# Legendre/Jacobi on intervals) at twice the rule's precision; monomials would produce false failures at
 # high degree. Each basis function's residual is held to a tolerance derived from the
 # rounding of the delivered nodes and weights: 16 ε Σ |wᵢ| (|φ(xᵢ)| + |∇φ(xᵢ)|·|xᵢ|). Exact
 # (Rational) rules are held to zero.
@@ -119,6 +119,18 @@ function evaluate!(b::BarycentricMonomialBasis{S}, x) where {S}
 end
 blocks(b::BarycentricMonomialBasis) = b.blockranges
 
+struct TetVerifyBasis{S,B<:SimplexBasis{3,S}} <: VerificationBasis
+    basis::B
+end
+TetVerifyBasis{S}(n; normalize) where {S} = (b = SimplexBasis{3,S}(n; normalize); TetVerifyBasis{S,typeof(b)}(b))
+function evaluate!(b::TetVerifyBasis, x)
+    φ, G = evaluate!(b.basis, x)
+    return φ, [abs(G[k, 1]) + abs(G[k, 2]) + abs(G[k, 3]) for k in axes(G, 1)]
+end
+blocks(b::TetVerifyBasis) = degree_blocks(b.basis)
+exact_integrals(b::TetVerifyBasis{S}) where {S} =
+    (v = zeros(S, basis_length(b.basis)); v[1] = b.basis.ws.c[1] * S(1 // 6); v)
+
 exact_integrals(b::DubinerBasis{S}) where {S} =
     (v = zeros(S, length(b.φ)); v[1] = b.ws.c[1] * S(1 // 2); v)
 function exact_integrals(b::JacobiBasis{S}) where {S}
@@ -151,6 +163,8 @@ end
 
 verification_basis(dom::Simplex{2}, n, ::Type{S}, exact) where {S} = DubinerBasis{S}(n; normalize = !exact),
     exact ? "Dubiner (unnormalised, exact arithmetic)" : "orthonormal Dubiner"
+verification_basis(dom::Simplex{3}, n, ::Type{S}, exact) where {S} = TetVerifyBasis{S}(n; normalize = !exact),
+    exact ? "tetrahedral Dubiner (unnormalised, exact arithmetic)" : "orthonormal tetrahedral Dubiner"
 verification_basis(dom::Simplex{D}, n, ::Type{S}, exact) where {D,S} =
     BarycentricMonomialBasis{S}(D, n), "barycentric monomials of degree $(join(n, ", ")) (exact Dirichlet moments)"
 verification_basis(dom::Interval, n, ::Type{S}, exact) where {S} =
@@ -203,7 +217,7 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         floor_tol = exact ? big(0.0) : ldexp(big(1.0), -(cbits - 16))
         xs, ws = reference_nodes(r, S)
         refdom = reference(r.domain)
-        if refdom isa Simplex && D >= 3
+        if refdom isa Simplex && D >= 4
             basis, bname = verification_basis(refdom, test_sharp ? [d, d + 1] : [d], S, exact)
             res = block_residuals(basis, xs, ws, ε, floor_tol)
             ex = res[1:1]

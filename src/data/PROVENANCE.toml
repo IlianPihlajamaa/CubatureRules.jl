@@ -22,3 +22,20 @@ license = "MIT"
 retrieved = "2026-09-18"
 citation = "H. Xiao and Z. Gimbutas, Comput. Math. Appl. 59 (2010) 663-676, doi:10.1016/j.camwa.2009.10.027"
 generator = "scripts/generate_triangle_seeds.jl"
+
+[[file]]
+path = "tetrahedron_s4_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully S4-symmetric, positive,
+interior tetrahedron rules, with the smallest point counts the in-house search reached."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_tetrahedron_seeds.jl: for each degree, a walk upwards
+in point count from a bound below which no fully symmetric rule exists, with multistart
+Levenberg-Marquardt on the S4-invariant moment system at each count; the winning rule is
+refined to 100 digits and rounded to Float64. Neither numbers nor point counts were taken
+from any publication."""
+license = "MIT"
+retrieved = "2026-09-19"
+citation = "none (generated in-house)"
+generator = "scripts/generate_tetrahedron_seeds.jl"

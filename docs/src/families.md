@@ -2,7 +2,8 @@
 
 | Family | Domain | Degrees | Derivation | Points | Output types |
 |---|---|---|---|---|---|
-| `XiaoGimbutas` | triangle | 1–20 | seeded | minimal (Xiao–Gimbutas counts) | floating |
+| `XiaoGimbutas` | triangle | 1–26 | seeded | minimal (Xiao–Gimbutas counts) | floating |
+| `FullySymmetric` | tetrahedron | 1–9 | seeded | smallest found by in-house search | floating |
 | `GrundmannMöller` | any simplex | any (odd) | derived | ``\sum_{i=0}^{s} \binom{s-i+D}{D}`` | floating, `Rational{BigInt}` |
 | `ConicalProduct` | any simplex | any | derived | ``\lceil (d+1)/2 \rceil^D`` | floating |
 | `GaussJacobi` | interval, Jacobi weight | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
@@ -20,6 +21,18 @@ doi:10.1016/j.camwa.2009.10.027.
 The seeds are MIT-licensed. They were generated in-house from orbit structures alone, and
 no published numbers were used. Minimal rules are not unique; the shipped rule is the one
 with the largest minimum barycentric coordinate among those found.
+
+## FullySymmetric
+
+```@docs
+FullySymmetric
+```
+
+Fully symmetric (S₄), positive and interior tetrahedron rules. Unlike the triangle table,
+nothing here comes from a paper. The point count at each degree is the smallest that the
+in-house search reached, walking upwards from a count below which no fully symmetric rule
+can exist. The counts are not proven minimal, and the family is not named after any
+published one.
 
 ## GrundmannMöller
 

@@ -1,28 +1,38 @@
 # Generate the MIT-licensed seed table for fully symmetric triangle rules,
 # src/data/triangle_s3_seeds.toml, from orbit structures alone (PLAN §0.2).
 #
-#     julia --project -t auto scripts/generate_triangle_seeds.jl [maxdegree]
+#     julia --project -t auto scripts/generate_triangle_seeds.jl [mindegree] maxdegree
+#
+# Entries for degrees in the range are replaced; the others are kept. The table is rewritten
+# after every degree, so a long run can be interrupted without losing finished degrees.
 #
 # For each degree the target point count is the minimal count reported by Xiao & Gimbutas
-# (2010) — a combinatorial fact stated in the paper, not tabulated data. Every orbit
-# structure with that many points and at least as many unknowns as S₃-invariant equations
-# is searched by multistart Levenberg–Marquardt; the first structure (fewest unknowns) with
-# a valid rule wins, and among its valid rules the one with the largest minimum barycentric
-# coordinate is kept. The Float64 seed written out is the 100-digit refinement rounded to
-# Float64. If no structure at the target count yields a rule, the count is increased and the
-# entry says so.
+# (2010) — a combinatorial fact stated in the paper, not tabulated data. Orbit structures
+# with that many points and at least as many unknowns as S₃-invariant equations are searched
+# by multistart Levenberg–Marquardt; the first structure (fewest unknowns) with a valid rule
+# wins, and among its valid rules the one with the largest minimum barycentric coordinate
+# is kept. The Float64 seed written out is the 100-digit refinement rounded to Float64. If
+# no structure at the target count yields a rule, the count is increased and the entry
+# says so.
 
 isdefined(Main, :CR) || (import CubatureRules; const CR = CubatureRules)
 using LinearAlgebra, Printf, TOML
 BLAS.set_num_threads(1)
 
-# Minimal point counts, Xiao & Gimbutas (2010), Table 6.1 (triangle), degrees 1–20.
-const XG_POINTS = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79]
+# Minimal point counts of fully symmetric rules, Xiao & Gimbutas (2010), Table 1, column n6.
+const XG_POINTS = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79,
+                   87, 96, 103, 112, 120, 130, 141, 150, 159, 171, 181, 193, 204, 214, 228,
+                   243, 252, 267, 282, 295, 309, 324, 339, 354, 370, 385, 399, 423, 435, 453]
 
 function search(n, npts; nstarts)
     basis = CR.invariant_basis(3, n)
-    for extra in 0:3, s in CR.candidate_structures(npts + extra, n)
-        found = CR.multistart(s, n; nstarts, basis, first_only = false)
+    # structures with the fewest unknowns first; at high degree only a few, since each one
+    # costs thousands of starts
+    maxstruct = n <= 20 ? typemax(Int) : 3
+    for extra in 0:3, s in first(CR.candidate_structures(npts + extra, n), maxstruct)
+        t = @elapsed found = CR.multistart(s, n; nstarts, basis, first_only = false)
+        @printf("    degree %d, %d points, %d unknowns: %d valid in %.0f s\n",
+                n, npts + extra, CR.nunknowns(s), length(found), t)
         isempty(found) && continue
         best = argmax(t -> (t[3], -t[4]), found)
         return s, best, length(found), extra, basis
@@ -30,21 +40,23 @@ function search(n, npts; nstarts)
     return nothing
 end
 
-function main(maxdeg)
-    entries = Dict{String,Any}[]
-    for n in 1:maxdeg
+function main(mindeg, maxdeg, path)
+    entries = isfile(path) ? filter(e -> !(mindeg <= e["degree"] <= maxdeg), TOML.parsefile(path)["rule"]) :
+              Dict{String,Any}[]
+    for n in mindeg:maxdeg
         npts = XG_POINTS[n]
-        nstarts = n <= 10 ? 512 : n <= 15 ? 1024 : 2048
+        nstarts = n <= 10 ? 512 : n <= 15 ? 1024 : n <= 20 ? 2048 : 4096
         t = @elapsed found = search(n, npts; nstarts)
         if found === nothing
             @printf("degree %2d: no rule found near %d points\n", n, npts)
             push!(entries, Dict("degree" => n, "npoints" => npts, "structure" => Vector{Int}[],
                                 "seed" => Float64[], "status" => "failed",
                                 "note" => "multistart found no valid rule within 3 points of the target"))
+            write_table(path, entries)
             continue
         end
         s, best, nfound, extra, basis = found
-        θ, res, guard = CR.refine_symmetric_triangle(s, n, best[1], CR.digits_to_bits(100); basis)
+        θ, res, guard = CR.refine_symmetric(s, n, best[1], CR.digits_to_bits(100); basis)
         res.converged || error("degree $n: refinement to 100 digits failed")
         θ64 = Float64.(θ)
         wmin, λmin = CR.rule_margins(s, θ64)
@@ -55,6 +67,7 @@ function main(maxdeg)
                             "structure" => [o.mult for o in s.orbits], "seed" => θ64,
                             "status" => "ok", "note" => note, "valid_rules_found" => nfound,
                             "min_weight" => wmin, "min_barycentric" => λmin, "cond" => res.cond))
+        write_table(path, entries)
     end
     return entries
 end
@@ -67,12 +80,11 @@ function write_table(path, entries)
         println(io, "#")
         println(io, "# seed layout: per orbit, [weight per point, free barycentric values...].")
         println(io)
-        TOML.print(io, Dict("rule" => entries); sorted = true)
+        TOML.print(io, Dict("rule" => sort(entries; by = e -> e["degree"])); sorted = true)
     end
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    maxdeg = isempty(ARGS) ? 20 : parse(Int, ARGS[1])
-    entries = main(maxdeg)
-    write_table(joinpath(@__DIR__, "..", "src", "data", "triangle_s3_seeds.toml"), entries)
+    lo, hi = length(ARGS) == 2 ? Tuple(parse.(Int, ARGS)) : (1, isempty(ARGS) ? 20 : parse(Int, ARGS[1]))
+    main(lo, hi, joinpath(@__DIR__, "..", "src", "data", "triangle_s3_seeds.toml"))
 end

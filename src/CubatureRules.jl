@@ -28,6 +28,7 @@ include("core/claims.jl")
 include("domains/domains.jl")
 include("domains/moments.jl")
 include("domains/orthobasis.jl")
+include("domains/orthobasis3.jl")
 include("core/records.jl")
 include("core/rule.jl")
 include("core/precision.jl")
@@ -45,6 +46,7 @@ include("symmetry/moment_system.jl")
 include("refine/seeds.jl")
 include("families/simplex/grundmannmoller.jl")
 include("families/simplex/xiaogimbutas.jl")
+include("families/simplex/fullysymmetric.jl")
 
 # selection, application, verification, presentation
 include("registry/registry.jl")
@@ -67,7 +69,7 @@ export QuadratureRule, StaticQuadratureRule, static, nodes, weights, domain, exa
 export Provenance, Certificate, Verification, Citation, Derived, Seeded
 # families and the registry
 export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct,
-       GrundmannMöller, GrundmannMoeller, XiaoGimbutas
+       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families
 export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError

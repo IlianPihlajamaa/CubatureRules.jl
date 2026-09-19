@@ -34,9 +34,9 @@ end
 end
 
 @testset "construction benchmark" begin
-    rows = benchmark_construction(Simplex{2}(); degrees = [3, 25])
+    rows = benchmark_construction(Simplex{2}(); degrees = [3, 60])
     @test any(r -> r.family == "XiaoGimbutas" && r.degree == 3 && r.status === :completed, rows)
-    @test any(r -> r.family == "XiaoGimbutas" && r.degree == 25 && r.status === :unsupported, rows)
+    @test any(r -> r.family == "XiaoGimbutas" && r.degree == 60 && r.status === :unsupported, rows)
     @test all(r -> r.status !== :completed || r.seconds >= 0, rows)
     rq = benchmark_construction(Simplex{2}(); degrees = [3], T = Rational{BigInt})
     @test any(r -> r.family == "ConicalProduct(GaussJacobi)" && r.status === :unsupported, rq)

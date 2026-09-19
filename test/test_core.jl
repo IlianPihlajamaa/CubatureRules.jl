@@ -110,3 +110,36 @@ end
     r2 = rule(Interval(); degree = 5, digits = 30)
     @test precision(first(weights(r2))) == CR.digits_to_bits(30)
 end
+
+@testset "orthonormal tetrahedral Dubiner basis" begin
+    n = 6
+    r = rule(ConicalProduct(), Simplex{3}(); degree = 2n + 1, digits = 40)
+    b = CR.SimplexBasis{3,BigFloat}(n)
+    L = CR.basis_length(b)
+    @test L == CR.tet_length(n) == binomial(n + 3, 3)
+    G = zeros(BigFloat, L, L)
+    for (x, w) in zip(r.nodes, r.weights)
+        φ, _ = CR.evaluate!(b, x; gradient = false)
+        G .+= w .* φ .* φ'
+    end
+    @test maximum(abs, G - I) < 1e-35
+    # gradients against finite differences
+    b64 = CR.SimplexBasis{3,Float64}(n)
+    x0 = [0.2, 0.15, 0.3]
+    _, Gr = CR.evaluate!(b64, x0)
+    Gr = copy(Gr)
+    h = 1e-6
+    for j in 1:3
+        xp = copy(x0); xp[j] += h
+        xm = copy(x0); xm[j] -= h
+        fp = copy(CR.evaluate!(b64, xp; gradient = false)[1])
+        fm = copy(CR.evaluate!(b64, xm; gradient = false)[1])
+        @test maximum(abs, (fp - fm) / 2h - Gr[:, j]) < 1e-6
+    end
+    # degree blocks are contiguous and complete
+    @test [length(CR.degree_block(3, k)) for k in 0:4] == [(k + 1) * (k + 2) ÷ 2 for k in 0:4]
+    # exact (unnormalised) evaluation stays rational
+    br = CR.SimplexBasis{3,Rational{BigInt}}(4; normalize = false)
+    φ, _ = CR.evaluate!(br, Rational{BigInt}[1 // 5, 1 // 7, 1 // 3])
+    @test eltype(φ) == Rational{BigInt}
+end

@@ -49,7 +49,7 @@ end
 end
 
 @testset "conical product, any dimension" begin
-    for D in (2, 3), d in (1, 4, 9)
+    for D in (2, 3, 4), d in (1, 4, 9)
         r = rule(ConicalProduct(), Simplex{D}(); degree = d)
         @test npoints(r) == cld(d + 1, 2)^D
         @test sum(weights(r)) ≈ 1 / factorial(D)
@@ -60,11 +60,16 @@ end
 end
 
 @testset "Xiao–Gimbutas: every shipped degree verifies (Float64)" begin
-    counts = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79]
-    @test degree_range(XiaoGimbutas(), Simplex{2}()) == 0:20
-    for d in 1:20
+    # minimal counts, Xiao & Gimbutas (2010) Table 1; a shipped rule may exceed one only when
+    # its table entry says so
+    counts = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79,
+              87, 96, 103, 112, 120, 130, 141, 150, 159, 171]
+    dmax = last(degree_range(XiaoGimbutas(), Simplex{2}()))
+    @test dmax >= 20
+    for d in 1:dmax
         r = rule(XiaoGimbutas(), Simplex{2}(); degree = d)
-        @test npoints(r) == counts[d] || (d == 3 && npoints(r) == 6)
+        e = CR.xg_entry_for(d)
+        @test npoints(r) == counts[e.degree] || (!isempty(e.note) && counts[e.degree] < npoints(r) <= counts[e.degree] + 3)
         v = check(r)
         @test v.exact
         @test v.positive && v.interior && v.symmetric === true
@@ -92,4 +97,25 @@ end
     # higher precision is consistent with lower precision
     r100 = rule(Simplex{2}(); degree = 20, digits = 100)
     @test maximum(abs.(weights(r) .- weights(r100))) < big(10.0)^-99
+end
+
+@testset "FullySymmetric tetrahedra: every shipped degree verifies" begin
+    rg = degree_range(FullySymmetric(), Simplex{3}())
+    @test last(rg) >= 8
+    for d in 1:last(rg)
+        r = rule(FullySymmetric(), Simplex{3}(); degree = d)
+        @test degree(r) >= d
+        @test sum(weights(r)) ≈ 1 / 6
+        v = check(r)
+        @test v.exact
+        @test v.positive && v.interior && v.symmetric === true
+        @test v.sharp !== false
+        @test certificate(r).residual < 1e-14
+    end
+    # arbitrary precision, and the selector prefers it on the tetrahedron
+    r = rule(Simplex{3}(); degree = 8, digits = 60)
+    @test family(r) == "FullySymmetric"
+    v = check(r)
+    @test v.exact && v.sharp === true && v.max_residual < big(10.0)^-55
+    @test isempty(candidates(FullySymmetric, Simplex{2}(), PolynomialDegree(3)))
 end

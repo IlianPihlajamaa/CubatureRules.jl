@@ -49,7 +49,7 @@ describe(s::MultistartSeed) = "orbit structure + multistart ($(s.nstarts) starts
 """
     multistart(structure, n; nstarts, rng_seed, basis, tol = 1e-13, first_only = true)
 
-Search for fully symmetric triangle rules of degree `n` with the given orbit structure.
+Search for fully symmetric simplex rules of degree `n` with the given orbit structure.
 Start `i` draws from its own RNG seeded with `(rng_seed, i)`, and starts run in fixed
 batches of 64 across threads, so the result does not depend on the number of threads.
 Returns a vector of `(θ, min_weight, min_barycentric, start_index)` in canonical form,
@@ -57,7 +57,7 @@ deduplicated, ordered by start index. With `first_only`, stops after the first b
 contains a valid rule.
 """
 function multistart(structure::SymmetricStructure, n::Integer; nstarts::Integer = 2000,
-                    rng_seed::Integer = 0x5eed, basis::InvariantBasis = invariant_basis(3, n),
+                    rng_seed::Integer = 0x5eed, basis::InvariantBasis = invariant_basis(structure.N, n),
                     tol::Float64 = 1e-13, first_only::Bool = true, cancel = nothing)
     found = Vector{Tuple{Vector{Float64},Float64,Float64,Int}}()
     batch = 64
@@ -66,7 +66,7 @@ function multistart(structure::SymmetricStructure, n::Integer; nstarts::Integer 
         idx = lo:min(lo + batch - 1, nstarts)
         results = Vector{Any}(nothing, length(idx))
         Threads.@threads :static for t in 1:Threads.nthreads()
-            sys = TriangleMomentSystem(structure, n, Float64, basis)
+            sys = SymmetricMomentSystem(structure, n, Float64, basis)
             for j in t:Threads.nthreads():length(idx)
                 results[j] = multistart_attempt(sys, structure, start_rng(rng_seed, idx[j]), tol)
             end
@@ -83,8 +83,8 @@ function multistart(structure::SymmetricStructure, n::Integer; nstarts::Integer 
 end
 
 "One multistart attempt: LM from a random interior point, polished by Gauss–Newton."
-function multistart_attempt(sys::TriangleMomentSystem{Float64}, structure, rng, tol)
-    θ0 = random_parameters(rng, structure, 0.5)
+function multistart_attempt(sys::SymmetricMomentSystem{Float64}, structure, rng, tol)
+    θ0 = random_parameters(rng, structure, 1 / factorial(structure.N - 1))
     inside(θ) = rule_margins(structure, θ)[2] > -0.05
     θ, nr = levenberg_marquardt(sys, θ0; maxiter = 300, tol = tol, accept = inside)
     nr <= 1e-10 || return nothing
@@ -97,27 +97,37 @@ function multistart_attempt(sys::TriangleMomentSystem{Float64}, structure, rng, 
 end
 
 """
-    candidate_structures(npts, n, N = 3)
+    candidate_structures(npts, n, N = 3; max_unknowns = typemax(Int))
 
-Orbit structures on the triangle with exactly `npts` points and at least as many unknowns
-as `S_3`-invariant equations for degree `n`, ordered by number of unknowns (fewest first),
-then by the orbit counts.
+Orbit structures on the `(N-1)`-simplex with exactly `npts` points and at least as many
+unknowns as `S_N`-invariant equations for degree `n` (and at most `max_unknowns`), ordered
+by number of unknowns (fewest first), then by the orbit counts in canonical order. The
+one-point orbit `[N]` (the centroid) is used at most once.
 """
-function candidate_structures(npts::Integer, n::Integer, N::Integer = 3)
-    N == 3 || throw(NotYetImplemented("orbit structure enumeration for S_$N", "v0.2"))
-    m = n_invariants(3, n)
+function candidate_structures(npts::Integer, n::Integer, N::Integer = 3; max_unknowns::Integer = typemax(Int))
+    m = n_invariants(N, n)
+    types = sort(orbit_pattern_types(N); by = p -> (-length(p.mult), p.mult))   # canonical order
+    sizes = orbit_size.(types)
+    unk = nunknowns.(types)
     out = SymmetricStructure[]
-    for c in 0:1, a in 0:(npts ÷ 3)
-        rest = npts - c - 3a
-        (rest >= 0 && rest % 6 == 0) || continue
-        b = rest ÷ 6
-        unknowns = c + 2a + 3b
-        unknowns >= m || continue
-        # canonical orbit order (see `canonicalize`): general, vertex-type, centroid
-        pats = vcat(fill([1, 1, 1], b), fill([2, 1], a), fill([3], c))
-        push!(out, SymmetricStructure(pats, 3))
+    counts = zeros(Int, length(types))
+    function rec(i, pts, u)
+        if i > length(types)
+            (pts == npts && m <= u <= max_unknowns) || return
+            pats = reduce(vcat, [fill(types[j].mult, counts[j]) for j in eachindex(types)]; init = Vector{Int}[])
+            push!(out, SymmetricStructure(pats, N))
+            return
+        end
+        cmax = sizes[i] == 1 ? 1 : (npts - pts) ÷ sizes[i]
+        for c in 0:cmax
+            counts[i] = c
+            rec(i + 1, pts + c * sizes[i], u + c * unk[i])
+        end
+        counts[i] = 0
     end
-    sort!(out; by = s -> (nunknowns(s), [count(o -> o.mult == p, s.orbits) for p in ([1, 1, 1], [2, 1], [3])]))
+    rec(1, 0, 0)
+    key(s) = (nunknowns(s), [count(o -> o.mult == t.mult, s.orbits) for t in types])
+    sort!(out; by = key)
     return out
 end
 

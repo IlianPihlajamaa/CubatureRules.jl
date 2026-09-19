@@ -41,11 +41,12 @@ n_invariants(N::Integer, n::Integer) = sum(k -> molien_coefficient(N, k), 0:n)
 """
     InvariantBasis
 
-Orthonormal basis of the `S_3`-invariant polynomials of degree `≤ n` on the reference
-triangle, as a matrix `Q` whose columns are coefficient vectors in the orthonormal Dubiner
-basis. `ranks[k+1]` is the dimension found at degree `k`.
+Orthonormal basis of the `S_N`-invariant polynomials of degree `≤ n` on the reference
+`(N-1)`-simplex, as a matrix `Q` whose columns are coefficient vectors in the orthonormal
+Dubiner basis of that simplex. `ranks[k+1]` is the dimension found at degree `k`.
 """
 struct InvariantBasis
+    N::Int
     n::Int
     Q::Matrix{Float64}
     ranks::Vector{Int}
@@ -54,26 +55,54 @@ end
 """
     invariant_basis(N, n)
 
-The invariant basis for `S_N` on the `(N-1)`-simplex up to degree `n`. Implemented for
-the triangle (`N = 3`); the tetrahedron arrives with its orthonormal basis in v0.2.
+The invariant basis for `S_N` on the `(N-1)`-simplex up to degree `n`, for the triangle
+(`N = 3`) and the tetrahedron (`N = 4`). The dimension of every degree block is checked
+against the Molien series; a mismatch is an error, not a warning.
 """
 function invariant_basis(N::Integer, n::Integer)
-    N == 3 || throw(NotYetImplemented("invariant bases for S_$N", "v0.2"))
+    D = N - 1
+    D in (2, 3) || throw(NotYetImplemented("invariant bases for S_$N", "a later release"))
     # a quadrature rule exact to degree 2n, in Float64, for the Reynolds projector
-    X, W, _, _ = conical_work(2, n + 1, 53 + 64)
-    xs = [(Float64(x[1]), Float64(x[2])) for x in X]
-    ws = [Float64(w) for w in W]
-    L = dubiner_length(n)
-    ws_ = DubinerWorkspace{Float64}(n)
-    φ = zeros(L)
+    X, W, _, _ = conical_work(D, n + 1, 53 + 64)
+    xs = [Float64.(x) for x in X]
+    ws = Float64.(W)
+    basis = SimplexBasis{D,Float64}(n)
+    blocks = degree_blocks(basis)
+    Mb = reynolds_blocks(basis, N, xs, ws, blocks)
+    L = basis_length(basis)
+    cols = Vector{Vector{Float64}}()
+    ranks = Int[]
+    for (k, r) in zip(0:n, blocks)
+        M = Mb[k + 1]
+        found = pivoted_gram_schmidt!([M[:, j] for j in axes(M, 2)], 1e-8)
+        expected = molien_coefficient(N, k)
+        length(found) == expected ||
+            error("invariant basis at degree $k has dimension $(length(found)); Molien predicts $expected")
+        push!(ranks, length(found))
+        for v in found
+            full = zeros(L)
+            full[r] .= v
+            push!(cols, full)
+        end
+    end
+    return InvariantBasis(Int(N), Int(n), reduce(hcat, cols), ranks)
+end
+
+
+"Blocks of the Reynolds projector ∫ φᵢ (Rφⱼ), by quadrature (behind a function barrier)."
+function reynolds_blocks(basis::SimplexBasis{D}, N, xs, ws, blocks) where {D}
+    L = basis_length(basis)
+    Mb = [zeros(length(r), length(r)) for r in blocks]
+    φ0 = zeros(L)
     Rφ = zeros(L)
-    perms = permutations_of(3)
-    M = zeros(L, L)               # only the diagonal blocks are filled
-    for (q, (x, y)) in enumerate(xs)
-        λ = (1 - x - y, x, y)
+    perms = permutations_of(N)
+    λ = zeros(N)
+    for (q, x) in enumerate(xs)
+        λ[1] = 1 - sum(x)
+        λ[2:end] .= x
         fill!(Rφ, 0.0)
         for σ in perms
-            dubiner!(φ, ws_, λ[σ[2]], λ[σ[3]])
+            φ, _ = evaluate!(basis, [λ[σ[j + 1]] for j in 1:D]; gradient = false)
             for i in 1:L
                 Rφ[i] += φ[i]
             end
@@ -81,32 +110,17 @@ function invariant_basis(N::Integer, n::Integer)
         for i in 1:L
             Rφ[i] /= length(perms)
         end
-        dubiner!(φ, ws_, x, y)
-        for k in 0:n
-            r = (dubiner_index(0, k)):(dubiner_index(k, 0))
-            for i in r, j in r
-                M[i, j] += ws[q] * φ[i] * Rφ[j]
+        φ, _ = evaluate!(basis, x; gradient = false)
+        copyto!(φ0, φ)
+        for (b, r) in enumerate(blocks)
+            M = Mb[b]
+            o = first(r) - 1
+            for j in r, i in r
+                M[i - o, j - o] += ws[q] * φ0[i] * Rφ[j]
             end
         end
     end
-    cols = Vector{Vector{Float64}}()
-    ranks = Int[]
-    for k in 0:n
-        r = (dubiner_index(0, k)):(dubiner_index(k, 0))
-        block = [M[r, j] for j in r]
-        basis = pivoted_gram_schmidt!(block, 1e-8)
-        expected = molien_coefficient(N, k)
-        length(basis) == expected ||
-            error("invariant basis at degree $k has dimension $(length(basis)); Molien predicts $expected")
-        push!(ranks, length(basis))
-        for v in basis
-            full = zeros(L)
-            full[r] .= v
-            push!(cols, full)
-        end
-    end
-    Q = reduce(hcat, cols)
-    return InvariantBasis(Int(n), Q, ranks)
+    return Mb
 end
 
 # Pivoted modified Gram–Schmidt with reorthogonalisation. Columns are consumed. The

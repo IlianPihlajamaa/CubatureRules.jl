@@ -72,7 +72,7 @@ a family by defining one type and a few methods, with no registration step.
 | | |
 |---|---|
 | Domains | `Interval`, `Simplex{D}` (any D), `WeightedDomain` with Jacobi weights; the others are stubbed with the release that brings them |
-| Families | `XiaoGimbutas` (triangle, degrees 1–20, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree), `GaussJacobi` |
+| Families | `XiaoGimbutas` (triangle, degrees 1–26, any precision), `FullySymmetric` (tetrahedron, degrees 1–9, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree), `GaussJacobi` |
 | Claims | `PolynomialDegree`, `SpanOf`, `NoClaim`; claim preservation under `map_to`, `subdivide`, `transform`, `duffy` |
 | Application | `integrate` (generic return types; allocation-free on `static(rule)`), over a domain, over a mesh, batched |
 | Verification | `check` / `verify` / `@test_exact`, dispatched on the claim |
@@ -85,7 +85,8 @@ feasibility spike that decided the go/no-go gates is written up in
 ## Seed data and licensing
 
 All shipped seed data is MIT-licensed and generated in-house from orbit structures alone
-(`scripts/generate_triangle_seeds.jl`). No numbers were copied from any published table,
+(`scripts/generate_triangle_seeds.jl`, `scripts/generate_tetrahedron_seeds.jl`). No numbers
+were copied from any published table,
 and none from quadpy. Every file in `src/data` has an entry in `src/data/PROVENANCE.toml`,
 and CI fails the build if one is missing.
 
