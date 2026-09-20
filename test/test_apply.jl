@@ -65,3 +65,19 @@ allocs(f::F, r, d) where {F} = (integrate(f, r, d); @allocated integrate(f, r, d
     @test integrate(hot_g, sl) ≈ exp(1) - exp(-1)
     @test allocs(hot_g, sl, Interval(0.0, 2.0)) == 0
 end
+
+@testset "threaded mesh integration" begin
+    r = static(rule(Simplex{2}(); degree = 5))
+    m = 40
+    h = 1 / m
+    cells = [Simplex((i * h, j * h), ((i + 1) * h, j * h), ((i + 1) * h, (j + 1) * h)) for i in 0:(m - 1), j in 0:(m - 1)]
+    cells = vcat(vec(cells),
+                 vec([Simplex((i * h, j * h), ((i + 1) * h, (j + 1) * h), (i * h, (j + 1) * h)) for i in 0:(m - 1), j in 0:(m - 1)]))
+    f(p) = exp(-p[1] * p[2]) * (1 + p[1]^2)
+    serial = integrate(f, r, cells)
+    @test integrate(f, r, cells; threaded = true) ≈ serial rtol = 1e-14
+    @test serial ≈ integrate(f, rule(Simplex{2}(); degree = 12), cells) rtol = 1e-6
+    # the threaded sum is over per-thread partials in thread order, so it is repeatable
+    @test integrate(f, r, cells; threaded = true) == integrate(f, r, cells; threaded = true)
+    @test_throws ArgumentError integrate(f, r, Simplex{2,Float64,3}[])
+end

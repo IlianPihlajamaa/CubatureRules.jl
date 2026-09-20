@@ -63,11 +63,35 @@ function integrate(f::F, r::QuadratureRule, dom::Domain) where {F}
     return acc
 end
 
-function integrate(f::F, r::AnyRule, cells::AbstractVector{<:Domain}) where {F}
+function integrate(f::F, r::AnyRule, cells::AbstractVector{<:Domain}; threaded::Bool = false) where {F}
     isempty(cells) && throw(ArgumentError("no cells to integrate over"))
+    threaded && Threads.nthreads() > 1 && return _integrate_threaded(f, r, cells)
     acc = integrate(f, r, cells[1])
     for k in 2:length(cells)
         acc += integrate(f, r, cells[k])
+    end
+    return acc
+end
+
+# One accumulator per thread, summed in thread order: the result does not depend on how the
+# cells were scheduled, only on how many threads there are.
+function _integrate_threaded(f::F, r::AnyRule, cells) where {F}
+    nt = Threads.nthreads()
+    partials = Vector{Any}(nothing, nt)
+    chunks = [(t - 1) * length(cells) ÷ nt + 1:t * length(cells) ÷ nt for t in 1:nt]
+    Threads.@threads :static for t in 1:nt
+        rng = chunks[t]
+        isempty(rng) && continue
+        acc = integrate(f, r, cells[first(rng)])
+        for k in (first(rng) + 1):last(rng)
+            acc += integrate(f, r, cells[k])
+        end
+        partials[t] = acc
+    end
+    done = [p for p in partials if p !== nothing]
+    acc = first(done)
+    for k in 2:length(done)
+        acc += done[k]
     end
     return acc
 end

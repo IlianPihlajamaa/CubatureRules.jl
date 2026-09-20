@@ -68,3 +68,23 @@ end
     @test v.empirical && v.method === :convergence_sweep
     @test v.exact
 end
+
+@testset "subdivide on tetrahedra" begin
+    r = rule(Simplex{3}(); degree = 4)
+    s = subdivide(r, 2)
+    @test npoints(s) == 8npoints(r)
+    @test exactness(s) == exactness(r)
+    @test sum(weights(s)) ≈ 1 / 6
+    @test check(s).exact
+    @test_throws ArgumentError subdivide(r, 3)
+    # bisection keeps the cells non-degenerate and space-filling
+    cells = CR.bisect_tetrahedron(Simplex{3,Float64,4}(CR.SVector{4}(map(v -> CR.SVector{3,Float64}(v),
+                                                                        Simplex{3}().vertices))))
+    @test length(cells) == 8
+    @test sum(measure, cells) ≈ 1 / 6
+    @test all(c -> measure(c) ≈ 1 / 48, cells)
+    t = Simplex((0.0, 0.0, 0.0), (2.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 3.0))
+    st = subdivide(r, t, 2)
+    @test sum(weights(st)) ≈ measure(t)
+    @test check(st).exact
+end

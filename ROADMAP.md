@@ -269,14 +269,15 @@ which governs how much of Tier 3 is reachable at all.
 
 ### Mesh integration (§3.2)
 
-- [ ] `integrate(f, rule, mesh)` batched over cells, rule constructed once
-- [ ] Threaded variant behind a keyword
-- [ ] `subdivide(r, domain, n)` composite rules
+- [x] `integrate(f, rule, mesh)` batched over cells, rule constructed once
+- [x] Threaded variant behind a keyword
+- [x] `subdivide(r, domain, n)` composite rules *(intervals, triangles, and tetrahedra by
+      repeated bisection)*
 - [ ] A mesh interface shaped for `Meshes.jl` without taking the dependency yet
 
 ### Performance
 
-- [ ] Benchmark the mesh path against a hand-written FEM kernel — this is the acceptance
+- [x] Benchmark the mesh path against a hand-written FEM kernel — this is the acceptance
       test, not a nice-to-have
 - [ ] Check the `BigFloat` $n \sim 500$ risk (§11) with `benchmark_construction`
 - [ ] Profile and fix the generic eigensolver path where a Newton-on-recurrence path exists
@@ -284,7 +285,7 @@ which governs how much of Tier 3 is reachable at all.
 **Exit criteria**
 
 - [ ] A degree-15 tetrahedron rule at 100 digits, verified sharp
-- [ ] Integration over $10^6$ triangles within a small constant factor of a hand-written
+- [x] Integration over $10^6$ triangles within a small constant factor of a hand-written
       kernel, with zero allocations
 - [x] Verification basis extended to 3D (Koornwinder–Dubiner on the tetrahedron)
 - [ ] The Tier 3 feasibility numbers written down and published in the docs

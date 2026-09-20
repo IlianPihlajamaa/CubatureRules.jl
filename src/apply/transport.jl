@@ -105,8 +105,40 @@ function subdivide(r::QuadratureRule{2,T,<:Simplex}, dom::Simplex{2}, n::Integer
     end
 end
 
+function subdivide(r::QuadratureRule{3,T,<:Simplex}, dom::Simplex{3}, n::Integer) where {T}
+    ispow2(n) || throw(ArgumentError("a tetrahedron is subdivided by repeated bisection, so n must be a " *
+                                     "power of two (got $n); n = $(nextpow(2, n)) would give $(nextpow(2, n)^3) cells"))
+    S = promote_type(T, eltype(eltype(dom.vertices)))
+    S <: Integer && (S = Rational{BigInt})
+    return _at_rule_precision(r) do
+        cells = [convert_domain(S, dom)]
+        for _ in 1:Int(log2(n))
+            cells = reduce(vcat, map(bisect_tetrahedron, cells))
+        end
+        pieces = [map_to(r, c) for c in cells]
+        _concat(pieces, r, convert_domain(S, dom), "subdivide: $(n^3) tetrahedra")
+    end
+end
+
 subdivide(r::QuadratureRule, dom::Domain, n::Integer) =
-    throw(NotYetImplemented("subdivide for $(typeof(dom).name.name) domains of this dimension", "v0.2"))
+    throw(NotYetImplemented("subdivide for $(typeof(dom).name.name) domains of this dimension", "a later release"))
+
+"""
+    bisect_tetrahedron(t) -> 8 tetrahedra
+
+Freudenthal bisection: the four corner tetrahedra, plus the inner octahedron split along the
+`m₁₂–m₃₄` diagonal. Every child is similar in size to `t/2`, so repeated bisection does not
+degenerate.
+"""
+function bisect_tetrahedron(t::Simplex{3})
+    v = t.vertices
+    m(i, j) = (v[i] + v[j]) / 2
+    m12, m13, m14, m23, m24, m34 = m(1, 2), m(1, 3), m(1, 4), m(2, 3), m(2, 4), m(3, 4)
+    return [Simplex(v[1], m12, m13, m14), Simplex(v[2], m12, m23, m24),
+            Simplex(v[3], m13, m23, m34), Simplex(v[4], m14, m24, m34),
+            Simplex(m12, m13, m14, m34), Simplex(m12, m14, m24, m34),
+            Simplex(m12, m24, m23, m34), Simplex(m12, m23, m13, m34)]
+end
 
 function _concat(pieces, r, dom, step)
     xs = reduce(vcat, [p.nodes for p in pieces])
