@@ -72,7 +72,7 @@ a family by defining one type and a few methods, with no registration step.
 | | |
 |---|---|
 | Domains | `Interval`, `Simplex{D}` (any D), `WeightedDomain` with Jacobi weights; the others are stubbed with the release that brings them |
-| Families | `XiaoGimbutas` (triangle, degrees 1–26, any precision), `FullySymmetric` (tetrahedron, degrees 1–9, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree), `GaussJacobi` |
+| Families | `XiaoGimbutas` (triangle, degrees 1–27, any precision), `FullySymmetric` (tetrahedron, degrees 1–15, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree), `GaussJacobi` |
 | Claims | `PolynomialDegree`, `SpanOf`, `NoClaim`; claim preservation under `map_to`, `subdivide`, `transform`, `duffy` |
 | Application | `integrate` (generic return types; allocation-free on `static(rule)`), over a domain, over a mesh, batched |
 | Verification | `check` / `verify` / `@test_exact`, dispatched on the claim |
@@ -80,7 +80,8 @@ a family by defining one type and a few methods, with no registration step.
 
 See [ROADMAP.md](ROADMAP.md) for the stages and [PLAN.md](PLAN.md) for the design. The v0.0
 feasibility spike that decided the go/no-go gates is written up in
-[notes/v0.0-spike.md](notes/v0.0-spike.md).
+[notes/v0.0-spike.md](notes/v0.0-spike.md), and the tetrahedron gate in
+[notes/v0.2-tetrahedra.md](notes/v0.2-tetrahedra.md).
 
 ## Seed data and licensing
 
@@ -90,7 +91,9 @@ were copied from any published table,
 and none from quadpy. Every file in `src/data` has an entry in `src/data/PROVENANCE.toml`,
 and CI fails the build if one is missing.
 
-Minimal symmetric rules are **not unique**. The shipped rule at each degree is the most
+Point counts are the smallest our searches reached, not proven minima — at degree 27 on the
+triangle, node elimination found a 139-point rule where Xiao & Gimbutas (2010) report 141.
+Minimal symmetric rules are also **not unique**. The shipped rule at each degree is the most
 interior of the valid rules the search found, so it need not match the published table
 node for node. To refine a published table whose licence allows it, pass
 `seed = ExplicitSeed(θ; source = "...")`.

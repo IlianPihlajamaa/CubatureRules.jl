@@ -60,8 +60,9 @@ end
 end
 
 @testset "Xiao–Gimbutas: every shipped degree verifies (Float64)" begin
-    # minimal counts, Xiao & Gimbutas (2010) Table 1; a shipped rule may exceed one only when
-    # its table entry says so
+    # counts published by Xiao & Gimbutas (2010), Table 1, column n6. A shipped rule may
+    # differ either way — node elimination has found smaller ones — but never by much, and
+    # any difference must be recorded in the entry's note.
     counts = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79,
               87, 96, 103, 112, 120, 130, 141, 150, 159, 171]
     dmax = last(degree_range(XiaoGimbutas(), Simplex{2}()))
@@ -69,7 +70,8 @@ end
     for d in 1:dmax
         r = rule(XiaoGimbutas(), Simplex{2}(); degree = d)
         e = CR.xg_entry_for(d)
-        @test npoints(r) == counts[e.degree] || (!isempty(e.note) && counts[e.degree] < npoints(r) <= counts[e.degree] + 3)
+        @test npoints(r) <= counts[e.degree] + 3
+        @test npoints(r) == counts[e.degree] || !isempty(e.note)
         v = check(r)
         @test v.exact
         @test v.positive && v.interior && v.symmetric === true
@@ -118,4 +120,15 @@ end
     v = check(r)
     @test v.exact && v.sharp === true && v.max_residual < big(10.0)^-55
     @test isempty(candidates(FullySymmetric, Simplex{2}(), PolynomialDegree(3)))
+end
+
+@testset "shipped symmetric rules have distinct nodes" begin
+    # an orbit collapsing onto another would make the point count meaningless
+    for (fam, dom) in ((XiaoGimbutas(), Simplex{2}()), (FullySymmetric(), Simplex{3}()))
+        for d in 1:last(degree_range(fam, dom))
+            x = nodes(rule(fam, dom; degree = d))
+            sep = minimum(maximum(abs, x[i] - x[j]) for i in eachindex(x) for j in (i + 1):length(x); init = Inf)
+            @test sep > 1e-6
+        end
+    end
 end

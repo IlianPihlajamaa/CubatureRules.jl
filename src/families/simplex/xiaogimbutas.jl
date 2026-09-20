@@ -69,6 +69,12 @@ function seed_entry_for(entries, degree::Integer)
 end
 xg_entry_for(degree::Integer) = seed_entry_for(xg_entries(), degree)
 
+"The entry of degree exactly `n - 1`, if shipped."
+function seed_entry_below(entries, n::Integer)
+    i = findfirst(e -> e.degree == n - 1, entries)
+    return i === nothing ? nothing : entries[i]
+end
+
 function candidates(::Type{XiaoGimbutas}, dom::Simplex{2}, c::PolynomialDegree)
     (isreference(dom) && xg_entry_for(c.d) !== nothing) || return XiaoGimbutas[]
     return [XiaoGimbutas()]
@@ -126,19 +132,22 @@ end
 
 function build(f::XiaoGimbutas, dom::Simplex{2}, degree::Int, ctx::BuildContext;
                seed::SeedSource = TableSeed())
-    return build_symmetric("XiaoGimbutas", _xg_entry(degree), ctx; seed,
+    e = _xg_entry(degree)
+    return build_symmetric("XiaoGimbutas", e, ctx; seed, lower = seed_entry_below(xg_entries(), e.degree),
                            table = "src/data/triangle_s3_seeds.toml", citations = [XIAO_GIMBUTAS_2010],
                            license = "MIT (seeds generated in-house; point counts from Xiao & Gimbutas 2010)")
 end
 
 """
-    build_symmetric(name, entry, ctx; seed, table, citations, license)
+    build_symmetric(name, entry, ctx; seed, table, citations, license, lower)
 
 Seed → refine → certify for a fully symmetric simplex rule described by a seed-table
-`entry`: shared by every family backed by an orbit-structure seed table.
+`entry`: shared by every family backed by an orbit-structure seed table. `lower` is the
+entry one degree down, used by [`LowerDegreeSeed`](@ref).
 """
 function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{T}; seed::SeedSource,
-                         table::String, citations::Vector{Citation}, license::String) where {T}
+                         table::String, citations::Vector{Citation}, license::String,
+                         lower::Union{Nothing,SymmetricSeedEntry} = nothing) where {T}
     isexact(ctx) && throw(ArgumentError("$name nodes are irrational; $(T) is not supported"))
     n = e.degree
     N = e.structure.N
@@ -154,6 +163,14 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
         best = argmax(t -> (t[3], -t[4]), found)
         θ64 = best[1]
         seed_desc = describe(seed) * "; $(length(found)) valid rule(s) found, largest minimum barycentric kept"
+    end
+    if seed isa LowerDegreeSeed
+        lower === nothing && throw(ArgumentError("$name has no rule one degree below $n to grow from"))
+        got = grow_and_eliminate(lower.structure, lower.seed, n; chains = seed.chains, basis,
+                                 rng_seed = seed.rng_seed, cancel = ctx.cancel)
+        got === nothing && throw(RefinementError(name, "could not grow the degree-$(lower.degree) rule to degree $n"))
+        structure, θ64 = got[1], got[2]
+        seed_desc = describe(seed) * " from the $(npoints(lower.structure))-point degree-$(lower.degree) rule"
     end
     if seed isa ExplicitSeed
         length(seed.θ) == nunknowns(structure) || throw(ArgumentError(

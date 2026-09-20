@@ -2,8 +2,8 @@
 
 | Family | Domain | Degrees | Derivation | Points | Output types |
 |---|---|---|---|---|---|
-| `XiaoGimbutas` | triangle | 1–26 | seeded | minimal (Xiao–Gimbutas counts) | floating |
-| `FullySymmetric` | tetrahedron | 1–9 | seeded | smallest found by in-house search | floating |
+| `XiaoGimbutas` | triangle | 1–27 | seeded | Xiao–Gimbutas counts (fewer at degree 27) | floating |
+| `FullySymmetric` | tetrahedron | 1–15 | seeded | smallest found by in-house search | floating |
 | `GrundmannMöller` | any simplex | any (odd) | derived | ``\sum_{i=0}^{s} \binom{s-i+D}{D}`` | floating, `Rational{BigInt}` |
 | `ConicalProduct` | any simplex | any | derived | ``\lceil (d+1)/2 \rceil^D`` | floating |
 | `GaussJacobi` | interval, Jacobi weight | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
@@ -19,7 +19,8 @@ H. Xiao and Z. Gimbutas, *Comput. Math. Appl.* 59 (2010) 663–676,
 doi:10.1016/j.camwa.2009.10.027.
 
 The seeds are MIT-licensed. They were generated in-house from orbit structures alone, and
-no published numbers were used. Minimal rules are not unique; the shipped rule is the one
+no published numbers were used. Above degree 20 they come from node elimination, which at
+degree 27 reached a 139-point rule where the paper reports 141. Minimal rules are not unique; the shipped rule is the one
 with the largest minimum barycentric coordinate among those found.
 
 ## FullySymmetric

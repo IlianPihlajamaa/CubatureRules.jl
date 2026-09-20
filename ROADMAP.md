@@ -149,9 +149,9 @@ families and tooling on top of what lands here.
 - [x] Guard digits set adaptively from cond(J); both recorded in the `Certificate`
 - [x] Cancellation token checked once per iteration (needed by v0.7, cheap now, expensive
       to retrofit — §4.2)
-- [ ] Seed sources behind one interface: published table, orbit structure + multistart,
-      lower-degree rule of the same family *(table, explicit and multistart done;
-      lower-degree seeding not yet)*
+- [x] Seed sources behind one interface: published table, orbit structure + multistart,
+      lower-degree rule of the same family *(`TableSeed`, `ExplicitSeed`, `MultistartSeed`,
+      `LowerDegreeSeed`)*
 - [x] Divergence policy: flag in the registry, never silently return an unrefined seed
 
 ### Families
@@ -396,9 +396,13 @@ them.
 
 ### Seed generation (§6 Tier 4)
 
-- [ ] Node elimination: drop the lowest-weight orbit, Gauss–Newton the remainder back onto
+- [x] Node elimination: drop the lowest-weight orbit, Gauss–Newton the remainder back onto
       the moment variety, accept on positive weights and interior nodes, repeat
+      *(pulled forward into v0.2 by the $S_4$ gate; `src/refine/elimination.jl` also merges
+      an orbit's coordinates into a smaller orbit type, and grows a rule from the degree
+      below)*
 - [ ] Robustness tuning and a compute budget — the hard parts are these, not the mathematics
+      *(multi-chain driver done; no compute budget yet)*
 - [ ] Target: an MIT-licensed seed table for at least one domain where the literature runs
       out, which both extends coverage and unwinds the §0.2 dependency
 

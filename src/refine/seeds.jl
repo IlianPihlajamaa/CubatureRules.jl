@@ -44,6 +44,20 @@ ExplicitSeed(θ::AbstractVector; source = "user-supplied") = ExplicitSeed(Float6
 
 describe(s::TableSeed) = "stored table"
 describe(s::ExplicitSeed) = "explicit parameter vector (" * s.source * ")"
+
+"""
+    LowerDegreeSeed(; chains = 16, rng_seed = 0xe11)
+
+Derive the seed from the family's rule one degree lower: add orbits, refit, and eliminate
+points again (`grow_and_eliminate`, best of `chains` chains). The structure found need not
+be the one in the stored table, so the rule may differ from the table's, and may have more
+or fewer points.
+"""
+Base.@kwdef struct LowerDegreeSeed <: SeedSource
+    chains::Int = 16
+    rng_seed::UInt64 = 0xe11
+end
+describe(s::LowerDegreeSeed) = "grown from the degree below and node-eliminated ($(s.chains) chains)"
 describe(s::MultistartSeed) = "orbit structure + multistart ($(s.nstarts) starts, rng seed $(repr(s.rng_seed)))"
 
 """

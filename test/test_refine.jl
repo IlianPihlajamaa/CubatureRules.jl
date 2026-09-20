@@ -76,3 +76,34 @@ end
     @test length(CR.candidate_structures(25, 10)) >= 1
     @test all(s -> CR.npoints(s) == 25, CR.candidate_structures(25, 10))
 end
+
+@testset "node elimination and growing from the degree below" begin
+    # triangle: grow the degree-7 rule to degree 8, then eliminate
+    e7 = CR.xg_entry_for(7)
+    B8 = CR.invariant_basis(3, 8)
+    g = CR.grow(e7.structure, e7.seed, 8; basis = B8)
+    @test g !== nothing
+    s, θ = g
+    @test CR.npoints(s) > 16
+    se, θe = CR.eliminate(s, θ, 8; basis = B8)
+    @test CR.npoints(se) < CR.npoints(s)
+    @test CR.nunknowns(se) >= CR.n_invariants(3, 8) - 2
+    wmin, λmin = CR.rule_margins(se, θe)
+    @test wmin > 0 && λmin > 0
+    sys = CR.SymmetricMomentSystem(se, 8, Float64, B8)
+    @test maximum(abs, sys(θe)[1]) < 1e-12
+    # every move keeps the parameter vector consistent with its structure
+    for mv in CR.elimination_moves(s, θ)
+        @test CR.nunknowns(mv.structure) == length(mv.θ0)
+        @test CR.npoints(mv.structure) == CR.npoints(s) - mv.removed
+    end
+    # the multi-chain driver is deterministic and returns a verifiable rule
+    r1 = CR.grow_and_eliminate(e7.structure, e7.seed, 8; chains = 3, basis = B8)
+    r2 = CR.grow_and_eliminate(e7.structure, e7.seed, 8; chains = 3, basis = B8)
+    @test r1[2] == r2[2]
+    # as a seed source
+    r = rule(XiaoGimbutas(), Simplex{2}(); degree = 8, seed = LowerDegreeSeed(chains = 3))
+    @test passed(check(r))
+    @test occursin("grown from the degree below", provenance(r).seed_source)
+    @test_throws ArgumentError rule(XiaoGimbutas(), Simplex{2}(); degree = 1, seed = LowerDegreeSeed())
+end

@@ -44,6 +44,7 @@ include("symmetry/orbits.jl")
 include("symmetry/invariant.jl")
 include("symmetry/moment_system.jl")
 include("refine/seeds.jl")
+include("refine/elimination.jl")
 include("families/simplex/grundmannmoller.jl")
 include("families/simplex/xiaogimbutas.jl")
 include("families/simplex/fullysymmetric.jl")
@@ -73,7 +74,7 @@ export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct,
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families
 export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError
-export SeedSource, TableSeed, MultistartSeed, ExplicitSeed
+export SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed
 # application and transport
 export integrate, map_to, subdivide, transform, duffy
 # verification and presentation

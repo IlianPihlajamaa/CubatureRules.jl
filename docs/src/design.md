@@ -52,6 +52,24 @@ independent invariant moments. That basis is computed in Float64. An inexact bas
 only the conditioning, never the converged rule, because a symmetric rule's residual
 already lies in the invariant subspace.
 
+## Seed sources
+
+The seed a refinement starts from is chosen with the `seed` keyword of [`rule`](@ref):
+
+| Source | Where the starting point comes from |
+|---|---|
+| `TableSeed()` (default) | the shipped seed table |
+| `ExplicitSeed(θ)` | orbit parameters you supply, e.g. from a table whose licence allows it |
+| `MultistartSeed()` | the orbit structure alone, by multistart search |
+| `LowerDegreeSeed()` | the family's rule one degree lower, grown and then node-eliminated |
+
+`LowerDegreeSeed` adds orbits to the rule below (which already integrates all but the top
+moments), refits, and then repeatedly removes points again: it drops an orbit, or merges
+two of an orbit's barycentric values so the orbit becomes a smaller type, and refits the
+rest onto the moment variety. Several chains run with different random placements and move
+orders, and the rule with the fewest points wins. This is how the shipped tetrahedron
+seeds above degree 10 were found; a from-scratch search costs hours there.
+
 ## No caching
 
 `rule(...)` constructs and returns; it does not memoise. Rules are immutable values with

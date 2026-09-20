@@ -51,7 +51,8 @@ cost_estimate(f::FullySymmetric, dom, degree, T) =
     float(npoints(f, dom, degree)) * tet_length(claimed_degree(f, dom, degree)) / 10 * _precision_factor(T)
 
 function build(f::FullySymmetric, dom::Simplex{3}, degree::Int, ctx::BuildContext; seed::SeedSource = TableSeed())
-    return build_symmetric("FullySymmetric", _tet_entry(degree), ctx; seed,
+    e = _tet_entry(degree)
+    return build_symmetric("FullySymmetric", e, ctx; seed, lower = seed_entry_below(tet_entries(), e.degree),
                            table = "src/data/tetrahedron_s4_seeds.toml", citations = Citation[],
                            license = "MIT (seeds and point counts generated in-house)")
 end
