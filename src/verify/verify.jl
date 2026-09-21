@@ -131,6 +131,42 @@ blocks(b::TetVerifyBasis) = degree_blocks(b.basis)
 exact_integrals(b::TetVerifyBasis{S}) where {S} =
     (v = zeros(S, basis_length(b.basis)); v[1] = b.basis.ws.c[1] * S(1 // 6); v)
 
+# Tensor Legendre on the reference box, graded by *total* degree — the space a tensor rule
+# claims (PLAN §2.2), not the larger tensor-product space it is exact on.
+struct BoxBasis{D,S} <: VerificationBasis
+    n::Int
+    idx::Vector{NTuple{D,Int}}
+    blockranges::Vector{UnitRange{Int}}
+    axis::JacobiBasis{S,Int}
+end
+
+function BoxBasis{D,S}(n::Int; normalize::Bool = true) where {D,S}
+    idx = NTuple{D,Int}[]
+    ranges = UnitRange{Int}[]
+    for k in 0:n
+        lo = length(idx) + 1
+        for c in compositions(k, D)
+            push!(idx, NTuple{D,Int}(c))
+        end
+        push!(ranges, lo:length(idx))
+    end
+    return BoxBasis{D,S}(n, idx, ranges, JacobiBasis{S,Int}(n, 0, 0, normalize))
+end
+
+function evaluate!(b::BoxBasis{D,S}, x) where {D,S}
+    ps = [evaluate!(b.axis, (x[j],)) for j in 1:D]        # (values, |derivatives|) per axis
+    φ = [prod(ps[j][1][i[j] + 1] for j in 1:D) for i in b.idx]
+    g = [sum(ps[j][2][i[j] + 1] * prod(abs(ps[l][1][i[l] + 1]) for l in 1:D if l != j; init = one(S))
+             for j in 1:D) for i in b.idx]
+    return φ, g
+end
+blocks(b::BoxBasis) = b.blockranges
+function exact_integrals(b::BoxBasis{D,S}) where {D,S}
+    v = zeros(S, length(b.idx))
+    v[1] = (b.axis.normalize ? sqrt(S(2)) : S(2))^D        # only the constant term survives
+    return v
+end
+
 exact_integrals(b::DubinerBasis{S}) where {S} =
     (v = zeros(S, length(b.φ)); v[1] = b.ws.c[1] * S(1 // 2); v)
 function exact_integrals(b::JacobiBasis{S}) where {S}
@@ -156,6 +192,14 @@ function reference_nodes(r::QuadratureRule{1,T,<:Interval}, ::Type{S}) where {T,
     ws = [2S(w) / (b - a) for w in r.weights]
     return xs, ws
 end
+function reference_nodes(r::QuadratureRule{D,T,<:Orthotope}, ::Type{S}) where {D,T,S}
+    lo = SVector{D,S}(map(S, r.domain.lo))
+    hi = SVector{D,S}(map(S, r.domain.hi))
+    scale = prod((hi - lo) ./ 2)
+    xs = [Vector{S}((2 .* SVector{D,S}(map(S, x)) .- (lo .+ hi)) ./ (hi .- lo)) for x in r.nodes]
+    return xs, [S(w) / scale for w in r.weights]
+end
+
 function reference_nodes(r::QuadratureRule{1,T,<:WeightedDomain}, ::Type{S}) where {T,S}
     isreference(r.domain.base) || throw(ArgumentError("verification of weighted rules needs the reference interval"))
     return [[S(x)] for x in r.nodes], [S(w) for w in r.weights]
@@ -167,6 +211,10 @@ verification_basis(dom::Simplex{3}, n, ::Type{S}, exact) where {S} = TetVerifyBa
     exact ? "tetrahedral Dubiner (unnormalised, exact arithmetic)" : "orthonormal tetrahedral Dubiner"
 verification_basis(dom::Simplex{D}, n, ::Type{S}, exact) where {D,S} =
     BarycentricMonomialBasis{S}(D, n), "barycentric monomials of degree $(join(n, ", ")) (exact Dirichlet moments)"
+verification_basis(dom::Orthotope{D}, n, ::Type{S}, exact) where {D,S} =
+    BoxBasis{D,S}(n; normalize = !exact),
+    exact ? "tensor Legendre (unnormalised, exact arithmetic), graded by total degree" :
+    "tensor orthonormal Legendre, graded by total degree"
 verification_basis(dom::Interval, n, ::Type{S}, exact) where {S} =
     JacobiBasis{S,Int}(n, 0, 0, !exact), exact ? "Legendre (unnormalised, exact arithmetic)" : "orthonormal Legendre"
 verification_basis(dom::WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}, n, ::Type{S}, exact) where {S} =

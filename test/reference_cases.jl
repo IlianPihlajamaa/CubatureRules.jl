@@ -9,4 +9,5 @@ const REFERENCE_CASES = [
     "conical_triangle_d11_80digits" => () -> rule(ConicalProduct(), Simplex{2}(); degree = 11, digits = 80),
     "gauss_legendre_n40_100digits" => () -> rule(GaussLegendre(), Interval(); npoints = 40, digits = 100),
     "gauss_jacobi_21_float64" => () -> rule(WeightedDomain(Interval(), JacobiWeight(2, 1)); degree = 15),
+    "tensor_box3_d7_60digits" => () -> rule(Orthotope{3}(); degree = 7, digits = 60),
 ]

@@ -11,6 +11,7 @@ const CR = CubatureRules
     @testset "registry and selection" include("test_registry.jl")
     @testset "application" include("test_apply.jl")
     @testset "claim preservation" include("test_transport.jl")
+    @testset "composition" include("test_composition.jl")
     @testset "verification" include("test_verify.jl")
     @testset "number types" include("test_numbertypes.jl")
     @testset "presentation" include("test_presentation.jl")

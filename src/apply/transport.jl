@@ -195,3 +195,21 @@ function duffy(r::QuadratureRule{D,T,<:Simplex}; power::Integer = 2) where {D,T}
                                  symmetry = :none), r.certificate)
     end
 end
+
+@inline function _affine(src::Orthotope{D}, dst::Orthotope{D}, ::Type{S}) where {D,S}
+    s = SVector{D,S}((dst.hi - dst.lo) ./ (src.hi - src.lo))
+    A = SMatrix{D,D,S}(Diagonal(s))
+    return A, SVector{D,S}(dst.lo) - A * SVector{D,S}(src.lo), abs(prod(s))
+end
+
+function map_to(r::QuadratureRule{D,T,<:Orthotope}, dom::Orthotope{D}) where {D,T}
+    S = promote_type(T, eltype(dom.lo))
+    S <: Integer && (S = Rational{BigInt})
+    return _at_rule_precision(r) do
+        A, b, J = _affine(r.domain, dom, S)
+        xs = [A * SVector{D,S}(x) + b for x in r.nodes]
+        ws = [S(w) * J for w in r.weights]
+        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
+                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
+    end
+end

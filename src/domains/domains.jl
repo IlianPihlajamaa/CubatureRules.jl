@@ -155,6 +155,45 @@ isinterior(x, s::Simplex; tol = 0) = all(>(tol), barycentric(s, x))
 isinterior(x, d::Interval; tol = 0) = d.a + tol < only(x) < d.b - tol
 
 # ---------------------------------------------------------------------------------------
+# Orthotope (box).
+
+"""
+    Orthotope(lo, hi)
+    Orthotope{D}()
+
+The box `[lo₁, hi₁] × ⋯ × [lo_D, hi_D]`. `Orthotope{D}()` is the reference box `[-1, 1]^D`,
+the natural home of tensor-product rules.
+"""
+struct Orthotope{D,T} <: Domain{D,T}
+    lo::SVector{D,T}
+    hi::SVector{D,T}
+    function Orthotope{D,T}(lo, hi) where {D,T}
+        all(lo .< hi) || throw(ArgumentError("an orthotope needs lo < hi in every direction"))
+        return new{D,T}(lo, hi)
+    end
+end
+
+function Orthotope(lo, hi)
+    length(lo) == length(hi) || throw(ArgumentError("lo and hi need the same length"))
+    D = length(lo)
+    T = promote_type(eltype(lo), eltype(hi))
+    return Orthotope{D,T}(SVector{D,T}(lo), SVector{D,T}(hi))
+end
+Orthotope{D}() where {D} = Orthotope{D,Int}(SVector{D,Int}(ntuple(_ -> -1, D)), SVector{D,Int}(ntuple(_ -> 1, D)))
+
+isreference(d::Orthotope) = all(d.lo .== -1) && all(d.hi .== 1)
+reference(::Orthotope{D}) where {D} = Orthotope{D}()
+measure(d::Orthotope) = prod(d.hi - d.lo)
+convert_domain(::Type{S}, d::Orthotope{D}) where {S,D} =
+    Orthotope{D,S}(SVector{D,S}(map(S, d.lo)), SVector{D,S}(map(S, d.hi)))
+indomain(x, d::Orthotope; tol = 0) = all(d.lo .- tol .<= x .<= d.hi .+ tol)
+isinterior(x, d::Orthotope; tol = 0) = all(d.lo .+ tol .< x .< d.hi .- tol)
+
+function Base.show(io::IO, d::Orthotope{D}) where {D}
+    isreference(d) ? print(io, "Orthotope{", D, "}()") : print(io, "Orthotope(", Tuple(d.lo), ", ", Tuple(d.hi), ")")
+end
+
+# ---------------------------------------------------------------------------------------
 # Weighted domains.
 
 """
@@ -200,7 +239,7 @@ end
 Base.showerror(io::IO, e::NotYetImplemented) =
     print(io, e.what, " is not implemented yet; it is scheduled for CubatureRules ", e.release, ".")
 
-for (name, rel) in ((:Orthotope, "v0.3"), (:Sphere, "v0.4"), (:Ball, "v0.4"),
+for (name, rel) in ((:Sphere, "v0.4"), (:Ball, "v0.4"),
                     (:Polytope, "v0.6"), (:Wedge, "v0.6"), (:Pyramid, "v0.6"))
     @eval begin
         @doc "`$($(string(name)))` — not yet implemented (scheduled for $($rel))." struct $name{D,T} <: Domain{D,T}

@@ -48,6 +48,7 @@ include("refine/elimination.jl")
 include("families/simplex/grundmannmoller.jl")
 include("families/simplex/xiaogimbutas.jl")
 include("families/simplex/fullysymmetric.jl")
+include("composition/tensor.jl")
 
 # selection, application, verification, presentation
 include("registry/registry.jl")
@@ -69,7 +70,7 @@ export QuadratureRule, StaticQuadratureRule, static, nodes, weights, domain, exa
        provenance, certificate, npoints, degree, family, derivation, rule_hash
 export Provenance, Certificate, Verification, Citation, Derived, Seeded
 # families and the registry
-export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct,
+export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct, ⊗,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families

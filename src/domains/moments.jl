@@ -77,3 +77,18 @@ function affine_map(from::Interval, to::Interval)
     s = T(to.b - to.a) / T(from.b - from.a)
     return AffineMap(SMatrix{1,1,T}(s), SVector{1,T}(T(to.a) - s * T(from.a)))
 end
+
+function monomial_moment(d::Orthotope{D}, α) where {D}
+    isreference(d) || throw(ArgumentError("exact moments are provided on the reference orthotope"))
+    length(α) == D || throw(ArgumentError("need $D exponents"))
+    return prod(isodd(k) ? big(0) // 1 : big(2) // (k + 1) for k in α)
+end
+
+"The affine map between two boxes is diagonal."
+function affine_map(from::Orthotope{D}, to::Orthotope{D}) where {D}
+    T = promote_type(eltype(from.lo), eltype(to.lo))
+    T = T <: Integer ? Rational{BigInt} : T
+    s = SVector{D,T}((to.hi - to.lo) ./ (from.hi - from.lo))
+    A = SMatrix{D,D,T}(Diagonal(s))
+    return AffineMap(A, SVector{D,T}(to.lo) - A * SVector{D,T}(from.lo))
+end

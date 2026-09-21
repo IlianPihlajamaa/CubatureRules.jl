@@ -104,6 +104,7 @@ _coordtype(s::Simplex) = eltype(eltype(s.vertices))
     return S <: Integer ? Rational{BigInt} : S
 end
 _coordtype(d::Interval) = typeof(d.a)
+_coordtype(d::Orthotope) = eltype(d.lo)
 
 # ---------------------------------------------------------------------------------------
 # The runtime form: inlined, and unrolled at compile time (the node count is a type
