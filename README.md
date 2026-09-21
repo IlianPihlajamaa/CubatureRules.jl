@@ -97,8 +97,9 @@ and none from quadpy. Every file in `src/data` has an entry in `src/data/PROVENA
 and CI fails the build if one is missing.
 
 Point counts are the smallest our searches reached, not proven minima — at degree 27 on the
-triangle, node elimination found a 139-point rule where Xiao & Gimbutas (2010) report 141
-(also 148 against 150 at degree 28, and 157 against 159 at degree 29).
+triangle, node elimination found a 139-point rule where Xiao & Gimbutas (2010) report 141,
+and it is below the published count at most degrees from 27 upwards (148 vs 150, 157 vs 159,
+169 vs 171, 178 vs 181, …).
 Minimal symmetric rules are also **not unique**. The shipped rule at each degree is the most
 interior of the valid rules the search found, so it need not match the published table
 node for node. To refine a published table whose licence allows it, pass
