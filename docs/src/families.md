@@ -2,12 +2,14 @@
 
 | Family | Domain | Degrees | Derivation | Points | Output types |
 |---|---|---|---|---|---|
-| `XiaoGimbutas` | triangle | 1–27 | seeded | Xiao–Gimbutas counts (fewer at degree 27) | floating |
+| `XiaoGimbutas` | triangle | 1–40 | seeded | Xiao–Gimbutas counts, or fewer (degrees 27–33, 38–40) | floating |
 | `FullySymmetric` | tetrahedron | 1–15 | seeded | smallest found by in-house search | floating |
 | `GrundmannMöller` | any simplex | any (odd) | derived | ``\sum_{i=0}^{s} \binom{s-i+D}{D}`` | floating, `Rational{BigInt}` |
 | `ConicalProduct` | any simplex | any | derived | ``\lceil (d+1)/2 \rceil^D`` | floating |
-| `TensorProduct` | box (`Orthotope`) | any | derived | ``\prod_i m_i`` | floating |
+| `TensorProduct` | box (`Orthotope`) | any | derived | ``\prod_i m_i`` | floating, exact over exact factors |
 | `GaussJacobi` | interval, Jacobi weight | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
+| `NewtonCotes` | interval | any | derived | `d`, or `d+1` when even | floating, `Rational{BigInt}` |
+| `Fejer` | interval | any | derived | `d`, or `d+1` when even | floating |
 
 ## XiaoGimbutas
 
