@@ -325,9 +325,11 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] `Orthotope` domain
 - [x] `TensorProduct` over any 1D families; conservative total-degree claim (§2.2)
 - [x] `r₁ ⊗ r₂`
-- [ ] `RuleSequence` for nested families (§3.3)
-- [ ] Embedded error estimates at zero extra evaluations, generalised beyond Kronrod
-- [ ] `integrate(f, domain; rtol)` order-adaptive, returning `IntegrationResult` (§3.4)
+- [x] `RuleSequence` for nested families (§3.3)
+- [x] Embedded error estimates at zero extra evaluations, generalised beyond Kronrod
+      *(`EmbeddedRule` pairs any rule with a coarser one on a subset of its nodes; Kronrod
+      and nested Fejér 2 both work)*
+- [x] `integrate(f, domain; rtol)` order-adaptive, returning `IntegrationResult` (§3.4)
 
 **Exit criteria**
 

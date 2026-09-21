@@ -58,6 +58,7 @@ include("composition/tensor.jl")
 include("registry/registry.jl")
 include("apply/transport.jl")
 include("apply/integrate.jl")
+include("apply/sequence.jl")
 include("verify/verify.jl")
 include("emit/show.jl")
 include("emit/cite.jl")
@@ -82,7 +83,8 @@ export rule, available, compare, candidates, properties, degree_range, cost_esti
 export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError
 export SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed
 # application and transport
-export integrate, map_to, subdivide, transform, duffy
+export integrate, map_to, subdivide, transform, duffy, RuleSequence, EmbeddedRule, embedded,
+       IntegrationResult
 # verification and presentation
 export verify, check, passed, @test_exact, cite
 export benchmark_construction
