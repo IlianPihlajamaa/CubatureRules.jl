@@ -77,7 +77,10 @@ end
     serial = integrate(f, r, cells)
     @test integrate(f, r, cells; threaded = true) ≈ serial rtol = 1e-14
     @test serial ≈ integrate(f, rule(Simplex{2}(); degree = 12), cells) rtol = 1e-6
-    # the threaded sum is over per-thread partials in thread order, so it is repeatable
-    @test integrate(f, r, cells; threaded = true) == integrate(f, r, cells; threaded = true)
+    # the threaded sum is over per-thread partials in thread order, so it is repeatable.
+    # Repeated: a data race in the threaded loop shows up as a wrong sum only sometimes.
+    vals = [integrate(f, r, cells; threaded = true) for _ in 1:50]
+    @test all(==(first(vals)), vals)
+    @test first(vals) ≈ serial rtol = 1e-14
     @test_throws ArgumentError integrate(f, r, Simplex{2,Float64,3}[])
 end

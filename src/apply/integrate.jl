@@ -75,25 +75,30 @@ end
 
 # One accumulator per thread, summed in thread order: the result does not depend on how the
 # cells were scheduled, only on how many threads there are.
+#
+# Every name assigned inside the threaded loop must be used nowhere else in this function.
+# A name that is also assigned outside becomes one shared (boxed) variable, which every
+# thread then writes — a race that silently returns wrong sums.
 function _integrate_threaded(f::F, r::AnyRule, cells) where {F}
     nt = Threads.nthreads()
     partials = Vector{Any}(nothing, nt)
     chunks = [(t - 1) * length(cells) ÷ nt + 1:t * length(cells) ÷ nt for t in 1:nt]
     Threads.@threads :static for t in 1:nt
         rng = chunks[t]
-        isempty(rng) && continue
-        acc = integrate(f, r, cells[first(rng)])
-        for k in (first(rng) + 1):last(rng)
-            acc += integrate(f, r, cells[k])
+        if !isempty(rng)
+            part = integrate(f, r, cells[first(rng)])
+            for k in (first(rng) + 1):last(rng)
+                part += integrate(f, r, cells[k])
+            end
+            partials[t] = part
         end
-        partials[t] = acc
     end
     done = [p for p in partials if p !== nothing]
-    acc = first(done)
-    for k in 2:length(done)
-        acc += done[k]
+    total = first(done)
+    for j in 2:length(done)
+        total += done[j]
     end
-    return acc
+    return total
 end
 
 _coordtype(s::Simplex) = eltype(eltype(s.vertices))
