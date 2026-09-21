@@ -349,18 +349,30 @@ end
 """
     verify_convergence(rules, f, reference; rtol = 0) -> Verification
 
-Empirical check for rules without an exactness claim: the errors `|Q_k f - reference|`
-over the sequence `rules` must decrease (non-strictly, allowing for rounding at the end)
-and the last must be within `rtol` of the reference if `rtol > 0`. The result is flagged
-`empirical`.
+Empirical check for rules without an exactness claim: the errors `|Q_k f - reference|` over
+the sequence `rules` must converge — decreasing until they reach a floor, and never growing
+substantially after that — and the last must be within `rtol` of the reference if
+`rtol > 0`. The result is flagged `empirical`.
+
+A plateau is accepted, because one is expected: a rule delivered as explicit nodes cannot
+resolve an endpoint singularity beyond the point where `1 - x` loses its significant digits,
+so tanh-sinh on `1/sqrt(1-x^2)` stalls at about the square root of the working precision.
+What the check rules out is divergence.
 """
-function verify_convergence(rules::AbstractVector{<:QuadratureRule}, f, reference; rtol = 0)
+function verify_convergence(rules::AbstractVector{<:QuadratureRule}, f, reference; rtol = nothing)
     errs = [abs(integrate(f, r) - reference) for r in rules]
-    floor = 64 * eps(float(real(eltype(first(rules))))) * abs(reference)
-    decreasing = all(k -> errs[k + 1] <= errs[k] || errs[k + 1] <= floor, 1:(length(errs) - 1))
-    final_ok = rtol == 0 || last(errs) <= rtol * abs(reference)
+    # the default target is the square root of the working precision, the best a rule with
+    # explicit nodes can do on an endpoint singularity
+    target = rtol === nothing ? 16 * sqrt(eps(float(real(eltype(first(rules)))))) : rtol
+    # a step up is allowed only towards the floor: the best error seen, or plain roundoff
+    # (a rule can hit an exact zero, which would otherwise make the floor zero)
+    ε = eps(float(real(eltype(first(rules)))))
+    plateau = max(4 * minimum(errs), 64 * ε * max(abs(reference), one(abs(reference))))
+    decreasing = all(k -> errs[k + 1] <= max(errs[k] * 3 // 2, plateau), 1:(length(errs) - 1))
+    final_ok = last(errs) <= target * max(abs(reference), one(abs(reference)))
     return Verification(basis = "convergence sweep over $(length(rules)) rules", degree = -1,
-                        max_residual = BigFloat(last(errs)), tolerance = BigFloat(rtol * abs(reference)),
+                        max_residual = BigFloat(last(errs)),
+                        tolerance = BigFloat(target * max(abs(reference), one(abs(reference)))),
                         exact = decreasing && final_ok, sharp = nothing, sharp_residual = big(0.0),
                         weights_sum_ok = true, interior = all(r -> all(x -> isinterior(x, r.domain), r.nodes), rules),
                         positive = all(r -> all(>(0), r.weights), rules), symmetric = nothing,

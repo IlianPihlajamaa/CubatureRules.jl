@@ -10,6 +10,7 @@
 | `GaussJacobi` | interval, Jacobi weight | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
 | `NewtonCotes` | interval | any | derived | `d`, or `d+1` when even | floating, `Rational{BigInt}` |
 | `Fejer` | interval | any | derived | `d`, or `d+1` when even | floating |
+| `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
 
 ## XiaoGimbutas
 
@@ -80,3 +81,27 @@ polynomial space, which is larger than the total-degree space it reports — a 4
 integrates `x⁶y⁶` exactly but claims only total degree 7. The selector ranks candidates by
 node count against a total degree, so that is what is reported, and `show` never prints
 something ambiguous.
+
+## TanhSinh
+
+```@docs
+TanhSinh
+```
+
+The family that forces the [`ExactnessClaim`](@ref) hierarchy to exist. Tanh-sinh is exact
+on no polynomial space — its claim is a convergence *rate* — so it reports
+[`NoClaim`](@ref), is never offered for a `degree` request, and is checked by a convergence
+sweep rather than by exact integration:
+
+```julia
+seq = [rule(TanhSinh(m), Interval()) for m in 2:6]
+CubatureRules.verify_convergence(seq, x -> 1/sqrt(1 - x^2), π)
+```
+
+It earns its place on integrands Gauss rules handle badly. On `1/√(1-x²)` at 201 points,
+tanh-sinh reaches 5e-8 where Gauss–Legendre manages 9e-3.
+
+Accuracy is limited by how well `1 - x` survives in floating point. The outermost node sits
+a few units of roundoff from the endpoint, so an integrand evaluated at `x` near ±1 loses
+about half the working digits — 3e-8 in `Float64`, 3e-26 at 50 digits. Ask for more digits,
+or substitute so that the integrand is written in terms of the distance to the endpoint.

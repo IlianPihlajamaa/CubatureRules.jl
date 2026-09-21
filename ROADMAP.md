@@ -317,7 +317,8 @@ gaining enough breadth for the selector to be genuinely discriminating.
       delegated; Fejér 1 and 2 implemented here, as upstream lacks them)*
 - [x] Newton–Cotes closed and open, exact `Rational{BigInt}`
 - [ ] Gauss–Patterson nested extension
-- [ ] Tanh-sinh, exp-sinh, sinh-sinh — the `NoClaim` path, with convergence-sweep
+- [x] Tanh-sinh, exp-sinh, sinh-sinh — the `NoClaim` path, with convergence-sweep
+      *(tanh-sinh done; exp-sinh and sinh-sinh need the unbounded domains)*
       verification
 
 ### Composition

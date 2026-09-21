@@ -138,16 +138,21 @@ function rule(f::RuleFamily, dom::Domain; degree = nothing, npoints = nothing, T
             throw(ArgumentError("$(describe_family(f)) does not take an `npoints` request"))
         degree = degree_for_npoints(f, ref, npoints)
     end
-    degree === nothing && throw(NoRuleError(no_degree_message(dom; only = f)))
+    if degree === nothing
+        needs_degree(f) && throw(NoRuleError(no_degree_message(dom; only = f)))
+        degree = 0          # the family is parameterised by something other than degree
+    end
     Tout, bits = resolve_precision(T, digits)
     dep = missing_dependency(f)
     dep === nothing ||
         throw(NoRuleError("$(describe_family(f)) builds its rules with $(dep), which is not loaded; " *
                           "run `using $(chopsuffix(dep, ".jl"))` first"))
-    isempty(candidates(typeof(f), ref, PolynomialDegree(degree))) &&
-        throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, false, false, Candidate[]; only = f)))
-    degree in degree_range(f, ref) ||
-        throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, false, false, Candidate[]; only = f)))
+    if needs_degree(f)
+        isempty(candidates(typeof(f), ref, PolynomialDegree(degree))) &&
+            throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, false, false, Candidate[]; only = f)))
+        degree in degree_range(f, ref) ||
+            throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, false, false, Candidate[]; only = f)))
+    end
     supports_type(f, Tout) ||
         throw(NoRuleError("$(describe_family(f)) cannot deliver nodes and weights in $Tout"))
     c = Candidate(f, ref, degree, Tout)

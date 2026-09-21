@@ -116,3 +116,12 @@ The selector uses it to say so instead of reporting the family as nonexistent. F
 whose rules come from an upstream package define this.
 """
 missing_dependency(::RuleFamily) = nothing
+
+"""
+    needs_degree(f) -> Bool
+
+Whether `rule(f, domain)` requires a `degree`. False for families characterised by
+something else — tanh-sinh is parameterised by its step, and is exact on no polynomial
+space, so a degree would be meaningless.
+"""
+needs_degree(::RuleFamily) = true

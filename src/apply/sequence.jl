@@ -73,10 +73,10 @@ evaluations**, which is how Gauss–Kronrod works and what nested families give 
 `integrate(f, e)` returns the fine value; `integrate(f, e; error = true)` returns an
 [`IntegrationResult`](@ref).
 """
-struct EmbeddedRule{D,T,R<:QuadratureRule{D,T}}
+struct EmbeddedRule{D,T,R<:QuadratureRule{D,T},C<:ExactnessClaim}
     fine::R
     coarse_weights::Vector{T}          # aligned with the fine rule's nodes; zero off the coarse rule
-    coarse_degree::Int
+    coarse_claim::C                    # a claim, not a degree: the coarse rule may have none
 end
 
 function EmbeddedRule(fine::QuadratureRule{D,T}, coarse::QuadratureRule{D}) where {D,T}
@@ -89,7 +89,7 @@ function EmbeddedRule(fine::QuadratureRule{D,T}, coarse::QuadratureRule{D}) wher
                                              "so the two are not embedded"))
         w[i] = T(weights(coarse)[j])
     end
-    return EmbeddedRule{D,T,typeof(fine)}(fine, w, degree(coarse))
+    return EmbeddedRule{D,T,typeof(fine),typeof(exactness(coarse))}(fine, w, exactness(coarse))
 end
 
 nodes(e::EmbeddedRule) = nodes(e.fine)
@@ -98,11 +98,13 @@ domain(e::EmbeddedRule) = domain(e.fine)
 exactness(e::EmbeddedRule) = exactness(e.fine)
 npoints(e::EmbeddedRule) = npoints(e.fine)
 degree(e::EmbeddedRule) = degree(e.fine)
+"The fine rule's degree, or -1 when it claims no polynomial degree."
+_result_degree(r) = exactness(r) isa PolynomialDegree ? degree(r) : -1
 family(e::EmbeddedRule) = family(e.fine)
 provenance(e::EmbeddedRule) = provenance(e.fine)
 Base.show(io::IO, e::EmbeddedRule) =
-    print(io, "EmbeddedRule(", family(e), ", ", npoints(e), " points, degree ", degree(e),
-          " with an embedded degree-", e.coarse_degree, " rule)")
+    print(io, "EmbeddedRule(", family(e), ", ", npoints(e), " points, ", describe(exactness(e)),
+          ", embedding a rule with ", describe(e.coarse_claim), ")")
 
 """
     IntegrationResult
@@ -138,7 +140,7 @@ function integrate(f::F, e::EmbeddedRule; error::Bool = false) where {F}
         coarse += wc[i] * v
     end
     error || return fine
-    return IntegrationResult(fine, abs(fine - coarse), npoints(e), degree(e), family(e), true)
+    return IntegrationResult(fine, abs(fine - coarse), npoints(e), _result_degree(e.fine), family(e), true)
 end
 
 """
@@ -200,11 +202,11 @@ function integrate(f::F, dom::Domain; rtol = nothing, atol = 0, family = nothing
             lasterr = err
             if err <= max(atol, rtol * abs(v))
                 # `family` is the keyword here, so the rule reports its own name
-                return IntegrationResult(v, err, neval, degree(r), provenance(r).family, true)
+                return IntegrationResult(v, err, neval, _result_degree(r), provenance(r).family, true)
             end
         end
         prev = v
-        best = (v, degree(r), provenance(r).family)
+        best = (v, _result_degree(r), provenance(r).family)
     end
     # not converged: report the last difference achieved rather than nothing useful
     v, d, fname = best

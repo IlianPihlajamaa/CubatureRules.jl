@@ -182,3 +182,45 @@ end
     # Gauss still wins on node count, so the selector prefers it
     @test family(rule(Interval(); degree = 9)) == "GaussJacobi"
 end
+
+@testset "tanh-sinh: the NoClaim path" begin
+    for m in 2:5
+        r = rule(TanhSinh(m), Interval())
+        @test exactness(r) isa NoClaim
+        @test_throws ArgumentError degree(r)
+        @test_throws ArgumentError verify(r)                  # nothing to verify by exactness
+        @test sum(weights(r)) ≈ 2 atol = 1e-13
+        @test all(>(0), weights(r))
+        @test all(x -> -1 < x < 1, nodes(r))                  # never lands on the endpoint
+        @test npoints(r) == npoints(TanhSinh(m), Interval())
+    end
+    # it is never offered for a degree request, since it is exact on nothing
+    @test isempty(candidates(TanhSinh, Interval(), PolynomialDegree(5)))
+    @test !("TanhSinh" in [row.family for row in available(Interval(); degree = 5)])
+    @test_throws ArgumentError TanhSinh(0)
+    # asked for by name, with no degree
+    r = rule(TanhSinh(4), Interval())
+    @test family(r) == "TanhSinh"
+    # the point of the family: an endpoint singularity that Gauss handles badly
+    sing(x) = 1 / sqrt(1 - x^2)
+    ts = rule(TanhSinh(5), Interval())
+    gauss = rule(GaussLegendre(), Interval(); npoints = npoints(ts))
+    @test abs(integrate(sing, ts) - π) < abs(integrate(sing, gauss) - π) / 1000
+    # …and it keeps converging when given more precision
+    hi = rule(TanhSinh(5), Interval(); digits = 50)
+    @test abs(integrate(sing, hi) - BigFloat(π)) < 1e-20
+    # verified by a convergence sweep, flagged empirical
+    seq = [rule(TanhSinh(m), Interval()) for m in 2:6]
+    v = CR.verify_convergence(seq, sing, π)
+    @test passed(v) && v.empirical && v.method === :convergence_sweep
+    @test !passed(CR.verify_convergence(seq, sing, 3.0))       # wrong reference is caught
+    gs = [rule(GaussLegendre(), Interval(); npoints = n) for n in (2, 4, 8, 16)]
+    @test passed(CR.verify_convergence(gs, exp, exp(1) - exp(-1)))
+    @test !passed(CR.verify_convergence(reverse(gs), exp, exp(1) - exp(-1)))   # divergence is caught
+    # consecutive levels nest, so they give an error estimate for free
+    e = EmbeddedRule(rule(TanhSinh(5), Interval()), rule(TanhSinh(4), Interval()))
+    res = integrate(sing, e; error = true)
+    @test res.neval == npoints(rule(TanhSinh(5), Interval()))
+    @test res.degree == -1                                     # no polynomial degree to report
+    @test res.error_estimate >= abs(res.value - π) / 10
+end
