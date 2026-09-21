@@ -1,7 +1,12 @@
 # CubatureRules.jl
 
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/)
+[![CI](https://github.com/IlianPihlajamaa/CubatureRules.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/IlianPihlajamaa/CubatureRules.jl/actions/workflows/CI.yml)
+
 Quadrature and cubature rules **generated on demand**, at arbitrary order and arbitrary
 precision, instead of tabulated in double precision.
+
+**Documentation: <https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/>**
 
 ```julia
 using CubatureRules

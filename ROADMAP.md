@@ -217,9 +217,9 @@ families and tooling on top of what lands here.
       test, tracked from the start
 - [x] Number types in CI: `Float64`, `BigFloat` at several precisions, `Double64`,
       `Rational{BigInt}` for exact families
-- [ ] Documentation site live; **first example is the explicit two-line form**
-      (`integrate(f, rule(domain; degree = 20))`) *(Documenter site builds in CI; deployment
-      depends on GitHub Pages being available for the private repo)*
+- [x] Documentation site live; **first example is the explicit two-line form**
+      (`integrate(f, rule(domain; degree = 20))`) *(live at
+      https://ilianpihlajamaa.github.io/CubatureRules.jl/)*
 - [x] `using CubatureRules` under one second
 
 **Exit criteria**
