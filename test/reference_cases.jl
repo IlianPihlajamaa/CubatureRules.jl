@@ -10,4 +10,6 @@ const REFERENCE_CASES = [
     "gauss_legendre_n40_100digits" => () -> rule(GaussLegendre(), Interval(); npoints = 40, digits = 100),
     "gauss_jacobi_21_float64" => () -> rule(WeightedDomain(Interval(), JacobiWeight(2, 1)); degree = 15),
     "tensor_box3_d7_60digits" => () -> rule(Orthotope{3}(); degree = 7, digits = 60),
+    "newton_cotes_closed_d9_rational" => () -> rule(NewtonCotes(), Interval(); degree = 9, T = Rational{BigInt}),
+    "fejer2_d15_80digits" => () -> rule(Fejer(2), Interval(); degree = 15, digits = 80),
 ]

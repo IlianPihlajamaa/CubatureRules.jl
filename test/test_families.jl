@@ -64,7 +64,8 @@ end
     # differ either way — node elimination has found smaller ones — but never by much, and
     # any difference must be recorded in the entry's note.
     counts = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79,
-              87, 96, 103, 112, 120, 130, 141, 150, 159, 171]
+              87, 96, 103, 112, 120, 130, 141, 150, 159, 171, 181, 193, 204, 214, 228,
+              243, 252, 267, 282, 295, 309, 324, 339, 354, 370, 385, 399, 423, 435, 453]
     dmax = last(degree_range(XiaoGimbutas(), Simplex{2}()))
     @test dmax >= 20
     for d in 1:dmax
@@ -131,4 +132,53 @@ end
             @test sep > 1e-6
         end
     end
+end
+
+@testset "Newton–Cotes, exact rationals" begin
+    # the classical small rules, on [-1, 1]
+    @test CR.newton_cotes_exact(2, false)[2] == [1, 1]                       # trapezoid
+    @test CR.newton_cotes_exact(3, false)[2] == [1 // 3, 4 // 3, 1 // 3]     # Simpson
+    @test CR.newton_cotes_exact(5, false)[2] == [7 // 45, 32 // 45, 4 // 15, 32 // 45, 7 // 45]  # Boole
+    @test CR.newton_cotes_exact(1, true) == ([0 // 1], [2 // 1])             # midpoint
+    for open in (false, true), d in (0, 1, 2, 3, 5, 7, 9)
+        f = NewtonCotes(open)
+        r = rule(f, Interval(); degree = d, T = Rational{BigInt})
+        v = check(r)
+        @test degree(r) >= d
+        @test sum(weights(r)) == 2
+        @test v.exact && v.sharp === true && v.symmetric === true
+        @test v.interior == open
+        @test v.positive == properties(f, Interval(), d).positive
+        @test eltype(r) == Rational{BigInt}
+    end
+    # floating output is the exact rule rounded once
+    rf = rule(NewtonCotes(), Interval(); degree = 7, digits = 50)
+    re = rule(NewtonCotes(), Interval(); degree = 7, T = Rational{BigInt})
+    @test all(abs.(weights(rf) .- weights(re)) .< big(10.0)^-49)
+    @test passed(check(rf))
+    # Gauss needs fewer points, so the selector prefers it
+    @test family(rule(Interval(); degree = 7)) == "GaussJacobi"
+    @test npoints(NewtonCotes(), Interval(), 7) == 7 > npoints(GaussLegendre(), Interval(), 7)
+end
+
+@testset "Fejér" begin
+    for kind in (1, 2), d in (0, 1, 2, 5, 8, 15)
+        f = Fejer(kind)
+        r = rule(f, Interval(); degree = d)
+        v = check(r)
+        @test degree(r) >= d
+        @test npoints(r) == (max(1, isodd(d) ? d : d + 1))
+        @test sum(weights(r)) ≈ 2
+        @test v.exact && v.sharp === true
+        @test v.positive && v.interior && v.symmetric === true     # positive at every order
+    end
+    # arbitrary precision from the closed form
+    r = rule(Fejer(2), Interval(); degree = 21, digits = 60)
+    @test passed(check(r))
+    @test abs(sum(weights(r)) - 2) < big(10.0)^-58
+    @test abs(integrate(exp, r) - (exp(big(1)) - exp(big(-1)))) < big(10.0)^-25   # not exact: exp is not a polynomial
+    @test_throws ArgumentError Fejer(3)
+    @test_throws NoRuleError rule(Fejer(1), Interval(); degree = 5, T = Rational{BigInt})
+    # Gauss still wins on node count, so the selector prefers it
+    @test family(rule(Interval(); degree = 9)) == "GaussJacobi"
 end

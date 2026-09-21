@@ -35,5 +35,10 @@ end
     @test eltype(r) == Rational{BigInt}
     @test family(r) == "GrundmannMöller"
     @test integrate(x -> x[1]^2 * x[2], r) == monomial_moment(Simplex{3}(), (2, 1, 0))
-    @test_throws NoRuleError rule(Interval(); degree = 3, T = Rational{BigInt})
+    l = rule(Interval(); degree = 3, T = Rational{BigInt})
+    @test family(l) == "NewtonCotes"          # the exact-rational 1D family
+    @test eltype(l) == Rational{BigInt}
+    @test sum(weights(l)) == 2
+    @test integrate(x -> x^2, l) == 2 // 3
+    @test_throws NoRuleError rule(WeightedDomain(Interval(), JacobiWeight(1, 0)); degree = 3, T = Rational{BigInt})
 end

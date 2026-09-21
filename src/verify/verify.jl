@@ -4,7 +4,8 @@
 # Exactness is tested against *orthonormal* bases (Dubiner on triangles and tetrahedra,
 # Legendre/Jacobi on intervals) at twice the rule's precision; monomials would produce false failures at
 # high degree. Each basis function's residual is held to a tolerance derived from the
-# rounding of the delivered nodes and weights: 16 ε Σ |wᵢ| (|φ(xᵢ)| + |∇φ(xᵢ)|·|xᵢ|). Exact
+# rounding of the delivered nodes and weights: 16 ε Σ |wᵢ| (|φ(xᵢ)| + |∇φ(xᵢ)|·max(|xᵢ|, 1)).
+# Exact
 # (Rational) rules are held to zero.
 
 """
@@ -229,7 +230,9 @@ function block_residuals(basis, xs, ws, ε, floor_tol)
     scale = zeros(eltype(ws), L)
     for (x, w) in zip(xs, ws)
         φ, g = evaluate!(basis, x)
-        xnorm = maximum(abs, x)
+        # a node near zero still carries an absolute rounding error of order ε (it is a
+        # difference of O(1) quantities), so the perturbation bound uses max(|x|, 1)
+        xnorm = max(maximum(abs, x), one(eltype(x)))
         for k in 1:L
             Σ[k] += w * φ[k]
             scale[k] += abs(w) * (abs(φ[k]) + g[k] * xnorm)
@@ -286,8 +289,7 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         wsum_ok = exact ? wsum == μ : abs(wsum - μ) <= 16ε * sum(abs, ws) + floor_tol
         interior = all(x -> isinterior(x, r.domain), _node_iter(r))
         positive = all(>(0), r.weights)
-        symmetric = r.provenance.symmetry === :none ? nothing :
-                    check_simplex_symmetry(xs, ws, exact ? big(0.0) : 64ε)
+        symmetric = check_symmetry(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
         Verification(basis = bname, degree = d, max_residual = BigFloat(max_res), tolerance = BigFloat(max_tol),
                      exact = is_exact, sharp = sharp,
                      sharp_residual = sh === nothing ? big(0.0) : BigFloat(sh[1]),
@@ -388,4 +390,25 @@ function Base.show(io::IO, ::MIME"text/plain", v::Verification)
     println(io, "  structure : Σw = measure ", v.weights_sum_ok ? "✓" : "✗",
             ", interior ", v.interior ? "✓" : "✗", ", positive ", v.positive ? "✓" : "✗",
             v.symmetric === nothing ? "" : ", symmetric " * (v.symmetric ? "✓" : "✗"))
+end
+
+"""
+    check_symmetry(group, xs, ws, tol)
+
+Whether the rule is invariant under the symmetry group it claims: `:S_N` permutes the
+barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the reference interval.
+`nothing` when no symmetry is claimed.
+"""
+check_symmetry(group::Symbol, xs, ws, tol) =
+    group === :none ? nothing :
+    group === :reflection ? check_reflection_symmetry(xs, ws, tol) :
+    check_simplex_symmetry(xs, ws, tol)
+
+"Whether the node/weight set on the reference interval is invariant under `x ↦ -x`."
+function check_reflection_symmetry(xs, ws, tol)
+    wscale = maximum(abs, ws)
+    for (x, w) in zip(xs, ws)
+        any(j -> abs(xs[j][1] + x[1]) <= tol && abs(ws[j] - w) <= tol * wscale, eachindex(xs)) || return false
+    end
+    return true
 end
