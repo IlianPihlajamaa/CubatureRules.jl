@@ -6,6 +6,7 @@
 | `FullySymmetric` | tetrahedron | 1–15 | seeded | smallest found by in-house search | floating |
 | `GrundmannMöller` | any simplex | any (odd) | derived | ``\sum_{i=0}^{s} \binom{s-i+D}{D}`` | floating, `Rational{BigInt}` |
 | `ConicalProduct` | any simplex | any | derived | ``\lceil (d+1)/2 \rceil^D`` | floating |
+| `TensorProduct` | box (`Orthotope`) | any | derived | ``\prod_i m_i`` | floating |
 | `GaussJacobi` | interval, Jacobi weight | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
 
 ## XiaoGimbutas
@@ -62,3 +63,18 @@ GaussLegendre
 Seeds come from Golub–Welsch (G. H. Golub and J. H. Welsch, *Math. Comp.* 23 (1969)
 221–230). They are refined by Newton on the three-term recurrence, and the weights come
 from the Christoffel function.
+
+## TensorProduct
+
+```@docs
+TensorProduct
+```
+
+Tensor products of 1D rules on an [`Orthotope`](@ref), one family per axis, built from any
+1D family. Two rules can also be combined directly with `r₁ ⊗ r₂`.
+
+The claim is deliberately conservative. A tensor rule is exact on a tensor-product
+polynomial space, which is larger than the total-degree space it reports — a 4×4 Gauss rule
+integrates `x⁶y⁶` exactly but claims only total degree 7. The selector ranks candidates by
+node count against a total degree, so that is what is reported, and `show` never prints
+something ambiguous.

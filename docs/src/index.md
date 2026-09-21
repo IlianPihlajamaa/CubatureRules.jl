@@ -22,6 +22,7 @@ rule(Simplex{2}(); degree = 20, digits = 200)        # BigFloat, 200 decimal dig
 rule(Simplex{2}(); degree = 20, T = BigFloat)        # the ambient BigFloat precision
 rule(Simplex{2}(); degree = 9, T = Rational{BigInt}) # exact (Grundmann–Möller)
 rule(Simplex{2}(); degree = 12, T = Double64)        # any AbstractFloat
+rule(Orthotope{3}(); degree = 9)                     # tensor product on a box
 ```
 
 ## Choosing a rule

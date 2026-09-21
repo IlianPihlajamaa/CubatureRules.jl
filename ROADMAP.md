@@ -318,9 +318,9 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 ### Composition
 
-- [ ] `Orthotope` domain
-- [ ] `TensorProduct` over any 1D families; conservative total-degree claim (§2.2)
-- [ ] `r₁ ⊗ r₂`
+- [x] `Orthotope` domain
+- [x] `TensorProduct` over any 1D families; conservative total-degree claim (§2.2)
+- [x] `r₁ ⊗ r₂`
 - [ ] `RuleSequence` for nested families (§3.3)
 - [ ] Embedded error estimates at zero extra evaluations, generalised beyond Kronrod
 - [ ] `integrate(f, domain; rtol)` order-adaptive, returning `IntegrationResult` (§3.4)
