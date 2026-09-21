@@ -1,4 +1,5 @@
 using CubatureRules, Test, StaticArrays
+import CubatureRules: ⊗          # DoubleFloats exports ⊗ too; be explicit about which one
 const CR = CubatureRules
 
 @testset "Orthotope" begin

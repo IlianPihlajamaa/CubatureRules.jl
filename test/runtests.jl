@@ -8,6 +8,7 @@ const CR = CubatureRules
     @testset "symmetry and orbit algebra" include("test_symmetry.jl")
     @testset "refinement" include("test_refine.jl")
     @testset "families" include("test_families.jl")
+    @testset "delegated families" include("test_delegated.jl")
     @testset "registry and selection" include("test_registry.jl")
     @testset "application" include("test_apply.jl")
     @testset "claim preservation" include("test_transport.jl")

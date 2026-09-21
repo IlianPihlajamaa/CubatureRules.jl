@@ -107,3 +107,12 @@ describe_family(f::RuleFamily) = family_name(f)
 
 "`true` for families that can act as the 1D factor of a conical product."
 conical_compatible(::Type{<:RuleFamily}) = false
+
+"""
+    missing_dependency(f) -> nothing or a package name
+
+The package a family needs before it can build anything, when that package is not loaded.
+The selector uses it to say so instead of reporting the family as nonexistent. Families
+whose rules come from an upstream package define this.
+"""
+missing_dependency(::RuleFamily) = nothing

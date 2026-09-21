@@ -9,6 +9,7 @@ makedocs(;
         "Home" => "index.md",
         "Design" => "design.md",
         "Rule families" => "families.md",
+        "Delegated families" => "delegation.md",
         "Verification" => "verification.md",
         "Adding a family" => "extending.md",
         "API" => "api.md",

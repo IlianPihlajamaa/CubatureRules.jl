@@ -299,9 +299,11 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 ### Delegation (§0.1)
 
-- [ ] Decide and take the dependency: `QuadratureRules.jl` for the families it covers,
-      `QuadGK.gauss` / `QuadGK.kronrod` for arbitrary-weight and Kronrod rules
-- [ ] Conversion at the boundary into this package's `QuadratureRule` type, with provenance
+- [x] Decide and take the dependency: `QuadratureRules.jl` for the families it covers,
+      `QuadGK.gauss` / `QuadGK.kronrod` for arbitrary-weight and Kronrod rules *(QuadGK is a
+      hard dependency; QuadratureRules is weak — it costs a second to load — and its
+      families switch on when the user loads it)*
+- [x] Conversion at the boundary into this package's `QuadratureRule` type, with provenance
       recording the upstream source
 - [ ] Open the upstream conversation; contribute generalised Gauss–Jacobi, Laguerre,
       Hermite, exact-rational Newton–Cotes, Fejér 2, Patterson where they fit that scope
@@ -309,9 +311,11 @@ gaining enough breadth for the selector to be genuinely discriminating.
 ### Families filled here
 
 - [ ] Gauss–Laguerre and Gauss–Hermite, generalised
-- [ ] Radau and Lobatto variants via Golub's modified Jacobi matrix
-- [ ] Clenshaw–Curtis and Fejér 1 & 2, closed-form weights / generic DCT
-- [ ] Newton–Cotes closed and open, exact `Rational{BigInt}`
+- [x] Radau and Lobatto variants via Golub's modified Jacobi matrix *(delegated to
+      QuadratureRules.jl rather than reimplemented)*
+- [x] Clenshaw–Curtis and Fejér 1 & 2, closed-form weights / generic DCT *(Clenshaw–Curtis
+      delegated; Fejér 1 and 2 implemented here, as upstream lacks them)*
+- [x] Newton–Cotes closed and open, exact `Rational{BigInt}`
 - [ ] Gauss–Patterson nested extension
 - [ ] Tanh-sinh, exp-sinh, sinh-sinh — the `NoClaim` path, with convergence-sweep
       verification

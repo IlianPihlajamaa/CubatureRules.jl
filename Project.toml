@@ -8,6 +8,7 @@ GenericLinearAlgebra = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
@@ -15,11 +16,19 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[weakdeps]
+QuadratureRules = "a08977f5-a20d-4b99-b11f-f5ea535e0575"
+
+[extensions]
+QuadratureRulesExt = "QuadratureRules"
+
 [compat]
 GenericLinearAlgebra = "0.3"
 InteractiveUtils = "1"
 LinearAlgebra = "1"
 Printf = "1"
+QuadGK = "2.11.3"
+QuadratureRules = "0.2.1"
 Random = "1"
 SHA = "0.7, 1"
 SpecialFunctions = "2"
@@ -27,4 +36,3 @@ StaticArrays = "1.5"
 TOML = "1"
 Test = "1"
 julia = "1.10"
-

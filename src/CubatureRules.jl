@@ -21,6 +21,7 @@ import GenericLinearAlgebra
 import InteractiveUtils
 import SpecialFunctions
 import TOML
+import QuadGK
 import Test
 
 # core types
@@ -41,6 +42,7 @@ include("refine/newton.jl")
 include("families/onedim/gaussjacobi.jl")
 include("families/onedim/newtoncotes.jl")
 include("families/onedim/fejer.jl")
+include("families/onedim/delegated.jl")
 include("families/simplex/conical.jl")
 include("symmetry/orbits.jl")
 include("symmetry/invariant.jl")
@@ -73,7 +75,7 @@ export QuadratureRule, StaticQuadratureRule, static, nodes, weights, domain, exa
 export Provenance, Certificate, Verification, Citation, Derived, Seeded
 # families and the registry
 export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct, ⊗,
-       NewtonCotes, Fejer,
+       NewtonCotes, Fejer, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families

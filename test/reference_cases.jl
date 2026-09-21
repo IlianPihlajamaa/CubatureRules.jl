@@ -12,4 +12,5 @@ const REFERENCE_CASES = [
     "tensor_box3_d7_60digits" => () -> rule(Orthotope{3}(); degree = 7, digits = 60),
     "newton_cotes_closed_d9_rational" => () -> rule(NewtonCotes(), Interval(); degree = 9, T = Rational{BigInt}),
     "fejer2_d15_80digits" => () -> rule(Fejer(2), Interval(); degree = 15, digits = 80),
+    "kronrod_d20_60digits" => () -> rule(GaussKronrod(), Interval(); degree = 20, digits = 60),
 ]

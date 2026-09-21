@@ -140,6 +140,10 @@ function rule(f::RuleFamily, dom::Domain; degree = nothing, npoints = nothing, T
     end
     degree === nothing && throw(NoRuleError(no_degree_message(dom; only = f)))
     Tout, bits = resolve_precision(T, digits)
+    dep = missing_dependency(f)
+    dep === nothing ||
+        throw(NoRuleError("$(describe_family(f)) builds its rules with $(dep), which is not loaded; " *
+                          "run `using $(chopsuffix(dep, ".jl"))` first"))
     isempty(candidates(typeof(f), ref, PolynomialDegree(degree))) &&
         throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, false, false, Candidate[]; only = f)))
     degree in degree_range(f, ref) ||
