@@ -17,6 +17,10 @@
 using CubatureRules, Printf, TOML
 const CR = CubatureRules
 
+# Published counts for fully symmetric, positive, interior rules, for comparison only.
+# Tetrahedra: Witherden & Vincent (2015) Table 1 (to degree 10), then Zhang, Cui & Liu
+# (2009) Table 4.2 (to degree 14).
+const TET_PUBLISHED = [1, 4, 8, 14, 14, 24, 35, 46, 59, 81, 109, 140, 171, 236]
 const XG_N6 = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67, 73, 79,
                87, 96, 103, 112, 120, 130, 141, 150, 159, 171, 181, 193, 204, 214, 228,
                243, 252, 267, 282, 295, 309, 324, 339, 354, 370, 385, 399, 423, 435, 453]
@@ -40,7 +44,7 @@ end
 
 function campaign(digits::Int)
     ok = true
-    for (fam, dom, published) in ((XiaoGimbutas(), Simplex{2}(), XG_N6), (FullySymmetric(), Simplex{3}(), nothing))
+    for (fam, dom, published) in ((XiaoGimbutas(), Simplex{2}(), XG_N6), (FullySymmetric(), Simplex{3}(), TET_PUBLISHED))
         name = CR.family_name(fam)
         println("\n", name, " on ", dom, " — refined to ", digits, " digits")
         println("  degree  points  published  exact  sharp  positive  interior  symmetric  min sep   monomials")
@@ -51,7 +55,7 @@ function campaign(digits::Int)
             sep = length(x) == 1 ? Inf :
                   minimum(maximum(abs, x[i] - x[j]) for i in eachindex(x) for j in (i + 1):length(x))
             mono = monomial_error(r, d, 4 * CR.digits_to_bits(digits))
-            pub = published === nothing ? "—" : string(published[d])
+            pub = published === nothing || d > length(published) ? "—" : string(published[d])
             good = v.exact && v.sharp !== false && v.positive && v.interior && v.symmetric === true &&
                    sep > 1e-6 && mono < big(10.0)^(-digits + 2)
             ok &= good
