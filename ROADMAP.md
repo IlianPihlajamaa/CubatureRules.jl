@@ -365,8 +365,10 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
       *(seeds generated in-house, degrees 3–17, matching the published counts except at
       degree 13, where the 74-point rule is not positive and the search reports 78)*
-- [ ] Lebedev seeds above degree 17: multistart stalls there, and the fix is to grow from
-      the degree below as the triangle table does past degree 20 (notes/v0.4-spheres.md)
+- [ ] Lebedev seeds above degree 17 *(grow-from-below now exists and reaches degree 17
+      from 15 in a second, but degree 19 stalls at a residual near 3e-6 with healthy
+      margins from every structure tried, including Lebedev's own — a local minimum, not
+      a rejected rule; see notes/v0.4-spheres.md for what is left to try)*
 - [ ] Womersley $t$-designs
 - [ ] Stroud $E_n^{r^2}$, $E_n^{r}$, $S_n$, $T_n$ in closed form for arbitrary $d$
 - [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with

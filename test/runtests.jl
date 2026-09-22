@@ -12,6 +12,7 @@ const CR = CubatureRules
     @testset "unbounded domains" include("test_unbounded.jl")
     @testset "spheres" include("test_sphere.jl")
     @testset "octahedral orbit algebra" include("test_octahedral.jl")
+    @testset "octahedral grow and eliminate" include("test_octahedral_grow.jl")
     @testset "Lebedev" include("test_lebedev.jl")
     @testset "balls" include("test_ball.jl")
     @testset "registry and selection" include("test_registry.jl")
