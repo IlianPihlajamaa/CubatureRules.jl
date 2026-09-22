@@ -15,6 +15,7 @@
 | `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
 | `ExpSinh` | `HalfLine()` | none (`NoClaim`) | derived | set by the level | floating |
 | `SinhSinh` | `RealLine()` | none (`NoClaim`) | derived | set by the level | floating |
+| `Lebedev{LebedevJLSeeds}` | `Sphere{3}` | to 125, from Lebedev.jl | seeded elsewhere | Lebedev's counts | floating |
 | `BallProduct` | `Ball{D}` | any | derived | radial × angular | floating |
 | `Lebedev` | `Sphere{3}` | odd, tabulated | seeded | Lebedev counts (78 at degree 13) | floating |
 | `SphereProduct` | `Sphere{2}`, `Sphere{3}` | any | derived | `d+1` on the circle, ``\lceil (d+1)/2 \rceil (d+1)`` on the sphere | floating |
@@ -209,6 +210,48 @@ from the orbit structures alone — no published table was used. The counts foun
 Lebedev's at every degree searched except degree 13, where his 74-point rule has a negative
 weight: the search requires positive weights, so it reports a 78-point rule instead. That
 74-point structure was checked exhaustively; every solution found has a negative weight.
+
+### Rules from an installed Lebedev.jl
+
+The type parameter says where the seeds came from. `Lebedev()` is `Lebedev{InHouseSeeds}()`,
+the table above. `UpstreamLebedev()` is `Lebedev{LebedevJLSeeds}()`, the caller's own
+[Lebedev.jl](https://github.com/stefabat/Lebedev.jl) — GPL-3, and tabulated to degree 125.
+This package ships none of those numbers.
+
+```julia
+using CubatureRules
+import Lebedev as LebedevJL       # aliased: this package exports a `Lebedev` type of its own
+
+available(Sphere{3}(); degree = 19)
+#  Lebedev (Lebedev.jl, GPL-3)   146 points
+#  SphereProduct                 200 points
+
+rule(Sphere{3}(); degree = 19)                   # SphereProduct, and a warning
+rule(Sphere{3}(); degree = 19, copyleft = true)  # the 146-point rule, licence attached
+rule(UpstreamLebedev(), Sphere{3}(); degree = 29, digits = 40)   # refined, still GPL-3
+```
+
+[`available`](@ref) lists both, with the licence carried in the family name. Only the
+in-house one is chosen automatically: a rule whose terms this package cannot pass on should
+not be the silent answer to a request that said only "degree 19". Ask for it by name, or
+pass `copyleft = true`. When a cheaper rule is passed over for this reason, `rule` says so
+once per case — see [`license_warnings!`](@ref) to silence it.
+
+Refinement is offered on both. A rule refined from Lebedev.jl's table is a derived work of
+it, so the GPL-3 licence travels into the refined rule's `provenance` unchanged and the
+derivation path records where it came from. What the seed policy forbids is the other thing:
+absorbing someone else's numbers into `src/data` under this package's own licence. Nothing
+from Lebedev.jl is ever written there.
+
+The orbit structure is recovered from the raw points before refinement, by
+`CubatureRules.classify_octahedral`, which decomposes any sphere rule into `O_h` orbits or
+reports that it does not decompose. That is what makes an outside table refinable here, and
+what will let rules from other sources be ingested later.
+
+!!! note "The name `Lebedev`"
+    This package exports a type called `Lebedev`, so `using Lebedev` collides with it. Write
+    `import Lebedev as LebedevJL`; the extension activates either way, and the alias never
+    has to be used afterwards.
 
 ## SphereProduct
 

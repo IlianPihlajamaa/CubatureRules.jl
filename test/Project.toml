@@ -2,6 +2,7 @@
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CubatureRules = "0f38d63d-e18c-4973-acfc-eb502c230362"
 DoubleFloats = "497a8b3b-efae-58df-a0af-a86822472b78"
+Lebedev = "c5712dd9-2571-4e23-b661-b4a261421493"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 QuadratureRules = "a08977f5-a20d-4b99-b11f-f5ea535e0575"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

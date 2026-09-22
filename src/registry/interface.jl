@@ -135,3 +135,27 @@ never among them, so this is how the selector can still name it when it explains
 rule was found.
 """
 home_domain(::RuleFamily) = nothing
+
+"""
+    selectable(f) -> Bool
+
+Whether [`rule`](@ref) may choose this family on its own. True for almost everything: a
+family exists to be chosen.
+
+It is false for families whose rules carry terms this package cannot pass on to a caller —
+rules seeded from a copyleft-licensed source, for instance. Those are still listed by
+[`available`](@ref), with their terms in the family name, and can be had by naming the
+family or by passing `copyleft = true`; what they are not is the silent answer to a request
+that said only "degree 19". When one is passed over for being cheaper than the rule actually
+returned, `rule` says so — see [`license_warnings!`](@ref).
+"""
+selectable(::RuleFamily) = true
+
+"""
+    family_license(f) -> String
+
+Terms a rule from this family carries beyond the package's own licence, or `""` when it
+carries none. Recorded in the built rule's [`Provenance`](@ref) so that the terms travel
+with the rule rather than living in a README.
+"""
+family_license(::RuleFamily) = ""

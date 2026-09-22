@@ -93,7 +93,15 @@ feasibility spike that decided the go/no-go gates is written up in
 All shipped seed data is MIT-licensed and generated in-house from orbit structures alone
 (`scripts/generate_triangle_seeds.jl`, `scripts/generate_tetrahedron_seeds.jl`). No numbers
 were copied from any published table,
-and none from quadpy. Every file in `src/data` has an entry in `src/data/PROVENANCE.toml`,
+and none from quadpy.
+
+Rules from a copyleft-licensed source are never *shipped* and never chosen for you.
+`UpstreamLebedev` uses an installed [Lebedev.jl](https://github.com/stefabat/Lebedev.jl)
+so that its rules, which reach degree 125, can be used through this interface: the numbers
+stay the caller's, the provenance records the GPL-3 licence — including after refinement,
+which derives from their table and says so — and the selector takes the family only on
+request (`copyleft = true`), warning once when it passes over a cheaper rule for this
+reason. Nothing from it is ever written to `src/data`. Every file in `src/data` has an entry in `src/data/PROVENANCE.toml`,
 and CI fails the build if one is missing.
 
 Point counts are the smallest our searches reached, not proven minima — at degree 27 on the

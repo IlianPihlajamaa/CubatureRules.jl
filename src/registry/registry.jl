@@ -58,19 +58,62 @@ function reference_domain(dom::Domain)
     return reference(dom)
 end
 
-"All candidates for `claim` on the reference of `dom`, ranked, before filtering."
-function gather(dom::Domain, degree::Integer, T)
+"""
+    gather(dom, degree, T; all = false)
+
+All candidates for the claim on the reference of `dom`, ranked, before filtering. `all`
+includes the families [`selectable`](@ref) excludes — those whose rules carry terms this
+package cannot pass on. `available` lists them; `rule` takes them only on request.
+"""
+function gather(dom::Domain, degree::Integer, T; all::Bool = false)
     ref = reference_domain(dom)
     ref === nothing && return Candidate[]
     claim = PolynomialDegree(degree)
     out = Candidate[]
     for F in families()
         for f in candidates(F, ref, claim)
+            (all || selectable(f)) || continue
             degree in degree_range(f, ref) || continue
             push!(out, Candidate(f, ref, degree, T))
         end
     end
     return sort!(out; by = rank_key)
+end
+
+"""
+    license_warnings!(on)
+
+Whether [`rule`](@ref) warns when it passes over a cheaper rule because the rule's licence
+cannot be passed on to the caller. On by default: silently handing back a rule twice the
+size of one that was available is worth a word, and the alternative is a puzzle. The message
+names the family, both point counts and the keyword that would take the cheaper one.
+
+Each distinct case warns once — one message per family and degree passed over — so that a
+tolerance-driven call walking a sequence of degrees does not repeat itself. Switching
+warnings back on clears that memory.
+"""
+function license_warnings!(on::Bool)
+    LICENSE_WARNINGS[] = on
+    on && empty!(LICENSE_WARNED)
+    return on
+end
+const LICENSE_WARNINGS = Ref(true)
+const LICENSE_WARNED = Set{Tuple{String,Int}}()
+
+# Warn when the best rule we may hand over is worse than one we may not.
+function _warn_license_skip(dom, degree, T, chosen)
+    LICENSE_WARNINGS[] || return nothing
+    blocked = filter(c -> !selectable(c.family), gather(dom, degree, T; all = true))
+    isempty(blocked) && return nothing
+    best = first(sort(blocked; by = rank_key))
+    best.npoints < chosen.npoints || return nothing
+    (best.name, degree) in LICENSE_WARNED && return nothing
+    push!(LICENSE_WARNED, (best.name, degree))
+    @warn("$(chosen.name) ($(chosen.npoints) points) was selected on $(dom) at degree " *
+          "$(degree); $(best.name) has $(best.npoints) points but its licence is not one " *
+          "this package can pass on. Pass `copyleft = true` to use it, or " *
+          "`CubatureRules.license_warnings!(false)` to silence this.")
+    return nothing
 end
 
 passes(c::Candidate; positive, interior) = (!positive || c.positive) && (!interior || c.interior)
@@ -90,7 +133,7 @@ Base.showerror(io::IO, e::NoRuleError) = print(io, e.msg)
 # rule(...)
 
 """
-    rule(domain; degree, T = Float64, digits, positive = false, interior = false, family, cancel, seed)
+    rule(domain; degree, T = Float64, digits, positive = false, interior = false, family, cancel, seed, copyleft = false)
     rule(family, domain; degree, npoints, T, digits, cancel, seed)
 
 Construct a quadrature rule of at least polynomial degree `degree` on `domain`.
@@ -105,10 +148,16 @@ ambient BigFloat precision at the time of the call; any other `T` its own precis
 
 `cancel` takes a [`CancellationToken`](@ref); `seed` a seed source for seeded families.
 
+`copyleft = true` lets the selector also consider families whose rules carry terms this
+package cannot pass on — see [`selectable`](@ref). Without it those are listed by
+[`available`](@ref) but never chosen, and `rule` warns when it passes over a cheaper one
+(see [`license_warnings!`](@ref)).
+
 There is no default degree: `rule(domain)` errors, listing what is available.
 """
 function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, digits = nothing,
-              positive::Bool = false, interior::Bool = false, family = nothing, cancel = nothing, seed = nothing)
+              positive::Bool = false, interior::Bool = false, family = nothing, cancel = nothing, seed = nothing,
+              copyleft::Bool = false)
     if family !== nothing
         return rule(family, dom; degree, npoints, T, digits, cancel, seed)
     end
@@ -116,13 +165,15 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
     degree === nothing && throw(NoRuleError(no_degree_message(dom)))
     degree >= 0 || throw(ArgumentError("degree must be non-negative"))
     Tout, bits = resolve_precision(T, digits)
-    cands = gather(dom, degree, Tout)
+    cands = gather(dom, degree, Tout; all = copyleft)
     ok = filter(c -> passes(c; positive, interior) && supports_type(c.family, Tout), cands)
     isempty(ok) && throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, positive, interior, cands)))
     chosen = first(ok)
+    copyleft || _warn_license_skip(dom, degree, Tout, chosen)
     selection = "selected by rule(): " * join(("$(c.name) ($(c.npoints) points)" for c in ok), " < ") *
                 "; ranked by (npoints, derived before seeded, family name)" *
-                (positive ? "; positive = true" : "") * (interior ? "; interior = true" : "")
+                (positive ? "; positive = true" : "") * (interior ? "; interior = true" : "") *
+                (copyleft ? "; copyleft = true" : "")
     r = _build(chosen.family, dom, degree, Tout, bits, cancel, seed)
     r = QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, with_selection(r.provenance, selection), r.certificate)
     return isreference(dom) ? r : map_to(r, dom)
@@ -347,7 +398,10 @@ function available(dom::Domain; degree = nothing, positive::Bool = false, interi
         end
         return CandidateTable("Families available on $(dom):", rows)
     end
-    cands = filter(c -> passes(c; positive, interior) && supports_type(c.family, T), gather(dom, degree, T))
+    # `available` lists everything, including families `rule` will not take on its own;
+    # their licence shows in the family name.
+    cands = filter(c -> passes(c; positive, interior) && supports_type(c.family, T),
+                   gather(dom, degree, T; all = true))
     rows = NamedTuple[(family = c.name, npoints = c.npoints, degree = c.degree, derivation = c.derivation,
                        positive = c.positive, interior = c.interior, symmetry = c.symmetry) for c in cands]
     return CandidateTable("Candidates on $(dom) for degree ≥ $(degree), ranked:", rows)

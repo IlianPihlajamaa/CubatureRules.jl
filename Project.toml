@@ -17,13 +17,16 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [weakdeps]
+Lebedev = "c5712dd9-2571-4e23-b661-b4a261421493"
 QuadratureRules = "a08977f5-a20d-4b99-b11f-f5ea535e0575"
 
 [extensions]
+LebedevExt = "Lebedev"
 QuadratureRulesExt = "QuadratureRules"
 
 [compat]
 GenericLinearAlgebra = "0.3"
+Lebedev = "1"
 InteractiveUtils = "1"
 LinearAlgebra = "1"
 Printf = "1"
