@@ -363,8 +363,10 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] Product rules: Gauss–Legendre in $\cos\theta$ × trapezoid in $\varphi$
 - [x] Jacobi radial weight, for the ball *(`BallProduct`: Gauss–Jacobi for `r^(D-1)` against any sphere family)*
 - [x] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
-      *(seeds generated in-house by search, matching the published counts except at degree
-      13, where the 74-point rule is not positive and the search reports 78)*
+      *(seeds generated in-house, degrees 3–17, matching the published counts except at
+      degree 13, where the 74-point rule is not positive and the search reports 78)*
+- [ ] Lebedev seeds above degree 17: multistart stalls there, and the fix is to grow from
+      the degree below as the triangle table does past degree 20 (notes/v0.4-spheres.md)
 - [ ] Womersley $t$-designs
 - [ ] Stroud $E_n^{r^2}$, $E_n^{r}$, $S_n$, $T_n$ in closed form for arbitrary $d$
 - [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with

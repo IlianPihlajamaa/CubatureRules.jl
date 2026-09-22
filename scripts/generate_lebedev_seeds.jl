@@ -84,10 +84,14 @@ function main(mindeg, maxdeg; maxpts = 600, nstarts = 2048)
         res.converged || error("degree $n: refinement to 100 digits failed")
         θ64 = Float64.(θ)
         published = get(LEBEDEV_COUNTS, n, nothing)
+        # Say only what the search establishes. Exceeding the published count means this
+        # search did not reproduce that rule; whether the published one is positive is a
+        # separate question, answered by an exhaustive run at that count (as at degree 13),
+        # not by a walk that stopped as soon as something worked.
         note = published === nothing ? "" :
                npts == published ? "matches the published Lebedev count" :
                npts < published ? "$(published - npts) point(s) fewer than the published count" :
-               "$(npts - published) point(s) more than the published count, which is not positive"
+               "$(npts - published) point(s) more than the published count, which this search did not reproduce"
         @printf("degree %2d: %3d points %-30s (Lebedev %s)  wmin %.2e  margin %.2e  cond %.1e  (%.0f s)\n",
                 n, npts, string([o.kind for o in s.orbits]),
                 published === nothing ? "—" : string(published), wmin, dmin, res.cond, time() - t0)
