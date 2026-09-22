@@ -15,6 +15,7 @@
 | `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
 | `ExpSinh` | `HalfLine()` | none (`NoClaim`) | derived | set by the level | floating |
 | `SinhSinh` | `RealLine()` | none (`NoClaim`) | derived | set by the level | floating |
+| `Lebedev` | `Sphere{3}` | odd, tabulated | seeded | Lebedev counts (78 at degree 13) | floating |
 | `SphereProduct` | `Sphere{2}`, `Sphere{3}` | any | derived | `d+1` on the circle, ``\lceil (d+1)/2 \rceil (d+1)`` on the sphere | floating |
 
 ## XiaoGimbutas
@@ -146,6 +147,37 @@ Accuracy is limited by how well `1 - x` survives in floating point. The outermos
 a few units of roundoff from the endpoint, so an integrand evaluated at `x` near ±1 loses
 about half the working digits — 3e-8 in `Float64`, 3e-26 at 50 digits. Ask for more digits,
 or substitute so that the integrand is written in terms of the distance to the endpoint.
+
+## Lebedev
+
+```@docs
+Lebedev
+```
+
+Octahedrally symmetric, positive-weight rules on the sphere: the `SphereProduct` costs about
+twice the nodes of one of these, so the selector prefers Lebedev wherever a seed is shipped.
+
+```julia
+rule(Sphere{3}(); degree = 11)            # 50 points, not the product rule's 72
+rule(Lebedev(), Sphere{3}(); degree = 15, digits = 60)
+```
+
+The rules are invariant under the 48 signed permutations of the coordinates, whose orbits
+are the classical six — 6, 12 and 8 fixed points, two 24-point families with one parameter
+each, and a 48-point family with two. The moment system is written in the invariants
+``p_4 = \sum x_i^4`` and ``p_6 = x^2y^2z^2`` rather than in spherical harmonics, because a
+rule built from whole orbits annihilates every non-invariant harmonic identically: at degree
+131 that would be 17424 equations of which a few hundred say anything.
+
+Only odd degrees are tabulated. Every orbit is centrally symmetric, so the odd harmonics
+integrate to zero whatever the parameters, and a rule of degree ``2k`` is automatically of
+degree ``2k+1``; an even-degree request is answered by the odd rule above it.
+
+The seeds are MIT-licensed and were generated in-house by searching point counts upward
+from the orbit structures alone — no published table was used. The counts found agree with
+Lebedev's at every degree searched except degree 13, where his 74-point rule has a negative
+weight: the search requires positive weights, so it reports a 78-point rule instead. That
+74-point structure was checked exhaustively; every solution found has a negative weight.
 
 ## SphereProduct
 

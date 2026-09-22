@@ -1,0 +1,100 @@
+# O_h-symmetric sphere rules: orbit structures and Float64 seeds.
+# Generated in-house by scripts/generate_lebedev_seeds.jl; no published
+# numbers were used. See src/data/PROVENANCE.toml.
+# Last written: 2026-09-22
+
+[[rule]]
+cond = 1.0
+degree = 3
+method = "multistart"
+min_margin = 1.0
+min_weight = 2.0943951023931957
+note = "matches the published Lebedev count"
+npoints = 6
+seed = [2.0943951023931957]
+status = "ok"
+structure = ["a1"]
+
+[[rule]]
+cond = 4.236159335838347
+degree = 5
+method = "multistart"
+min_margin = 1.0
+min_weight = 0.837758040957278
+note = "matches the published Lebedev count"
+npoints = 14
+seed = [0.8377580409572782, 0.9424777960769379]
+status = "ok"
+structure = ["a1", "a3"]
+
+[[rule]]
+cond = 84.57264855396656
+degree = 7
+method = "multistart"
+min_margin = 1.0
+min_weight = 0.4039190554615265
+note = "matches the published Lebedev count"
+npoints = 26
+seed = [0.5983986006837702, 0.4787188805470161, 0.40391905546154483]
+status = "ok"
+structure = ["a1", "a2", "a3"]
+
+[[rule]]
+cond = 220.8135676677531
+degree = 9
+method = "multistart"
+min_margin = 0.42837299059613154
+min_weight = 0.11967972013675549
+note = "matches the published Lebedev count"
+npoints = 38
+seed = [0.11967972013675403, 0.40391905546154483, 0.35903916041026207, 0.45970084338098305]
+status = "ok"
+structure = ["a1", "a3", "c"]
+
+[[rule]]
+cond = 1534.2358053525372
+degree = 11
+method = "multistart"
+min_margin = 0.30151134457824647
+min_weight = 0.15957296018377207
+note = "matches the published Lebedev count"
+npoints = 50
+seed = [0.1595729601823387, 0.28368526254637993, 0.2650718801466388, 0.25350561089731133, 0.30151134457776363]
+status = "ok"
+structure = ["a1", "a2", "a3", "b"]
+
+[[rule]]
+cond = 14320.224492117206
+degree = 13
+method = "multistart"
+min_margin = 0.2866401467665138
+min_weight = 0.15007593635308264
+note = "4 point(s) more than the published count, which is not positive"
+npoints = 78
+seed = [0.17425273554332066, 0.16400284664807785, 0.28664014676650396, 0.1659568087113115, 0.6599050016563905, 0.15007593635307936, 0.5394900987058647]
+status = "ok"
+structure = ["a1", "b", "b", "c"]
+
+[[rule]]
+cond = 16527.110567038882
+degree = 15
+method = "multistart"
+min_margin = 0.1890635528860145
+min_weight = 0.13961936079065468
+note = "matches the published Lebedev count"
+npoints = 86
+seed = [0.14506632743848974, 0.15009158815708193, 0.1396193607909271, 0.36960284645415026, 0.14924451686907023, 0.6943540066026663, 0.14843778669298516, 0.9273306571511725]
+status = "ok"
+structure = ["a1", "a3", "b", "b", "c"]
+
+[[rule]]
+cond = 597700.7926791268
+degree = 17
+method = "multistart"
+min_margin = 0.18511563535032352
+min_weight = 0.04810746586092526
+note = "matches the published Lebedev count"
+npoints = 110
+seed = [0.048107465851396594, 0.12307173528167017, 0.1031917340883304, 0.18511563534473616, 0.1205802490285279, 0.39568947305594193, 0.12494509687251332, 0.6904210483822921, 0.12183091738552138, 0.4783690288121502]
+status = "ok"
+structure = ["a1", "a3", "b", "b", "b", "c"]

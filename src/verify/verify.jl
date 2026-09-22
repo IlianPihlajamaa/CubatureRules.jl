@@ -503,13 +503,36 @@ end
     check_symmetry(group, xs, ws, tol)
 
 Whether the rule is invariant under the symmetry group it claims: `:S_N` permutes the
-barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the reference interval.
-`nothing` when no symmetry is claimed.
+barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the reference interval,
+`:Oh` is the 48 signed permutations of Cartesian coordinates on a sphere. `nothing` when no
+symmetry is claimed.
 """
 check_symmetry(group::Symbol, xs, ws, tol) =
     group === :none ? nothing :
     group === :reflection ? check_reflection_symmetry(xs, ws, tol) :
+    group === :Oh ? check_octahedral_symmetry(xs, ws, tol) :
     check_simplex_symmetry(xs, ws, tol)
+
+"""
+    check_octahedral_symmetry(xs, ws, tol)
+
+Whether the node/weight set is invariant under the full octahedral group: every image of
+every node under a signed permutation of its coordinates is again a node, carrying the same
+weight. Checking the 48 images of each node is what makes this independent of the orbit
+machinery that built the rule.
+"""
+function check_octahedral_symmetry(xs, ws, tol)
+    length(first(xs)) == 3 || return false
+    wscale = maximum(abs, ws)
+    for (x, w) in zip(xs, ws), p in permutations_of(3), s1 in (1, -1), s2 in (1, -1), s3 in (1, -1)
+        y = (s1 * x[p[1]], s2 * x[p[2]], s3 * x[p[3]])
+        any(eachindex(xs)) do j
+            maximum(abs, (xs[j][1] - y[1], xs[j][2] - y[2], xs[j][3] - y[3])) <= tol &&
+                abs(ws[j] - w) <= tol * wscale
+        end || return false
+    end
+    return true
+end
 
 "Whether the node/weight set on the reference interval is invariant under `x ↦ -x`."
 function check_reflection_symmetry(xs, ws, tol)

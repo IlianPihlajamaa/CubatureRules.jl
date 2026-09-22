@@ -76,8 +76,8 @@ a family by defining one type and a few methods, with no registration step.
 
 | | |
 |---|---|
-| Domains | `Interval`, `Orthotope{D}`, `Simplex{D}` (any D), `WeightedDomain` with Jacobi weights, `HalfLine`/`RealLine` with the Laguerre and Hermite weights; the others are stubbed with the release that brings them |
-| Families | `GaussJacobi`/`GaussLegendre`, `GaussLaguerre`, `GaussHermite`, `GaussKronrod` (QuadGK), `Lobatto`/`Radau`/`ClenshawCurtis` (QuadratureRules.jl, loaded on demand), `NewtonCotes` (exact rational), `Fejer` 1 & 2, `TanhSinh`/`ExpSinh`/`SinhSinh`, `TensorProduct`, `XiaoGimbutas` (triangle, degrees 1–46, any precision), `FullySymmetric` (tetrahedron, degrees 1–16, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree) |
+| Domains | `Interval`, `Orthotope{D}`, `Simplex{D}` (any D), `WeightedDomain` with Jacobi weights, `HalfLine`/`RealLine` with the Laguerre and Hermite weights, `Sphere{D}`; the others are stubbed with the release that brings them |
+| Families | `GaussJacobi`/`GaussLegendre`, `GaussLaguerre`, `GaussHermite`, `GaussKronrod` (QuadGK), `Lobatto`/`Radau`/`ClenshawCurtis` (QuadratureRules.jl, loaded on demand), `NewtonCotes` (exact rational), `Fejer` 1 & 2, `TanhSinh`/`ExpSinh`/`SinhSinh`, `TensorProduct`, `SphereProduct`, `Lebedev` (sphere, in-house seeds), `XiaoGimbutas` (triangle, degrees 1–46, any precision), `FullySymmetric` (tetrahedron, degrees 1–16, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree) |
 | Claims | `PolynomialDegree`, `SpanOf`, `NoClaim`; claim preservation under `map_to`, `subdivide`, `transform`, `duffy` |
 | Application | `integrate` (generic return types; allocation-free on `static(rule)`), over a domain, over a mesh (threaded on request; 1.14× a hand-written FEM kernel over 10⁶ triangles), batched; `RuleSequence`, `EmbeddedRule` error estimates at no extra evaluations, `integrate(f, domain; rtol)` |
 | Verification | `check` / `verify` / `@test_exact`, dispatched on the claim; convergence sweeps for `NoClaim` |

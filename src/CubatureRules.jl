@@ -57,10 +57,12 @@ include("symmetry/moment_system.jl")
 include("symmetry/octahedral.jl")
 include("refine/seeds.jl")
 include("refine/elimination.jl")
+include("refine/octahedral_search.jl")
 include("families/simplex/grundmannmoller.jl")
 include("families/simplex/xiaogimbutas.jl")
 include("families/simplex/fullysymmetric.jl")
 include("families/sphere/product.jl")
+include("families/sphere/lebedev.jl")
 include("composition/tensor.jl")
 
 # selection, application, verification, presentation
@@ -88,7 +90,7 @@ export Provenance, Certificate, Verification, Citation, Derived, Seeded
 export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct, ⊗,
        NewtonCotes, Fejer, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
-       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct
+       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct, Lebedev
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families
 export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError

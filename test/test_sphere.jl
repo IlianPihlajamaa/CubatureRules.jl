@@ -63,7 +63,7 @@ end
 
 @testset "SphereProduct" begin
     for d in (0, 1, 3, 8, 12)
-        r = rule(Sphere{3}(); degree = d)
+        r = rule(SphereProduct(), Sphere{3}(); degree = d)
         v = check(r)
         @test family(r) == "SphereProduct"
         @test npoints(r) == cld(d + 1, 2) * (d + 1)
@@ -73,31 +73,33 @@ end
         @test all(x -> indomain(x, Sphere{3}()), nodes(r))
     end
     for d in (1, 4, 9)
-        r = rule(Sphere{2}(); degree = d)
+        r = rule(SphereProduct(), Sphere{2}(); degree = d)
         v = check(r)
         @test npoints(r) == d + 1                  # optimal on the circle
         @test v.exact && v.sharp === true && v.positive
         @test sum(weights(r)) ≈ 2π rtol = 1e-13
     end
     # integrating something with a known value
-    r = rule(Sphere{3}(); degree = 6)
+    r = rule(SphereProduct(), Sphere{3}(); degree = 6)
     @test integrate(x -> x[3]^2, r) ≈ 4π / 3 rtol = 1e-13
     @test integrate(x -> x[1]^2 * x[2]^2, r) ≈ 4π / 15 rtol = 1e-13
     @test integrate(x -> x[1] * x[2] * x[3], r) ≈ 0 atol = 1e-14
     # arbitrary precision
-    rb = rule(Sphere{3}(); degree = 15, digits = 50)
+    rb = rule(SphereProduct(), Sphere{3}(); degree = 15, digits = 50)
     @test passed(check(rb))
     @test abs(sum(weights(rb)) - 4big(π)) < big(10.0)^-48
     @test_throws NoRuleError rule(Sphere{3}(); degree = 3, T = Rational{BigInt})
     # the registry knows about it, and says what it cannot do
-    @test first(available(Sphere{3}(); degree = 5)).family == "SphereProduct"
+    # both families are offered; Lebedev leads on node count where it is tabulated
+    @test "SphereProduct" in [row.family for row in available(Sphere{3}(); degree = 5)]
+    @test first(available(Sphere{3}(); degree = 5)).family == "Lebedev"
     @test isempty(available(Sphere{5}(); degree = 5))
     msg = try rule(Sphere{5}(); degree = 5) catch e; sprint(showerror, e) end
     @test occursin("Sphere{5}", msg)
 end
 
 @testset "spheres off the reference" begin
-    s = rule(Sphere((1.0, 2.0, 3.0), 2.5); degree = 9)
+    s = rule(SphereProduct(), Sphere((1.0, 2.0, 3.0), 2.5); degree = 9)
     @test npoints(s) == 50
     @test sum(weights(s)) ≈ 4π * 2.5^2 rtol = 1e-13
     @test all(x -> indomain(x, domain(s)), nodes(s))

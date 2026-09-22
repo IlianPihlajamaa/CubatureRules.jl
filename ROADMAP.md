@@ -362,7 +362,9 @@ gaining enough breadth for the selector to be genuinely discriminating.
       basis on the circle; $S^{d-1}$ for $d > 3$ needs hyperspherical harmonics and says so)*
 - [x] Product rules: Gauss–Legendre in $\cos\theta$ × trapezoid in $\varphi$
 - [ ] Jacobi radial weight, for the ball
-- [ ] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
+- [x] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
+      *(seeds generated in-house by search, matching the published counts except at degree
+      13, where the 74-point rule is not positive and the search reports 78)*
 - [ ] Womersley $t$-designs
 - [ ] Stroud $E_n^{r^2}$, $E_n^{r}$, $S_n$, $T_n$ in closed form for arbitrary $d$
 - [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with

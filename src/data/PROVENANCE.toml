@@ -39,3 +39,23 @@ license = "MIT"
 retrieved = "2026-09-19"
 citation = "none (generated in-house)"
 generator = "scripts/generate_tetrahedron_seeds.jl"
+
+[[file]]
+path = "lebedev_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for octahedrally symmetric, positive
+sphere rules of odd degree, with the smallest point counts the in-house search reached
+subject to positive weights."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_lebedev_seeds.jl: for each odd degree, a walk upwards
+in point count with multistart Levenberg-Marquardt on the O_h-invariant moment system at
+each count, the winner refined to 100 digits and rounded to Float64. No numbers were taken
+from any publication. Lebedev's published point counts appear in the generator only to
+annotate its log, and the counts found agree with them except at degree 13, where the
+published 74-point rule has a negative weight and the search reports a 78-point positive one
+instead."""
+license = "MIT"
+retrieved = "2026-09-22"
+citation = "V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2"
+generator = "scripts/generate_lebedev_seeds.jl"
