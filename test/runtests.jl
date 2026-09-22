@@ -11,6 +11,7 @@ const CR = CubatureRules
     @testset "delegated families" include("test_delegated.jl")
     @testset "unbounded domains" include("test_unbounded.jl")
     @testset "spheres" include("test_sphere.jl")
+    @testset "octahedral orbit algebra" include("test_octahedral.jl")
     @testset "registry and selection" include("test_registry.jl")
     @testset "application" include("test_apply.jl")
     @testset "claim preservation" include("test_transport.jl")

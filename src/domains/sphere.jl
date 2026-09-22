@@ -48,13 +48,20 @@ measure(d::Sphere{D}) where {D} = unit_sphere_area(D) * big(d.radius)^(D - 1)
 
 # A point is on the sphere, not inside it: the default tolerance is the resolution of the
 # coordinates, since |x| = 1 is only ever attained to rounding.
-_sphere_tol(x, ::Type{T}) where {T<:AbstractFloat} = 64 * eps(T)
-_sphere_tol(x, ::Type) = 0
-_sphere_tol(x) = _sphere_tol(x, float(real(eltype(x))))
+#
+# The resolution is the coarser of two things, and both matter. A `BigFloat` node carries
+# its own precision, which bounds how well |x| = 1 can hold in the stored numbers; and the
+# radius is recomputed here in whatever precision is ambient, which bounds how well it can
+# be seen to hold. Verification runs at a precision set by the rule's *weights*, which need
+# not match its nodes', so taking either alone rejects the nodes of otherwise perfect rules.
+_coord_eps(xi::BigFloat) = ldexp(BigFloat(1), -precision(xi))
+_coord_eps(xi::T) where {T<:AbstractFloat} = eps(T)
+_coord_eps(xi) = 0                              # exact coordinates resolve everything
+_sphere_tol(x, r) = 64 * max(maximum(_coord_eps, x), _coord_eps(r))
 
 function indomain(x, d::Sphere; tol = nothing)
-    t = tol === nothing ? _sphere_tol(x) : tol
     r = sqrt(sum(abs2, x .- d.centre))
+    t = tol === nothing ? _sphere_tol(x, r) : tol
     return abs(r - d.radius) <= t * max(d.radius, one(r))
 end
 # The surface has no boundary, so every point of it counts as interior. Without this the
