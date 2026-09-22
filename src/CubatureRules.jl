@@ -33,6 +33,7 @@ include("domains/orthobasis3.jl")
 include("domains/unbounded.jl")
 include("domains/sphere.jl")
 include("domains/harmonics.jl")
+include("domains/ball.jl")
 include("core/records.jl")
 include("core/rule.jl")
 include("core/precision.jl")
@@ -63,6 +64,7 @@ include("families/simplex/xiaogimbutas.jl")
 include("families/simplex/fullysymmetric.jl")
 include("families/sphere/product.jl")
 include("families/sphere/lebedev.jl")
+include("families/sphere/ballproduct.jl")
 include("composition/tensor.jl")
 
 # selection, application, verification, presentation
@@ -78,7 +80,7 @@ include("benchmark/construction.jl")
 # domains and claims
 export Domain, Interval, Simplex, WeightedDomain, JacobiWeight, HalfLine, RealLine,
        ExponentialWeight, GaussianWeight, LaguerreRay, HermiteLine,
-       Orthotope, Sphere, Ball, Polytope, Wedge, Pyramid
+       Orthotope, Sphere, Ball, Disk, Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
 export measure, vertices, barycentric, cartesian, indomain, isinterior, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map
@@ -90,7 +92,7 @@ export Provenance, Certificate, Verification, Citation, Derived, Seeded
 export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct, ⊗,
        NewtonCotes, Fejer, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
-       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct, Lebedev
+       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct, Lebedev, BallProduct
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families
 export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError

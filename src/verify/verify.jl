@@ -229,6 +229,15 @@ function reference_nodes(r::QuadratureRule{D,T,<:Orthotope}, ::Type{S}) where {D
     return xs, [S(w) / scale for w in r.weights]
 end
 
+# A ball maps to its reference the same way, with the volume Jacobian r^D.
+function reference_nodes(r::QuadratureRule{D,T,<:Ball}, ::Type{S}) where {D,T,S}
+    dom = r.domain
+    c = SVector{D,S}(map(S, dom.centre))
+    ρ = S(dom.radius)
+    xs = [Vector{S}((SVector{D,S}(map(S, x)) .- c) ./ ρ) for x in r.nodes]
+    return xs, [S(w) / ρ^D for w in r.weights]
+end
+
 # A sphere maps to its reference by translating to the origin and scaling: the weights
 # carry r^(D-1), the surface Jacobian, not r^D.
 function reference_nodes(r::QuadratureRule{D,T,<:Sphere}, ::Type{S}) where {D,T,S}
@@ -302,6 +311,36 @@ end
 blocks(b::CircleBasis) = [circle_block(k) for k in 0:(b.n)]
 exact_integrals(b::CircleBasis{S}) where {S} =
     (v = zeros(S, circle_length(b.n)); v[1] = sqrt(2 * S(π)); v)
+
+# A ball has no constraint among its coordinates, so monomials are a genuine basis there —
+# the sphere's difficulty does not arise — and their moments are exact.
+struct BallMonomialBasis{D,S} <: VerificationBasis
+    exps::Vector{NTuple{D,Int}}
+    blockranges::Vector{UnitRange{Int}}
+end
+function BallMonomialBasis{D,S}(degrees) where {D,S}
+    exps = NTuple{D,Int}[]
+    ranges = UnitRange{Int}[]
+    for k in degrees
+        lo = length(exps) + 1
+        for c in compositions(k, D)
+            push!(exps, NTuple{D,Int}(c))
+        end
+        push!(ranges, lo:length(exps))
+    end
+    return BallMonomialBasis{D,S}(exps, ranges)
+end
+function evaluate!(b::BallMonomialBasis{D,S}, x) where {D,S}
+    φ = [prod(S(x[i])^α[i] for i in 1:D) for α in b.exps]
+    g = [sum((α[i] * prod(S(x[j])^(j == i ? α[j] - 1 : α[j]) for j in 1:D) for i in 1:D if α[i] > 0);
+             init = zero(S)) for α in b.exps]
+    return φ, abs.(g)
+end
+blocks(b::BallMonomialBasis) = b.blockranges
+exact_integrals(b::BallMonomialBasis{D,S}) where {D,S} = [S(ball_moment(D, α)) for α in b.exps]
+
+verification_basis(dom::Ball{D}, n, ::Type{S}, exact) where {D,S} =
+    BallMonomialBasis{D,S}(n isa Integer ? (0:n) : n), "monomials of degree $(join(n, ", ")) (exact ball moments)"
 
 verification_basis(dom::Sphere{3}, n, ::Type{S}, exact) where {S} =
     HarmonicBasis{S}(n), "real spherical harmonics"

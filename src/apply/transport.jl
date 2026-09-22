@@ -202,6 +202,22 @@ end
     return A, SVector{D,S}(dst.lo) - A * SVector{D,S}(src.lo), abs(prod(s))
 end
 
+# Balls transport like spheres, with the volume Jacobian rather than the surface one.
+function map_to(r::QuadratureRule{D,T,<:Ball}, dom::Ball{D}) where {D,T}
+    S = promote_type(T, eltype(dom.centre), typeof(dom.radius))
+    S <: Integer && (S = Rational{BigInt})
+    return _at_rule_precision(r) do
+        src = r.domain
+        ρ = S(dom.radius) / S(src.radius)
+        c = SVector{D,S}(map(S, dom.centre))
+        c0 = SVector{D,S}(map(S, src.centre))
+        xs = [c + ρ * (SVector{D,S}(map(S, x)) - c0) for x in r.nodes]
+        ws = [S(w) * ρ^D for w in r.weights]
+        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
+                       with_step(r.provenance, "map_to: similarity image onto $(dom)"), r.certificate)
+    end
+end
+
 # A sphere maps onto another by a similarity — translate and scale — so the Jacobian is
 # r^(D-1), the surface one, and the claim survives: a polynomial of degree d pulled back
 # through x ↦ c + ρx is again a polynomial of degree d.

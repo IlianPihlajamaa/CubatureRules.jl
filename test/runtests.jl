@@ -13,6 +13,7 @@ const CR = CubatureRules
     @testset "spheres" include("test_sphere.jl")
     @testset "octahedral orbit algebra" include("test_octahedral.jl")
     @testset "Lebedev" include("test_lebedev.jl")
+    @testset "balls" include("test_ball.jl")
     @testset "registry and selection" include("test_registry.jl")
     @testset "application" include("test_apply.jl")
     @testset "claim preservation" include("test_transport.jl")

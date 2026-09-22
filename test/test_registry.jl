@@ -93,7 +93,7 @@ end
     @test occursin("has negative weights", m3)
     @test occursin("GrundmannMöller degree 1", m3)
     @test_throws NoRuleError rule(Simplex{2}(); degree = 5, family = XiaoGimbutas(), T = Rational{BigInt})
-    @test_throws CR.NotYetImplemented Ball{3}()
+    @test_throws CR.NotYetImplemented Wedge{3}()
     # a domain that exists but has no family in the dimension asked for
     @test occursin("Sphere{5}", try rule(Sphere{5}(); degree = 4) catch e; sprint(showerror, e) end)
     @test_throws ArgumentError rule(Simplex{2}(); degree = -1)

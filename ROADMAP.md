@@ -357,11 +357,11 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] `Sphere{D,T}`; measures and monomial moments over $S^{d-1}$ *(the moments are
       rational multiples of $\pi^{\lceil D/2\rceil}$, so they are exact to the working
       precision rather than exact rationals)*
-- [ ] `Ball{D,T}`, disk
+- [x] `Ball{D,T}`, disk
 - [x] Spherical-harmonic basis for verification *(real harmonics on $S^2$ and the Fourier
       basis on the circle; $S^{d-1}$ for $d > 3$ needs hyperspherical harmonics and says so)*
 - [x] Product rules: Gauss–Legendre in $\cos\theta$ × trapezoid in $\varphi$
-- [ ] Jacobi radial weight, for the ball
+- [x] Jacobi radial weight, for the ball *(`BallProduct`: Gauss–Jacobi for `r^(D-1)` against any sphere family)*
 - [x] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
       *(seeds generated in-house by search, matching the published counts except at degree
       13, where the 74-point rule is not positive and the search reports 78)*

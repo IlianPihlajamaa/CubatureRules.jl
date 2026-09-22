@@ -113,7 +113,7 @@ end
 end
 
 @testset "domains still to come" begin
-    @test_throws CR.NotYetImplemented Ball{3,Float64}()
+    @test_throws CR.NotYetImplemented Polytope{3,Float64}()
     @test_throws CR.NotYetImplemented Pyramid()
     # a sphere in a dimension whose harmonics are not implemented says so
     @test_throws ArgumentError CR.verification_basis(Sphere{5}(), 3, BigFloat, false)

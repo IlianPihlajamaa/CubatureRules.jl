@@ -15,6 +15,7 @@
 | `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
 | `ExpSinh` | `HalfLine()` | none (`NoClaim`) | derived | set by the level | floating |
 | `SinhSinh` | `RealLine()` | none (`NoClaim`) | derived | set by the level | floating |
+| `BallProduct` | `Ball{D}` | any | derived | radial × angular | floating |
 | `Lebedev` | `Sphere{3}` | odd, tabulated | seeded | Lebedev counts (78 at degree 13) | floating |
 | `SphereProduct` | `Sphere{2}`, `Sphere{3}` | any | derived | `d+1` on the circle, ``\lceil (d+1)/2 \rceil (d+1)`` on the sphere | floating |
 
@@ -147,6 +148,36 @@ Accuracy is limited by how well `1 - x` survives in floating point. The outermos
 a few units of roundoff from the endpoint, so an integrand evaluated at `x` near ±1 loses
 about half the working digits — 3e-8 in `Float64`, 3e-26 at 50 digits. Ask for more digits,
 or substitute so that the integrand is written in terms of the distance to the endpoint.
+
+## BallProduct
+
+```@docs
+BallProduct
+```
+
+A ball separates into a radius and a sphere,
+
+```math
+\int_{B^D} f \, dx = \int_0^1 r^{D-1} \!\! \int_{S^{D-1}} f(r\omega) \, d\sigma(\omega) \, dr,
+```
+
+and nothing couples the two factors: a monomial of degree `d` restricted to a ray is `r^d`
+times a monomial on the sphere. So the radial factor is a Gauss–Jacobi rule for the weight
+``r^{D-1}`` and the angular factor is any sphere family — which is why this is a combinator.
+
+```julia
+rule(Ball{3}(); degree = 9)                       # BallProduct(Lebedev), 190 points
+rule(BallProduct(SphereProduct()), Ball{3}(); degree = 9)    # 250, no table needed
+rule(Disk(); degree = 5)
+```
+
+The selector offers every combination and ranks them by node count, so `Ball{3}()` gets the
+Lebedev-angular rule wherever a Lebedev seed exists and falls back to the product rule
+elsewhere.
+
+Rules on a ball are verified against monomials with exact moments: unlike on a sphere, the
+coordinates of a ball satisfy no relation, so monomials really are a basis there. Their
+moments come from the sphere's, divided by ``|\alpha| + D``.
 
 ## Lebedev
 

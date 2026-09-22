@@ -239,7 +239,7 @@ end
 Base.showerror(io::IO, e::NotYetImplemented) =
     print(io, e.what, " is not implemented yet; it is scheduled for CubatureRules ", e.release, ".")
 
-for (name, rel) in ((:Ball, "v0.4"),
+for (name, rel) in (
                     (:Polytope, "v0.6"), (:Wedge, "v0.6"), (:Pyramid, "v0.6"))
     @eval begin
         @doc "`$($(string(name)))` — not yet implemented (scheduled for $($rel))." struct $name{D,T} <: Domain{D,T}
