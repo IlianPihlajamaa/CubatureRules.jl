@@ -229,6 +229,16 @@ function reference_nodes(r::QuadratureRule{D,T,<:Orthotope}, ::Type{S}) where {D
     return xs, [S(w) / scale for w in r.weights]
 end
 
+# A sphere maps to its reference by translating to the origin and scaling: the weights
+# carry r^(D-1), the surface Jacobian, not r^D.
+function reference_nodes(r::QuadratureRule{D,T,<:Sphere}, ::Type{S}) where {D,T,S}
+    dom = r.domain
+    c = SVector{D,S}(map(S, dom.centre))
+    ρ = S(dom.radius)
+    xs = [Vector{S}((SVector{D,S}(map(S, x)) .- c) ./ ρ) for x in r.nodes]
+    return xs, [S(w) / ρ^(D - 1) for w in r.weights]
+end
+
 function reference_nodes(r::QuadratureRule{1,T,<:WeightedDomain}, ::Type{S}) where {T,S}
     isreference(r.domain.base) || throw(ArgumentError("verification of weighted rules needs the reference interval"))
     return [[S(x)] for x in r.nodes], [S(w) for w in r.weights]
@@ -249,6 +259,58 @@ verification_basis(dom::LaguerreDomain, n, ::Type{S}, exact) where {S} =
     "orthonormal Laguerre($(dom.weight.α))"
 verification_basis(dom::HermiteDomain, n, ::Type{S}, exact) where {S} =
     RecurrenceBasis{S,typeof(hermite_recurrence())}(n, hermite_recurrence()), "orthonormal Hermite"
+# Spheres: the harmonics of degree ≤ d span the polynomials of degree ≤ d restricted to the
+# sphere, which is what a claim of degree d on a sphere means.
+struct HarmonicBasis{S} <: VerificationBasis
+    n::Int
+    Y::Vector{S}
+    P::Vector{S}
+    g::Vector{S}                      # the per-degree gradient bound, laid out like Y
+end
+function HarmonicBasis{S}(n::Integer) where {S}
+    g = zeros(S, harmonic_length(n))
+    for l in 0:n, i in harmonic_block(l)
+        g[i] = harmonic_gradient_bound(l, S)
+    end
+    return HarmonicBasis{S}(n, zeros(S, harmonic_length(n)), zeros(S, legendre_length(n)), g)
+end
+function evaluate!(b::HarmonicBasis, x)
+    real_harmonics!(b.Y, b.P, b.n, x)
+    return b.Y, b.g
+end
+blocks(b::HarmonicBasis) = [harmonic_block(l) for l in 0:(b.n)]
+# Only the constant harmonic integrates to anything: Y₀₀ = 1/√(4π) over an area of 4π.
+exact_integrals(b::HarmonicBasis{S}) where {S} =
+    (v = zeros(S, harmonic_length(b.n)); v[1] = sqrt(4 * S(π)); v)
+
+struct CircleBasis{S} <: VerificationBasis
+    n::Int
+    F::Vector{S}
+    g::Vector{S}
+end
+function CircleBasis{S}(n::Integer) where {S}
+    g = zeros(S, circle_length(n))
+    for k in 0:n, i in circle_block(k)
+        g[i] = S(k) / sqrt(S(π))          # |d/dφ| of cos(kφ)/√π, exactly
+    end
+    return CircleBasis{S}(n, zeros(S, circle_length(n)), g)
+end
+function evaluate!(b::CircleBasis, x)
+    fourier_circle!(b.F, b.n, x)
+    return b.F, b.g
+end
+blocks(b::CircleBasis) = [circle_block(k) for k in 0:(b.n)]
+exact_integrals(b::CircleBasis{S}) where {S} =
+    (v = zeros(S, circle_length(b.n)); v[1] = sqrt(2 * S(π)); v)
+
+verification_basis(dom::Sphere{3}, n, ::Type{S}, exact) where {S} =
+    HarmonicBasis{S}(n), "real spherical harmonics"
+verification_basis(dom::Sphere{2}, n, ::Type{S}, exact) where {S} =
+    CircleBasis{S}(n), "Fourier basis on the circle"
+verification_basis(dom::Sphere{D}, n, ::Type{S}, exact) where {D,S} =
+    throw(ArgumentError("verification on S^$(D-1) needs hyperspherical harmonics, which are not " *
+                        "implemented yet; the circle and the 2-sphere are"))
+
 verification_basis(dom::Interval, n, ::Type{S}, exact) where {S} =
     JacobiBasis{S,Int}(n, 0, 0, !exact), exact ? "Legendre (unnormalised, exact arithmetic)" : "orthonormal Legendre"
 verification_basis(dom::WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}, n, ::Type{S}, exact) where {S} =

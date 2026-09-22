@@ -15,6 +15,7 @@
 | `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
 | `ExpSinh` | `HalfLine()` | none (`NoClaim`) | derived | set by the level | floating |
 | `SinhSinh` | `RealLine()` | none (`NoClaim`) | derived | set by the level | floating |
+| `SphereProduct` | `Sphere{2}`, `Sphere{3}` | any | derived | `d+1` on the circle, ``\lceil (d+1)/2 \rceil (d+1)`` on the sphere | floating |
 
 ## XiaoGimbutas
 
@@ -145,6 +146,40 @@ Accuracy is limited by how well `1 - x` survives in floating point. The outermos
 a few units of roundoff from the endpoint, so an integrand evaluated at `x` near ±1 loses
 about half the working digits — 3e-8 in `Float64`, 3e-26 at 50 digits. Ask for more digits,
 or substitute so that the integrand is written in terms of the distance to the endpoint.
+
+## SphereProduct
+
+```@docs
+SphereProduct
+```
+
+The fallback on a sphere, as [`ConicalProduct`](@ref) is on a simplex: available at every
+degree and every precision, positive throughout, and needing no table.
+
+On ``S^2``, with ``t = \cos\theta`` the surface integral separates,
+
+```math
+\int_{S^2} f \, d\sigma = \int_{-1}^{1}\!\!\int_0^{2\pi} f \, d\varphi \, dt,
+```
+
+into Gauss–Legendre in ``t`` against the trapezoid rule in ``\varphi``. The trapezoid rule
+is spectrally exact on a circle — ``m`` equally spaced points integrate ``e^{ik\varphi}``
+exactly for ``|k| < m`` — so ``m = d+1`` and ``n = \lceil (d+1)/2 \rceil`` give degree
+``d`` in ``\lceil (d+1)/2 \rceil (d+1)`` points, roughly twice a minimal rule.
+
+On the circle the trapezoid rule is the whole story, and there it is optimal: `d+1` points
+for degree `d`, which nothing can beat.
+
+```julia
+r = rule(Sphere{3}(); degree = 15)        # 128 points
+integrate(x -> x[3]^2, r)                 # 4π/3
+rule(Sphere((1.0, 2.0, 3.0), 2.5); degree = 9)    # a similarity preserves the claim
+```
+
+Rules on a sphere are verified against real spherical harmonics, not monomials: monomials
+restricted to a sphere are linearly dependent (``\sum x_i^2 = 1``), while the harmonics of
+degree ``\le d`` span exactly the polynomials of degree ``\le d`` restricted to it, which
+is what a degree claim on a sphere means.
 
 ## ExpSinh and SinhSinh
 

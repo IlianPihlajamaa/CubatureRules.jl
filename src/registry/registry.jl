@@ -248,7 +248,7 @@ function no_degree_message(dom::Domain; only = nothing)
 end
 
 _planned(dom) = ""
-_planned(::Union{Orthotope,Sphere,Ball,Polytope,Wedge,Pyramid}) = " That domain is scheduled for a later release."
+_planned(::Union{Ball,Polytope,Wedge,Pyramid}) = " That domain is scheduled for a later release."
 
 function unsatisfiable_message(dom, degree, T, positive, interior, cands; only = nothing)
     io = IOBuffer()

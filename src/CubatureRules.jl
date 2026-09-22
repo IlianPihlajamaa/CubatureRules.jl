@@ -31,6 +31,8 @@ include("domains/moments.jl")
 include("domains/orthobasis.jl")
 include("domains/orthobasis3.jl")
 include("domains/unbounded.jl")
+include("domains/sphere.jl")
+include("domains/harmonics.jl")
 include("core/records.jl")
 include("core/rule.jl")
 include("core/precision.jl")
@@ -57,6 +59,7 @@ include("refine/elimination.jl")
 include("families/simplex/grundmannmoller.jl")
 include("families/simplex/xiaogimbutas.jl")
 include("families/simplex/fullysymmetric.jl")
+include("families/sphere/product.jl")
 include("composition/tensor.jl")
 
 # selection, application, verification, presentation
@@ -84,7 +87,7 @@ export Provenance, Certificate, Verification, Citation, Derived, Seeded
 export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct, ⊗,
        NewtonCotes, Fejer, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
-       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric
+       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct
 export rule, available, compare, candidates, properties, degree_range, cost_estimate,
        families
 export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError

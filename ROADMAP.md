@@ -354,10 +354,14 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 **Goal.** The remaining classical domains, and the first `WeightedDomain` families.
 
-- [ ] `Sphere{D,T}`, `Ball{D,T}`, disk; measures and exact monomial moments over $S^{d-1}$
-- [ ] Spherical-harmonic basis for verification
-- [ ] Product rules: Gauss–Legendre in $\cos\theta$ × trapezoid in $\varphi$, Jacobi radial
-      weight
+- [x] `Sphere{D,T}`; measures and monomial moments over $S^{d-1}$ *(the moments are
+      rational multiples of $\pi^{\lceil D/2\rceil}$, so they are exact to the working
+      precision rather than exact rationals)*
+- [ ] `Ball{D,T}`, disk
+- [x] Spherical-harmonic basis for verification *(real harmonics on $S^2$ and the Fourier
+      basis on the circle; $S^{d-1}$ for $d > 3$ needs hyperspherical harmonics and says so)*
+- [x] Product rules: Gauss–Legendre in $\cos\theta$ × trapezoid in $\varphi$
+- [ ] Jacobi radial weight, for the ball
 - [ ] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
 - [ ] Womersley $t$-designs
 - [ ] Stroud $E_n^{r^2}$, $E_n^{r}$, $S_n$, $T_n$ in closed form for arbitrary $d$
