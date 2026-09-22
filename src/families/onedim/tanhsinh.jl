@@ -46,6 +46,7 @@ end
 derivation(::Type{TanhSinh}) = Derived()
 describe_family(f::TanhSinh) = "TanhSinh(level $(f.level))"
 needs_degree(::TanhSinh) = false
+home_domain(::TanhSinh) = Interval()
 degree_range(::TanhSinh, dom) = 0:-1                      # no polynomial degree at all
 properties(::TanhSinh, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = true)
 npoints(f::TanhSinh, dom, degree = 0) = length(tanh_sinh_work(f.level, 53 + 32, 53)[1])

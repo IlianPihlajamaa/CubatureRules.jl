@@ -72,7 +72,21 @@ function fejer_work(n::Integer, kind::Int, bits::Integer)
             end
         end
         p = sortperm(x)
-        x[p], w[p]
+        x, w = x[p], w[p]
+        # Both node sets are symmetric about the origin, but only to working precision:
+        # θ is a multiple of an approximation of π, so an odd rule's centre node comes out
+        # at 1e-28 rather than 0. Impose the symmetry exactly. It is what makes the claimed
+        # reflection symmetry hold on the nose, and what lets one rule's nodes be recognised
+        # as a subset of a finer one's (`EmbeddedRule`) rather than merely near them.
+        for k in 1:(n ÷ 2)
+            m = n + 1 - k
+            xm = (x[m] - x[k]) / 2
+            x[k], x[m] = -xm, xm
+            wm = (w[k] + w[m]) / 2
+            w[k] = w[m] = wm
+        end
+        isodd(n) && (x[cld(n, 2)] = zero(BigFloat))
+        x, w
     end
 end
 

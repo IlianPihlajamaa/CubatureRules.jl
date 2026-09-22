@@ -2,15 +2,19 @@
 
 | Family | Domain | Degrees | Derivation | Points | Output types |
 |---|---|---|---|---|---|
-| `XiaoGimbutas` | triangle | 1–40 | seeded | Xiao–Gimbutas counts, or fewer (degrees 27–33, 38–40) | floating |
-| `FullySymmetric` | tetrahedron | 1–15 | seeded | smallest found by in-house search | floating |
+| `XiaoGimbutas` | triangle | 1–46 | seeded | Xiao–Gimbutas counts, or fewer (degrees 27–33 and 35–46) | floating |
+| `FullySymmetric` | tetrahedron | 1–16 | seeded | smallest found by in-house search | floating |
 | `GrundmannMöller` | any simplex | any (odd) | derived | ``\sum_{i=0}^{s} \binom{s-i+D}{D}`` | floating, `Rational{BigInt}` |
 | `ConicalProduct` | any simplex | any | derived | ``\lceil (d+1)/2 \rceil^D`` | floating |
 | `TensorProduct` | box (`Orthotope`) | any | derived | ``\prod_i m_i`` | floating, exact over exact factors |
 | `GaussJacobi` | interval, Jacobi weight | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
+| `GaussLaguerre` | `LaguerreRay(α)` | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
+| `GaussHermite` | `HermiteLine()` | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
 | `NewtonCotes` | interval | any | derived | `d`, or `d+1` when even | floating, `Rational{BigInt}` |
 | `Fejer` | interval | any | derived | `d`, or `d+1` when even | floating |
 | `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
+| `ExpSinh` | `HalfLine()` | none (`NoClaim`) | derived | set by the level | floating |
+| `SinhSinh` | `RealLine()` | none (`NoClaim`) | derived | set by the level | floating |
 
 ## XiaoGimbutas
 
@@ -67,6 +71,42 @@ Seeds come from Golub–Welsch (G. H. Golub and J. H. Welsch, *Math. Comp.* 23 (
 221–230). They are refined by Newton on the three-term recurrence, and the weights come
 from the Christoffel function.
 
+## GaussLaguerre and GaussHermite
+
+```@docs
+GaussLaguerre
+GaussHermite
+```
+
+The two classical rules on unbounded domains, and the first families whose domain is
+weighted by something other than a Jacobi weight:
+
+| Family | Domain | Weight | ``\sum_i w_i`` |
+|---|---|---|---|
+| `GaussLaguerre(α)` | [`LaguerreRay`](@ref)`(α)` = ``[0, \infty)`` | ``x^\alpha e^{-x}``, ``\alpha > -1`` | ``\Gamma(\alpha+1)`` |
+| `GaussHermite()` | [`HermiteLine`](@ref)`()` = ``\mathbb{R}`` | ``e^{-x^2}`` | ``\sqrt{\pi}`` |
+
+The weight is part of the domain, not of the integrand, so `integrate` applies it for you:
+
+```julia
+r = rule(LaguerreRay(); degree = 11)     # 6 points
+integrate(x -> x^5, r)                   # ∫₀^∞ x⁵ e^{-x} dx = 120
+```
+
+Both share the driver behind [`GaussJacobi`](@ref) — Golub–Welsch in `Float64` for the
+seed, Newton on the three-term recurrence at working precision, Christoffel weights — so a
+family only supplies ``a_k``, ``b_k`` and ``\mu_0``. Laguerre nodes spread out to about
+``4n`` rather than staying in ``[-1, 1]``, so the guard allowance grows with ``n``; the
+degree-15 rule still reproduces ``7! `` to 60 digits.
+
+Verification cannot use a monomial basis here — ``\int x^k w`` grows factorially and the
+conditioning with it — so these domains verify against the weight's *own* orthonormal
+polynomials, evaluated by the same recurrence.
+
+The unbounded base domains [`HalfLine`](@ref) and [`RealLine`](@ref) report
+`measure(...) == Inf` and exist to be weighted; a rule's weights sum to the weight's mass,
+which is finite.
+
 ## TensorProduct
 
 ```@docs
@@ -105,3 +145,38 @@ Accuracy is limited by how well `1 - x` survives in floating point. The outermos
 a few units of roundoff from the endpoint, so an integrand evaluated at `x` near ±1 loses
 about half the working digits — 3e-8 in `Float64`, 3e-26 at 50 digits. Ask for more digits,
 or substitute so that the integrand is written in terms of the distance to the endpoint.
+
+## ExpSinh and SinhSinh
+
+```@docs
+ExpSinh
+SinhSinh
+```
+
+The same double-exponential idea on the unbounded domains: exp-sinh on
+[`HalfLine`](@ref)`()` and sinh-sinh on [`RealLine`](@ref)`()`, both `NoClaim`, both nested
+in the level.
+
+```julia
+r = rule(ExpSinh(5), HalfLine())          # 289 points
+integrate(x -> exp(-x)/sqrt(x), r)        # √π, to 4e-16 — singular at 0, decaying at ∞
+```
+
+Truncation is the one real design choice, and it differs from tanh-sinh. On a finite
+interval the sum can stop where the weight falls below the working resolution, because the
+missing tail is then provably negligible. Here the weights *grow* double-exponentially, so
+no such bound exists without knowing how fast the integrand decays — which is the premise
+of the transformation, not something the rule can check. These rules therefore truncate at
+a fixed dynamic range: nodes span ``[2^{-2(p-2)}, 2^{2(p-2)}]`` in magnitude at output
+precision ``p``, about ``10^{\pm 31}`` in `Float64`.
+
+The range is squared rather than plain because what truncation drops is a head and a tail,
+not a weight. An integrand like ``x^{-1+\delta}`` at the origin leaves ``x_{\min}^\delta``
+behind, and one decaying like ``x^{-1-\delta}`` leaves ``x_{\max}^{-\delta}``. The worst
+case worth serving is ``\delta = 1/2``: over the plain range it caps the accuracy of
+``\int_0^\infty x^{-1/2} e^{-x}\,dx`` at 5e-8, and over the squared range at roundoff, for
+18% more nodes — ``t`` enters through `asinh`, so a squared range is a constant more of it.
+
+What this does not do is rescue an integrand that does not decay, or one whose mass sits
+outside the range. The certificate only says the emitted numbers satisfy the closed form;
+the convergence sweep is what tells you the rule has resolved *your* integrand.

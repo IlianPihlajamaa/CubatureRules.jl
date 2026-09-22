@@ -190,6 +190,43 @@ function applicable_instances(dom::Domain)
     return sort!(out; by = describe_family)
 end
 
+"""
+    claimless_instances(dom) -> families
+
+Families that live on `dom` but are parameterised by something other than a degree. They
+are exact on no polynomial space, so they never appear among the candidates for a degree —
+which is exactly why an explanation of "no rule found" has to go and look for them.
+"""
+function claimless_instances(dom::Domain)
+    ref = reference_domain(dom)
+    ref === nothing && return Any[]
+    out = Any[]
+    for F in families()
+        hasmethod(F, Tuple{}) || continue
+        # this runs while building an error message, so a downstream family that cannot be
+        # default-constructed must not replace the error the caller is about to see
+        f = try
+            F()
+        catch
+            continue
+        end
+        (!needs_degree(f) && home_domain(f) == ref) && push!(out, f)
+    end
+    return sort!(out; by = describe_family)
+end
+
+# Named, not offered: a NoClaim family can still be what the caller wants.
+function _claimless_hint(io::IO, dom::Domain)
+    fs = claimless_instances(dom)
+    isempty(fs) && return
+    names = [string(nameof(typeof(f))) for f in fs]
+    one = length(fs) == 1
+    print(io, "\n", join(names, ", "), one ? " lives on " : " live on ", dom,
+          one ? " but claims" : " but claim", " no polynomial degree, so ",
+          one ? "it is" : "they are", " never offered for one. Ask by name: ",
+          "rule(", first(names), "(4), ", dom, ").")
+end
+
 function no_degree_message(dom::Domain; only = nothing)
     io = IOBuffer()
     print(io, "rule(", dom, ") needs a `degree`: there is no defensible default, since the right degree ",
@@ -197,7 +234,8 @@ function no_degree_message(dom::Domain; only = nothing)
     insts = only === nothing ? applicable_instances(dom) : [only]
     ref = reference_domain(dom)
     if isempty(insts) || ref === nothing
-        print(io, " No loaded family supports ", dom, ".", _planned(dom))
+        print(io, " No loaded family answers a degree request on ", dom, ".", _planned(dom))
+        _claimless_hint(io, dom)
     else
         print(io, " Available on ", dom, ":")
         for f in insts
@@ -252,6 +290,7 @@ function unsatisfiable_message(dom, degree, T, positive, interior, cands; only =
                     (last(rg) == typemax(Int) ? ", always available" : "") * ")")
     end
     isempty(near) || print(io, "\nNearest: ", join(near, ", or "), ".")
+    only === nothing && _claimless_hint(io, dom)
     return String(take!(io))
 end
 

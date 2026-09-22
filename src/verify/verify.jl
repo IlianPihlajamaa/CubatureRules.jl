@@ -177,6 +177,34 @@ function exact_integrals(b::JacobiBasis{S}) where {S}
 end
 exact_integrals(b::BarycentricMonomialBasis{S}) where {S} = [S(barycentric_moment(β)) for β in b.exps]
 
+# Orthonormal polynomials of any weight given its recurrence — the basis for verifying
+# rules on weighted domains whose polynomials are not Jacobi (Laguerre, Hermite).
+struct RecurrenceBasis{S,R<:Recurrence} <: VerificationBasis
+    n::Int
+    rec::R
+end
+function evaluate!(b::RecurrenceBasis{S}, xv) where {S}
+    x = xv[1]
+    p = zeros(S, b.n + 1)
+    dp = zeros(S, b.n + 1)
+    μ = S(b.rec.mass(S))
+    p[1] = one(S) / sqrt(μ)
+    if b.n >= 1
+        b1 = b.rec.b(1, S)
+        p[2] = (x - b.rec.a(0, S)) * p[1] / b1
+        dp[2] = p[1] / b1
+    end
+    for k in 1:(b.n - 1)
+        bk, bk1, ak = b.rec.b(k, S), b.rec.b(k + 1, S), b.rec.a(k, S)
+        p[k + 2] = ((x - ak) * p[k + 1] - bk * p[k]) / bk1
+        dp[k + 2] = (p[k + 1] + (x - ak) * dp[k + 1] - bk * dp[k]) / bk1
+    end
+    return p, abs.(dp)
+end
+blocks(b::RecurrenceBasis) = [k:k for k in 1:(b.n + 1)]
+exact_integrals(b::RecurrenceBasis{S}) where {S} =
+    (v = zeros(S, b.n + 1); v[1] = sqrt(S(b.rec.mass(S))); v)
+
 # Map a rule to its reference domain in type S: (nodes as Vector{Vector{S}}, weights).
 function reference_nodes(r::QuadratureRule{D,T,<:Simplex}, ::Type{S}) where {D,T,S}
     dom = r.domain
@@ -216,6 +244,11 @@ verification_basis(dom::Orthotope{D}, n, ::Type{S}, exact) where {D,S} =
     BoxBasis{D,S}(n; normalize = !exact),
     exact ? "tensor Legendre (unnormalised, exact arithmetic), graded by total degree" :
     "tensor orthonormal Legendre, graded by total degree"
+verification_basis(dom::LaguerreDomain, n, ::Type{S}, exact) where {S} =
+    RecurrenceBasis{S,typeof(laguerre_recurrence(dom.weight.α))}(n, laguerre_recurrence(dom.weight.α)),
+    "orthonormal Laguerre($(dom.weight.α))"
+verification_basis(dom::HermiteDomain, n, ::Type{S}, exact) where {S} =
+    RecurrenceBasis{S,typeof(hermite_recurrence())}(n, hermite_recurrence()), "orthonormal Hermite"
 verification_basis(dom::Interval, n, ::Type{S}, exact) where {S} =
     JacobiBasis{S,Int}(n, 0, 0, !exact), exact ? "Legendre (unnormalised, exact arithmetic)" : "orthonormal Legendre"
 verification_basis(dom::WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}, n, ::Type{S}, exact) where {S} =

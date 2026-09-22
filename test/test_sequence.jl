@@ -24,7 +24,7 @@ end
     e = embedded(GaussKronrod(), Interval(); degree = 11)
     @test e isa EmbeddedRule
     @test npoints(e) == npoints(e.fine)
-    @test degree(e) > e.coarse_degree
+    @test degree(e) > degree(e.coarse_claim)   # the coarse rule is genuinely coarser
     @test count(!iszero, e.coarse_weights) == CR.kronrod_halves(11)     # the Gauss subset
     exact = exp(1) - exp(-1)
     v = integrate(exp, e)

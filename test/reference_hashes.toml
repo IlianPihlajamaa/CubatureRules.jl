@@ -1,6 +1,6 @@
 # SHA-256 content hashes of reference rules; see test/test_reproducibility.jl.
 conical_triangle_d11_80digits = "ecf4942e1261dcb51ec7d2e50fae02cdac821744279b0d9a92ca2b7b588e81ba"
-fejer2_d15_80digits = "8584ae83755e474004508ce1f2c5c7a7044e895ad0919c1bc790b95fbfe98d72"
+fejer2_d15_80digits = "4f0199190bf925a3c5cfdf389a68cca5bd376d1b58ab49e031eaa7c29f13a5e1"
 gauss_jacobi_21_float64 = "28c0aec7eb4d5dc85d4d540142c3cc82ea9f990442bf6e759fe27fa2b9e0d6c2"
 gauss_legendre_n40_100digits = "07680568358c7bd217ae272fc97770669f0af511dea4862ad7997a36f924d149"
 gm_tet_d7_rational = "37dcdf5b087b8f7cde4c149078add4569586ba65077e3502f35c9e30f48f7aa8"

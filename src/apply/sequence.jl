@@ -50,6 +50,41 @@ function default_schedule(f::RuleFamily, dom::Domain, maxdegree::Integer)
     return ds
 end
 
+"""
+    LevelSequence(family, domain; levels, T, digits)
+
+The counterpart of [`RuleSequence`](@ref) for a family parameterised by a level rather than
+a degree — the double-exponential rules. The sequence walks `TanhSinh(m)`, `ExpSinh(m)` or
+`SinhSinh(m)` for increasing `m`, which roughly doubles the point count each step and keeps
+every node of the previous step.
+"""
+struct LevelSequence{F<:RuleFamily,D<:Domain}
+    families::Vector{F}
+    domain::D
+    T::Type
+    bits::Int
+end
+
+function LevelSequence(f::RuleFamily, dom::Domain; levels = 2:8, T = nothing, digits = nothing)
+    needs_degree(f) && throw(ArgumentError("$(describe_family(f)) is parameterised by a degree; " *
+                                           "use RuleSequence"))
+    Tout, bits = resolve_precision(T, digits)
+    F = typeof(f)
+    return LevelSequence{F,typeof(dom)}([F(m) for m in levels], dom, Tout, bits)
+end
+
+Base.length(s::LevelSequence) = length(s.families)
+Base.eltype(::Type{<:LevelSequence}) = QuadratureRule
+function Base.iterate(s::LevelSequence, i::Int = 1)
+    i > length(s.families) && return nothing
+    r = rule(s.families[i], s.domain; T = s.T === BigFloat ? nothing : s.T,
+             digits = s.T === BigFloat ? floor(Int, s.bits * log10(2)) : nothing)
+    return r, i + 1
+end
+Base.show(io::IO, s::LevelSequence) =
+    print(io, "LevelSequence(", describe_family(first(s.families)), " on ", s.domain,
+          ", levels ", [f.level for f in s.families], ")")
+
 Base.length(s::RuleSequence) = length(s.degrees)
 Base.eltype(::Type{<:RuleSequence}) = QuadratureRule
 function Base.iterate(s::RuleSequence, i::Int = 1)
@@ -84,13 +119,18 @@ function EmbeddedRule(fine::QuadratureRule{D,T}, coarse::QuadratureRule{D}) wher
     tol = eltype(fine) <: AbstractFloat ? 1024 * eps(real(float(T))) : zero(T)
     for j in 1:npoints(coarse)
         xj = node_vector(coarse, j)
-        i = findfirst(k -> maximum(abs, node_vector(fine, k) - xj) <= tol, 1:npoints(fine))
+        i = findfirst(k -> _same_node(node_vector(fine, k), xj, tol), 1:npoints(fine))
         i === nothing && throw(ArgumentError("the coarse rule's node $(xj) is not a node of the fine rule, " *
                                              "so the two are not embedded"))
         w[i] = T(weights(coarse)[j])
     end
     return EmbeddedRule{D,T,typeof(fine),typeof(exactness(coarse))}(fine, w, exactness(coarse))
 end
+
+# Relative, not absolute: a double-exponential rule on an unbounded domain spreads its nodes
+# over sixty orders of magnitude, and an absolute tolerance makes every node near the origin
+# look like every other one — which would silently attach a coarse weight to the wrong node.
+_same_node(a, b, tol) = all(i -> abs(a[i] - b[i]) <= tol * max(abs(a[i]), abs(b[i])), eachindex(a))
 
 nodes(e::EmbeddedRule) = nodes(e.fine)
 weights(e::EmbeddedRule) = weights(e.fine)
@@ -189,7 +229,10 @@ function integrate(f::F, dom::Domain; rtol = nothing, atol = 0, family = nothing
         "For a fixed rule, build it first — integrate(f, rule(domain; degree = 20)) — so that the " *
         "construction is visible and can be hoisted out of a loop."))
     fam = family === nothing ? adaptive_family(dom, maxdegree) : family
-    seq = RuleSequence(fam, dom; T, digits, maxdegree)
+    # a family with no degree to walk is walked by level instead — the unbounded domains
+    # have nothing else, and on them this is the whole of tolerance-driven integration
+    seq = needs_degree(fam) ? RuleSequence(fam, dom; T, digits, maxdegree) :
+          LevelSequence(fam, dom; T, digits)
     prev = nothing
     neval = 0
     best = nothing
@@ -216,7 +259,12 @@ end
 "The family an `rtol` call walks: the cheapest candidate at a mid-range degree, nested first."
 function adaptive_family(dom::Domain, maxdegree::Integer)
     cands = gather(dom, min(15, maxdegree), Float64)
-    isempty(cands) && throw(NoRuleError(no_degree_message(dom)))
+    if isempty(cands)
+        # no family answers a degree here; a double-exponential one may still converge
+        cl = claimless_instances(dom)
+        isempty(cl) && throw(NoRuleError(no_degree_message(dom)))
+        return first(cl)
+    end
     ref = reference_domain(dom)
     nested = filter(c -> properties(c.family, ref, 15).nested, cands)
     return first(isempty(nested) ? cands : nested).family

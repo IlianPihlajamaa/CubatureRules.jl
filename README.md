@@ -72,15 +72,15 @@ julia> rule(Simplex{2}())                                       # errors, listin
 Families are found with `subtypes(RuleFamily)` at call time. A downstream package can add
 a family by defining one type and a few methods, with no registration step.
 
-## Status: v0.1 (the cornerstone release) in progress
+## Status: v0.3 (one dimension, completed and delegated) in progress
 
 | | |
 |---|---|
-| Domains | `Interval`, `Simplex{D}` (any D), `WeightedDomain` with Jacobi weights; the others are stubbed with the release that brings them |
-| Families | `GaussKronrod` (QuadGK), `Lobatto`/`Radau`/`ClenshawCurtis` (QuadratureRules.jl, loaded on demand), `NewtonCotes` (exact rational), `Fejer`, `TensorProduct`, `XiaoGimbutas` (triangle, degrees 1–27, any precision), `FullySymmetric` (tetrahedron, degrees 1–15, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree), `GaussJacobi` |
+| Domains | `Interval`, `Orthotope{D}`, `Simplex{D}` (any D), `WeightedDomain` with Jacobi weights, `HalfLine`/`RealLine` with the Laguerre and Hermite weights; the others are stubbed with the release that brings them |
+| Families | `GaussJacobi`/`GaussLegendre`, `GaussLaguerre`, `GaussHermite`, `GaussKronrod` (QuadGK), `Lobatto`/`Radau`/`ClenshawCurtis` (QuadratureRules.jl, loaded on demand), `NewtonCotes` (exact rational), `Fejer` 1 & 2, `TanhSinh`/`ExpSinh`/`SinhSinh`, `TensorProduct`, `XiaoGimbutas` (triangle, degrees 1–46, any precision), `FullySymmetric` (tetrahedron, degrees 1–16, any precision), `GrundmannMöller` (any D, exact rational), `ConicalProduct` (any D, any degree) |
 | Claims | `PolynomialDegree`, `SpanOf`, `NoClaim`; claim preservation under `map_to`, `subdivide`, `transform`, `duffy` |
-| Application | `integrate` (generic return types; allocation-free on `static(rule)`), over a domain, over a mesh (threaded on request; 1.14× a hand-written FEM kernel over 10⁶ triangles), batched |
-| Verification | `check` / `verify` / `@test_exact`, dispatched on the claim |
+| Application | `integrate` (generic return types; allocation-free on `static(rule)`), over a domain, over a mesh (threaded on request; 1.14× a hand-written FEM kernel over 10⁶ triangles), batched; `RuleSequence`, `EmbeddedRule` error estimates at no extra evaluations, `integrate(f, domain; rtol)` |
+| Verification | `check` / `verify` / `@test_exact`, dispatched on the claim; convergence sweeps for `NoClaim` |
 | Tooling | `show`, `cite` (BibTeX/APA/plain), content `hash`/`==`, `rule_hash` for bitwise reproducibility, `benchmark_construction` |
 
 See [ROADMAP.md](ROADMAP.md) for the stages and [PLAN.md](PLAN.md) for the design. The v0.0

@@ -125,3 +125,13 @@ something else — tanh-sinh is parameterised by its step, and is exact on no po
 space, so a degree would be meaningless.
 """
 needs_degree(::RuleFamily) = true
+
+"""
+    home_domain(f) -> Domain or nothing
+
+The single reference domain a family lives on, where it has one. Families that answer a
+`degree` request are found through [`candidates`](@ref); a family that claims no degree is
+never among them, so this is how the selector can still name it when it explains that no
+rule was found.
+"""
+home_domain(::RuleFamily) = nothing

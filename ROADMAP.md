@@ -310,15 +310,16 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 ### Families filled here
 
-- [ ] Gauss–Laguerre and Gauss–Hermite, generalised
+- [x] Gauss–Laguerre and Gauss–Hermite, generalised
 - [x] Radau and Lobatto variants via Golub's modified Jacobi matrix *(delegated to
       QuadratureRules.jl rather than reimplemented)*
 - [x] Clenshaw–Curtis and Fejér 1 & 2, closed-form weights / generic DCT *(Clenshaw–Curtis
       delegated; Fejér 1 and 2 implemented here, as upstream lacks them)*
 - [x] Newton–Cotes closed and open, exact `Rational{BigInt}`
-- [ ] Gauss–Patterson nested extension
+- [ ] Gauss–Patterson nested extension *(deferred to v0.5: only the first extension of a
+      Gauss rule is a Kronrod rule, which QuadGK supplies; iterating it means extending a
+      rule that is no longer Gauss, which needs the Stieltjes machinery below)*
 - [x] Tanh-sinh, exp-sinh, sinh-sinh — the `NoClaim` path, with convergence-sweep
-      *(tanh-sinh done; exp-sinh and sinh-sinh need the unbounded domains)*
       verification
 
 ### Composition
@@ -335,11 +336,17 @@ gaining enough breadth for the selector to be genuinely discriminating.
 **Exit criteria**
 
 - [ ] `available(Orthotope{3}(); degree = 11)` offers tensor and non-tensor candidates,
-      ranked
-- [ ] Nested sequences produce error estimates with no additional integrand calls
-- [ ] `NoClaim` verification by convergence sweep works and is flagged empirical in the
+      ranked *(ten tensor candidates, ranked; the non-tensor half waits on Smolyak, below,
+      since no non-tensor box family exists yet — carried to v0.6)*
+- [x] Nested sequences produce error estimates with no additional integrand calls
+      *(`EmbeddedRule` over Kronrod, nested Fejér 2, tanh-sinh, exp-sinh and sinh-sinh; the
+      test counts the evaluations)*
+- [x] `NoClaim` verification by convergence sweep works and is flagged empirical in the
       `Verification`
-- [ ] No 1D family is implemented here that an upstream package already provides
+- [x] No 1D family is implemented here that an upstream package already provides *(the
+      exceptions are deliberate and documented: Fejér 1 and 2, exact-rational
+      Newton–Cotes, the double-exponential family under this package's precision policy,
+      and Gauss–Laguerre/Hermite, none of which upstream covers)*
 
 ---
 
@@ -354,8 +361,10 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [ ] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
 - [ ] Womersley $t$-designs
 - [ ] Stroud $E_n^{r^2}$, $E_n^{r}$, $S_n$, $T_n$ in closed form for arbitrary $d$
-- [ ] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay`
-- [ ] Unbounded-domain handling in `integrate` and in verification
+- [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with
+      Gauss–Laguerre and Gauss–Hermite)*
+- [x] Unbounded-domain handling in `integrate` and in verification *(pulled into v0.3:
+      `RecurrenceBasis` verifies against the weight's own orthonormal polynomials)*
 
 **Exit criteria**
 
@@ -373,6 +382,8 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [ ] Modified Chebyshev from modified moments — **the headline**, and the demonstration
       that 200-digit arithmetic makes a "too ill-conditioned" algorithm usable
 - [ ] Christoffel modification: multiply or divide the weight by a linear factor
+- [ ] Gauss–Patterson, carried over from v0.3: iterated Kronrod extension on top of the
+      Stieltjes polynomials
 - [ ] Multiple-component discretisation (`mcdis`)
 - [ ] Singular weights: $\log(1/x)$, algebraic-logarithmic endpoint singularities
 - [ ] Cauchy principal value and Hadamard finite-part rules via analytic modified moments
@@ -396,6 +407,8 @@ them.
 ### Composition
 
 - [ ] Smolyak sparse grids: combination technique with node deduplication, any 1D family
+      *(also closes the v0.3 exit criterion that `available` on a box offer a non-tensor
+      candidate)*
 - [ ] `Wedge`, `Pyramid`
 - [ ] `Polytope` via Lasserre / Chin–Sukumar divergence-theorem reduction — **Tier 1b**,
       declaring `interior = false` in `properties` so the selector filters it honestly

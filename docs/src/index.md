@@ -34,6 +34,20 @@ rule(Simplex{2}(); degree = 17, positive = true, interior = true)
 rule(GrundmannMöller(), Simplex{4}(); degree = 11, T = Rational{BigInt})   # explicit family
 ```
 
+## Integrating to a tolerance
+
+```julia
+integrate(f, Simplex{2}(); rtol = 1e-12)      # walks a sequence, returns an IntegrationResult
+integrate(f, HalfLine(); rtol = 1e-10)        # ∫₀^∞ f, by exp-sinh levels
+integrate(f, RealLine(); rtol = 1e-10)        # ∫_ℝ f, by sinh-sinh levels
+integrate(f, LaguerreRay(); rtol = 1e-12)     # ∫₀^∞ f(x) x^α e^{-x}, by Gauss–Laguerre degrees
+```
+
+A tolerance needs a *sequence* of rules, so this is the one signature that takes a domain
+rather than a rule. It walks degrees where a family claims one and levels where none does,
+and returns an [`IntegrationResult`](@ref) — never a bare number. It is order-adaptive, not
+space-adaptive: for localised features use QuadGK.jl or HCubature.jl.
+
 ## Hot loops and meshes
 
 ```julia
