@@ -2,8 +2,8 @@
 
 | Family | Domain | Degrees | Derivation | Points | Output types |
 |---|---|---|---|---|---|
-| `XiaoGimbutas` | triangle | 1–46 | seeded | Xiao–Gimbutas counts, or fewer (degrees 27–33 and 35–46) | floating |
-| `FullySymmetric` | tetrahedron | 1–16 | seeded | smallest found by in-house search | floating |
+| `XiaoGimbutas` | triangle | 1–47 | seeded | Xiao–Gimbutas counts, or fewer (degrees 27–33 and 35–47) | floating |
+| `FullySymmetric` | tetrahedron | 1–20 | seeded | smallest found by in-house search | floating |
 | `GrundmannMöller` | any simplex | any (odd) | derived | ``\sum_{i=0}^{s} \binom{s-i+D}{D}`` | floating, `Rational{BigInt}` |
 | `ConicalProduct` | any simplex | any | derived | ``\lceil (d+1)/2 \rceil^D`` | floating |
 | `TensorProduct` | box (`Orthotope`) | any | derived | ``\prod_i m_i`` | floating, exact over exact factors |
