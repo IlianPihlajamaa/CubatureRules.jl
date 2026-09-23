@@ -393,8 +393,14 @@ gaining enough breadth for the selector to be genuinely discriminating.
 **Goal.** The OPQ layer, scoped strictly to what QuadGK and PolyChaos do not already cover
 (§6 Tier 2), plus the singular and oscillatory catalogue.
 
-- [ ] Modified Chebyshev from modified moments — **the headline**, and the demonstration
-      that 200-digit arithmetic makes a "too ill-conditioned" algorithm usable
+- [x] Modified Chebyshev from modified moments — **the headline**, and the demonstration
+      that 200-digit arithmetic makes a "too ill-conditioned" algorithm usable.
+      `MomentWeight` / `OrdinaryMoments` / `ModifiedChebyshev`, `docs/src/moments.md`,
+      `notes/v0.5-moments.md`. The loss is 1.44 digits per point and linear, so `Float64`
+      fails at n = 16 while 200 digits reaches n = 40 with 146 correct. Working precision is
+      found by running twice and doubling until consecutive iterates agree, because the
+      residual of the defining equations is *not* a proxy for accuracy here — at n = 40 a
+      rule wrong in the sixth decimal still matches all 80 moments to 1e-52
 - [ ] Christoffel modification: multiply or divide the weight by a linear factor
 - [ ] Stroud $E_n^r$ in closed form, carried from v0.4: the $e^{-r}$-weighted whole space.
       It belongs with the measures rather than with the spheres, being another radial
@@ -410,8 +416,12 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 **Exit criteria**
 
-- [ ] A documented worked example where moment-based Chebyshev fails in `Float64` and
-      succeeds at 200 digits — this is the package's best single argument
+- [x] A documented worked example where moment-based Chebyshev fails in `Float64` and
+      succeeds at 200 digits — this is the package's best single argument.
+      Recovering Gauss–Legendre on [0,1] from `mₖ = 1/(k+1)`: `docs/src/moments.md`.
+      The honest form of the claim is narrower than the slogan and is documented as such —
+      a well-chosen auxiliary family is benign in `Float64` to n = 80 and beyond, and what
+      precision buys is the case where the family *cannot* be chosen
 - [ ] No reimplementation of Stieltjes or Lanczos; both delegated or contributed upstream
 
 ---
