@@ -9,6 +9,7 @@ const CR = CubatureRules
     @testset "refinement" include("test_refine.jl")
     @testset "families" include("test_families.jl")
     @testset "delegated families" include("test_delegated.jl")
+    @testset "moment-defined weights" include("test_moments.jl")
     @testset "unbounded domains" include("test_unbounded.jl")
     @testset "spheres" include("test_sphere.jl")
     @testset "octahedral orbit algebra" include("test_octahedral.jl")

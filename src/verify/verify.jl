@@ -260,6 +260,11 @@ function reference_nodes(r::QuadratureRule{1,T,<:WeightedDomain}, ::Type{S}) whe
     return [[S(x)] for x in r.nodes], [S(w) for w in r.weights]
 end
 
+# A measure given by its moments is stated on the interval it was integrated over, whatever
+# that interval is, so the rule is already on its own reference and the nodes pass through.
+reference_nodes(r::QuadratureRule{1,T,<:MomentInterval}, ::Type{S}) where {T,S} =
+    ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
+
 verification_basis(dom::Simplex{2}, n, ::Type{S}, exact) where {S} = DubinerBasis{S}(n; normalize = !exact),
     exact ? "Dubiner (unnormalised, exact arithmetic)" : "orthonormal Dubiner"
 verification_basis(dom::Simplex{3}, n, ::Type{S}, exact) where {S} = TetVerifyBasis{S}(n; normalize = !exact),
@@ -383,6 +388,35 @@ verification_basis(dom::Interval, n, ::Type{S}, exact) where {S} =
 verification_basis(dom::WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}, n, ::Type{S}, exact) where {S} =
     JacobiBasis{S,typeof(dom.weight.α)}(n, dom.weight.α, dom.weight.β, true),
     "orthonormal Jacobi($(dom.weight.α), $(dom.weight.β))"
+
+# A measure known only by its moments is verified against those moments. The auxiliary
+# polynomials π₀ … π_d span P_d, so this is the full exactness claim and not a weaker sample
+# of it — and the exact integrals are the input data rather than anything derived from it.
+struct MomentBasis{S,W<:MomentWeight} <: VerificationBasis
+    degs::Vector{Int}
+    w::W
+end
+MomentBasis{S}(degs, w::W) where {S,W<:MomentWeight} = MomentBasis{S,W}(collect(degs), w)
+function evaluate!(b::MomentBasis{S}, xv) where {S}
+    x = S(xv[1])
+    N = maximum(b.degs) + 1
+    p = zeros(S, N)
+    dp = zeros(S, N)
+    p[1] = one(S)
+    for k in 1:(N - 1)
+        a, c = S(b.w.aux.a(k - 1, S)), S(b.w.aux.b(k - 1, S))
+        prev, dprev = k == 1 ? (zero(S), zero(S)) : (p[k - 1], dp[k - 1])
+        p[k + 1] = (x - a) * p[k] - c * prev
+        dp[k + 1] = p[k] + (x - a) * dp[k] - c * dprev
+    end
+    return S[p[k + 1] for k in b.degs], S[abs(dp[k + 1]) for k in b.degs]
+end
+blocks(b::MomentBasis) = [k:k for k in eachindex(b.degs)]
+exact_integrals(b::MomentBasis{S}) where {S} = S[S(b.w.moments(k, S)) for k in b.degs]
+
+verification_basis(dom::MomentInterval, n, ::Type{S}, exact) where {S} =
+    MomentBasis{S}(_degrees(n), dom.weight),
+    "monic auxiliary polynomials of $(dom.weight.label), against the given moments"
 
 "Per-degree-block (max residual, max residual/tolerance, max tolerance)."
 function block_residuals(basis, xs, ws, ε, floor_tol)
