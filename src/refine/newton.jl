@@ -59,8 +59,15 @@ end
 Rank-revealing least-squares step for `J Δ = r`. In `Float64`: truncated SVD, minimum-norm
 solution. In extended precision: Householder QR with column pivoting (pure Julia, so the
 result is identical on every platform), truncated where `|R_kk| < rank_rtol · |R_11|`, with
-the free variables set to zero. `cond` is `σ₁ / σ_min` over all singular values, so a
-rank-deficient Jacobian reports a large number, which is the honest answer.
+the free variables set to zero.
+
+`cond` differs between the two. In `Float64` the SVD is already in hand, so it is
+`σ₁ / σ_min` over all singular values. In extended precision it comes from the pivoted
+diagonal instead — free, since that is what the rank test already reads, but a lower bound
+rather than the true ratio. Either way a rank-deficient Jacobian reports a large number,
+which is the honest answer: the extended-precision estimate reaches one entry past the
+truncation, the entry that failed the rank test. Callers needing the true ratio ask
+[`estimate_cond`](@ref) directly; [`gauss_newton`](@ref) does, at the first and last iterate.
 """
 function lsq_step(J::AbstractMatrix{Float64}, r::AbstractVector{Float64}; rank_rtol)
     F = svd(J)
@@ -86,7 +93,23 @@ function lsq_step(J::AbstractMatrix{S}, r::AbstractVector{S}; rank_rtol) where {
     z = UpperTriangular(R[1:rank, 1:rank]) \ c
     Δ = zeros(S, n)
     Δ[F.p[1:rank]] .= z
-    return Δ, estimate_cond(J), rank
+    # The condition number here is the free one: column pivoting leaves |R_ii| non-increasing,
+    # so the ratio of its ends measures the solve that was actually performed. It is a lower
+    # bound on σ₁/σ_min, and deliberately so — `estimate_cond` costs a second factorisation in
+    # extended precision (on a 352 × 352 system, 1.6× the QR above), which is too much to pay
+    # every iteration for a diagnostic. `gauss_newton` pays it twice per run instead.
+    # A rank-deficient Jacobian must still report a large number rather than the flattering
+    # conditioning of its retained columns, so the estimate reaches one past the truncation:
+    # that entry is what failed the rank test, and its ratio is the honest signal.
+    κ = if rank == 0
+        Inf
+    elseif rank < k
+        d = abs(R[rank + 1, rank + 1])
+        iszero(d) ? Inf : Float64(abs(R[1, 1]) / d)
+    else
+        Float64(abs(R[1, 1]) / abs(R[rank, rank]))
+    end
+    return Δ, κ, rank
 end
 
 """
@@ -102,8 +125,13 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
     r, J = F(θ)
     nr = norm(r)
     history = NTuple{3,Float64}[]
-    κ = 1.0
-    κmax = 1.0
+    # The accurate condition number is sampled at the two ends of the run and estimated
+    # cheaply in between (see `lsq_step`). It chooses guard digits, so it has to be the real
+    # σ₁/σ_min and not the QR lower bound; but the Jacobian of a Gauss–Newton run varies
+    # smoothly, so the seed and the solution bracket it, and `refine_octahedral` re-runs with
+    # more guard if the number that comes back asks for it.
+    κ = estimate_cond(J)
+    κmax = κ
     converged = nr <= res_floor
     it = 0
     while !converged && it < maxiter
@@ -134,7 +162,9 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
         θ, r, J, nr = θn, rn, Jn, nrn
         converged = step <= step_tol || nr <= res_floor
     end
-    κ = lsq_step(J, r; rank_rtol)[2]
+    # `estimate_cond`, not another `lsq_step`: the step it would compute is thrown away, and
+    # on a large system that discarded factorisation costs as much as an iteration.
+    κ = estimate_cond(J)
     return RefineResult{S}(θ, nr, it, κ, max(κmax, κ), converged, history)
 end
 
