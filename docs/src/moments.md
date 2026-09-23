@@ -64,11 +64,10 @@ The modified moments of `w(x) = log(1/x)` against the monic shifted Legendre pol
 
 ```julia
 using CubatureRules
-import CubatureRules: MonicRecurrence
+import CubatureRules: monic, shift, jacobi_recurrence
 
-# monic shifted Legendre on [0,1]
-aux = MonicRecurrence((k, T) -> one(T) / 2,
-                      (k, T) -> k == 0 ? zero(T) : T(k)^2 / T(4 * (4 * k^2 - 1)))
+# monic shifted Legendre on [0,1], from the Legendre recurrence the package already has
+aux = shift(monic(jacobi_recurrence(0, 0)), 0, 1)
 
 logw = MomentWeight(aux,
                     (k, T) -> k == 0 ? one(T) :
@@ -79,7 +78,7 @@ r = rule(WeightedDomain(Interval(0, 1), logw); degree = 79, digits = 50)
 integrate(f, r)     # ∫₀¹ f(x) log(1/x) dx
 ```
 
-At 40 points this reports a measured condition number of about 2.5 and 30 guard digits —
+At 40 points this reports a measured condition number of about 2.4 and 30 guard digits —
 which is just the fixed cost of the stability check described below — against 4.7e55 and 164
 guard digits for the same size of rule from ordinary moments. Choosing the auxiliary family well is worth more than any amount of arithmetic — the
 point of the previous section is that you are no longer *required* to choose it well.
@@ -137,6 +136,8 @@ OrdinaryMoments
 ModifiedChebyshev
 CubatureRules.MonicRecurrence
 CubatureRules.monic
+CubatureRules.shift
+CubatureRules.monomial_recurrence
 CubatureRules.wheeler
 CubatureRules.MomentBreakdownError
 ```
