@@ -1,8 +1,10 @@
+# The per-commit run: the whole OS x Julia matrix, but only a slice of the shipped seed
+# tables. CI-full.yml checks every degree in them, on tags, weekly and on demand — building
+# high-degree symmetric rules is what costs, and the tables keep growing.
 name: CI
 on:
   push:
     branches: [main]
-    tags: ['*']
   pull_request:
   workflow_dispatch:
 concurrency:
@@ -19,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.10', '1']
+        version: ['1.11', '1']
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4

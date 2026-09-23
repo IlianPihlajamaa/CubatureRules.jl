@@ -3,6 +3,7 @@
 # a `const`: that would be evaluated when CubatureRules was precompiled, before
 # TestFamilyPackage existed.
 using CubatureRules, Test
+import CubatureRules: candidates   # public, not exported
 
 # test/downstream is an implicit environment (a directory of packages): its packages resolve
 # their dependencies through the rest of the load path, i.e. the test environment.

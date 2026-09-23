@@ -41,6 +41,33 @@ CubatureRules.selectable(::MyFamily) = false
 
 so that `rule(domain; degree)` never returns one on its own. `available` still lists it, and
 a caller can have it by naming the family or passing `copyleft = true`; what it will not be
-is the silent answer to a request that said only "degree 19". Give `family_license` too, and
-record the terms in the rule's `Provenance`, so that they travel with the rule rather than
-living in a README. `UpstreamLebedev` is the worked example.
+is the silent answer to a request that said only "degree 19". `UpstreamLebedev` is the
+worked example.
+
+## Publishing a data package
+
+Tables of rules keep turning up in papers whose licence is absent, copyleft, or merely
+unstated. This package ships none of them. The supported arrangement is that the data lives
+in *your* package, and CubatureRules reaches it through the ordinary family interface:
+
+```julia
+struct MyTables <: CubatureRules.RuleFamily end
+
+CubatureRules.selectable(::MyTables) = false          # never chosen on its own
+CubatureRules.family_license(::MyTables) = "CC-BY-4.0, via MyTables.jl; not covered by " *
+                                           "CubatureRules.jl's MIT licence"
+```
+
+plus the usual `candidates`, `npoints`, `degree_range` and `build`. There is no registration
+step: the registry finds the family with `subtypes` as soon as your package is loaded.
+
+Declaring `family_license` is all that is needed for the terms to reach the caller — every
+rule built through [`rule`](@ref) has them stamped into its `Provenance` automatically. That
+is deliberate: leaving it to each author to remember is how a data package ends up producing
+rules that *look* unencumbered.
+
+Three things worth doing beyond the interface. Ship large tables as Julia artifacts rather
+than repository files — a few tens of megabytes of nodes is a download, not a git history.
+Record where the numbers came from and under what permission, as `src/data/PROVENANCE.toml`
+does here. And if the licence is unclear, ask the author: permission is cheap, permanent,
+and worth more than any workaround.

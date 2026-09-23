@@ -1,4 +1,5 @@
 using CubatureRules, Test, StaticArrays
+import CubatureRules: candidates, isreference, monomial_moment   # public, not exported
 import CubatureRules: ⊗          # DoubleFloats exports ⊗ too; be explicit about which one
 const CR = CubatureRules
 

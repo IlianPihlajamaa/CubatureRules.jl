@@ -1,4 +1,5 @@
 using CubatureRules, Test, StaticArrays, LinearAlgebra
+import CubatureRules: Certificate, Derived, Provenance, StaticQuadratureRule, barycentric, barycentric_moment, cartesian, derivation, isreference, monomial_moment, rule_hash   # public, not exported
 const CR = CubatureRules
 
 @testset "claims" begin

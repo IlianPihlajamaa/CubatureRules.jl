@@ -369,8 +369,7 @@ gaining enough breadth for the selector to be genuinely discriminating.
       from 15 in a second, but degree 19 stalls at a residual near 3e-6 with healthy
       margins from every structure tried, including Lebedev's own — a local minimum, not
       a rejected rule; see notes/v0.4-spheres.md for what is left to try)*
-- [ ] Womersley $t$-designs
-- [ ] Stroud $E_n^{r^2}$, $E_n^{r}$, $S_n$, $T_n$ in closed form for arbitrary $d$
+- [ ] Spherical $t$-designs — moved to v0.6, below
 - [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with
       Gauss–Laguerre and Gauss–Hermite)*
 - [x] Unbounded-domain handling in `integrate` and in verification *(pulled into v0.3:
@@ -378,9 +377,14 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 **Exit criteria**
 
-- [ ] A Lebedev rule at order 131 refined to 100 digits and verified against spherical
-      harmonics
-- [ ] $t$-designs verified as `PolynomialDegree(t)` claims, confirming the §2.2 collapse
+- [ ] A Lebedev rule at order 125 refined to 100 digits and verified against spherical
+      harmonics *(125 is the highest order any table we can lawfully reach supplies;
+      the in-house seeds stop at 17, and rules beyond 125 await an MIT-licensed source)*
+- [ ] $t$-designs verified as `PolynomialDegree(t)` claims, confirming the §2.2 collapse —
+      moved to v0.6 with the work itself. The trapezoid rule on `Sphere{2}()` is already an
+      equal-weight rule exact to a degree, so it satisfies the letter of this; it does not
+      satisfy the intent, which is a spherical design on $S^2$, where equal-weight exactness
+      is not automatic
 
 ---
 
@@ -392,6 +396,9 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [ ] Modified Chebyshev from modified moments — **the headline**, and the demonstration
       that 200-digit arithmetic makes a "too ill-conditioned" algorithm usable
 - [ ] Christoffel modification: multiply or divide the weight by a linear factor
+- [ ] Stroud $E_n^r$ in closed form, carried from v0.4: the $e^{-r}$-weighted whole space.
+      It belongs with the measures rather than with the spheres, being another radial
+      weight, and is much rarer in practice than the Gaussian one
 - [ ] Gauss–Patterson, carried over from v0.3: iterated Kronrod extension on top of the
       Stieltjes polynomials
 - [ ] Multiple-component discretisation (`mcdis`)
@@ -416,10 +423,30 @@ them.
 
 ### Composition
 
+- [ ] Spherical $t$-designs: equal-weight rules, exact to degree $t$. Three findings shape
+      how this should be built, recorded here so the reasoning is not lost.
+      *Storage decides the representation.* A general design at $t = 300$ needs ~45,000
+      points, ~725 KB for one degree and 70–110 MB for every degree to 300 — an artifact,
+      not a package. Imposing $O_h$ symmetry describes the same rule by its orbit
+      parameters instead of its coordinates, which is a few hundred bytes per degree at the
+      degrees anyone uses, and reuses `OctahedralMomentSystem` with the per-point weight
+      pinned at $4\pi/N$ rather than free. Antipodal designs halve the equations again,
+      since odd harmonics vanish identically.
+      *The published sets are not ours to ship.* Womersley's are on his UNSW page with no
+      stated licence, from a paper under arXiv's non-permissive default; permission has been
+      sought. If granted they belong in a separate data package consumed through the
+      provider pattern, never vendored here.
+      *Generating them is the interesting half.* Ours would refine to arbitrary precision,
+      which no published set offers. Spike first — Fibonacci starts, $t = 5, 10, 15$ — and
+      record which degrees close and which do not, as `notes/v0.4-spheres.md` does for the
+      Lebedev degree-19 stall.
 - [ ] Smolyak sparse grids: combination technique with node deduplication, any 1D family
       *(also closes the v0.3 exit criterion that `available` on a box offer a non-tensor
       candidate)*
 - [ ] `Wedge`, `Pyramid`
+- [ ] Stroud $T_n$ in closed form for arbitrary $d$, carried from v0.4. Low priority while
+      `ConicalProduct` covers every degree and `GrundmannMöller` is exactly rational: it
+      buys smaller point counts at fixed low degree, not new capability
 - [ ] `Polytope` via Lasserre / Chin–Sukumar divergence-theorem reduction — **Tier 1b**,
       declaring `interior = false` in `properties` so the selector filters it honestly
 - [ ] `transform(r, φ, Jφ)` and `duffy(r)`, both returning `NoClaim` (§2.3)

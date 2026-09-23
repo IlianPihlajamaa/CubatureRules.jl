@@ -248,6 +248,13 @@ function reference_nodes(r::QuadratureRule{D,T,<:Sphere}, ::Type{S}) where {D,T,
     return xs, [S(w) / ρ^(D - 1) for w in r.weights]
 end
 
+# A weighted domain in more than one dimension is its own reference here: there is no map
+# to apply, so the nodes pass through.
+function reference_nodes(r::QuadratureRule{D,T,<:WeightedDomain}, ::Type{S}) where {D,T,S}
+    isreference(r.domain) || throw(ArgumentError("verification of weighted rules needs the reference domain"))
+    return [Vector{S}(map(S, x)) for x in r.nodes], [S(w) for w in r.weights]
+end
+
 function reference_nodes(r::QuadratureRule{1,T,<:WeightedDomain}, ::Type{S}) where {T,S}
     isreference(r.domain.base) || throw(ArgumentError("verification of weighted rules needs the reference interval"))
     return [[S(x)] for x in r.nodes], [S(w) for w in r.weights]
@@ -312,13 +319,21 @@ blocks(b::CircleBasis) = [circle_block(k) for k in 0:(b.n)]
 exact_integrals(b::CircleBasis{S}) where {S} =
     (v = zeros(S, circle_length(b.n)); v[1] = sqrt(2 * S(π)); v)
 
-# A ball has no constraint among its coordinates, so monomials are a genuine basis there —
-# the sphere's difficulty does not arise — and their moments are exact.
-struct BallMonomialBasis{D,S} <: VerificationBasis
+# Cartesian monomials with known moments: the test set for every domain whose orthonormal
+# basis either does not exist here or is not worth building. One type serves three domains,
+# differing only in which moment function it carries.
+#
+# On a ball or a Gaussian space these are a genuine basis — the coordinates satisfy no
+# relation. On a sphere they are not, since Σxᵢ² = 1 makes them dependent; but a degree claim
+# says every polynomial of that degree integrates correctly, and checking that needs a
+# spanning test set with known integrals, not an independent one. The redundancy costs
+# repeated equations, not correctness.
+struct MonomialTestSet{D,S,F} <: VerificationBasis
     exps::Vector{NTuple{D,Int}}
     blockranges::Vector{UnitRange{Int}}
+    moment::F
 end
-function BallMonomialBasis{D,S}(degrees) where {D,S}
+function MonomialTestSet{D,S}(degrees, moment::F) where {D,S,F}
     exps = NTuple{D,Int}[]
     ranges = UnitRange{Int}[]
     for k in degrees
@@ -328,27 +343,40 @@ function BallMonomialBasis{D,S}(degrees) where {D,S}
         end
         push!(ranges, lo:length(exps))
     end
-    return BallMonomialBasis{D,S}(exps, ranges)
+    return MonomialTestSet{D,S,F}(exps, ranges, moment)
 end
-function evaluate!(b::BallMonomialBasis{D,S}, x) where {D,S}
+function evaluate!(b::MonomialTestSet{D,S}, x) where {D,S}
     φ = [prod(S(x[i])^α[i] for i in 1:D) for α in b.exps]
     g = [sum((α[i] * prod(S(x[j])^(j == i ? α[j] - 1 : α[j]) for j in 1:D) for i in 1:D if α[i] > 0);
              init = zero(S)) for α in b.exps]
     return φ, abs.(g)
 end
-blocks(b::BallMonomialBasis) = b.blockranges
-exact_integrals(b::BallMonomialBasis{D,S}) where {D,S} = [S(ball_moment(D, α)) for α in b.exps]
+blocks(b::MonomialTestSet) = b.blockranges
+exact_integrals(b::MonomialTestSet{D,S}) where {D,S} = [S(b.moment(α)) for α in b.exps]
+
+_degrees(n) = n isa Integer ? (0:n) : n
 
 verification_basis(dom::Ball{D}, n, ::Type{S}, exact) where {D,S} =
-    BallMonomialBasis{D,S}(n isa Integer ? (0:n) : n), "monomials of degree $(join(n, ", ")) (exact ball moments)"
+    MonomialTestSet{D,S}(_degrees(n), α -> ball_moment(D, α)),
+    "monomials of degree $(join(n, ", ")) (exact ball moments)"
+
+verification_basis(dom::GaussianDomain{D}, n, ::Type{S}, exact) where {D,S} =
+    MonomialTestSet{D,S}(_degrees(n), α -> gaussian_moment(D, α)),
+    "monomials of degree $(join(n, ", ")) (exact Gaussian moments)"
 
 verification_basis(dom::Sphere{3}, n, ::Type{S}, exact) where {S} =
     HarmonicBasis{S}(n), "real spherical harmonics"
 verification_basis(dom::Sphere{2}, n, ::Type{S}, exact) where {S} =
     CircleBasis{S}(n), "Fourier basis on the circle"
+# Above the 2-sphere there are no hyperspherical harmonics here, and none are needed.
+# Monomials cannot be a *basis* on a sphere, since the coordinates satisfy Σxᵢ² = 1, but a
+# degree claim says every polynomial of that degree integrates correctly, and checking that
+# needs a spanning *test set* with known integrals — which monomials are. The redundancy
+# costs repeated equations, not correctness, and the exact moments are already in hand for
+# every dimension.
 verification_basis(dom::Sphere{D}, n, ::Type{S}, exact) where {D,S} =
-    throw(ArgumentError("verification on S^$(D-1) needs hyperspherical harmonics, which are not " *
-                        "implemented yet; the circle and the 2-sphere are"))
+    MonomialTestSet{D,S}(_degrees(n), α -> sphere_moment(D, α)),
+    "monomials of degree $(join(n, ", ")) (exact sphere moments; dependent, so a test set rather than a basis)"
 
 verification_basis(dom::Interval, n, ::Type{S}, exact) where {S} =
     JacobiBasis{S,Int}(n, 0, 0, !exact), exact ? "Legendre (unnormalised, exact arithmetic)" : "orthonormal Legendre"

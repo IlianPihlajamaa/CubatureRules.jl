@@ -18,7 +18,7 @@ Product rules on a [`Ball`](@ref): a Gauss–Jacobi rule in the radius against t
 family `angular` on the surface. With `n = ⌈(d+1)/2⌉` radial points it has `n` times the
 angular rule's node count, all interior, all positive.
 
-`BallProduct(Lebedev())` is the cheap one wherever a Lebedev seed exists; the selector
+`BallProduct(LebedevRule())` is the cheap one wherever a Lebedev seed exists; the selector
 offers both and ranks them by node count.
 """
 struct BallProduct{F<:RuleFamily} <: CombinatorFamily

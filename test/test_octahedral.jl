@@ -1,4 +1,5 @@
 using CubatureRules, Test, LinearAlgebra, Random
+import CubatureRules: derivation   # public, not exported
 const CR = CubatureRules
 
 # the 48 signed permutations, written out independently of the implementation

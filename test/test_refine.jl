@@ -1,4 +1,5 @@
 using CubatureRules, Test, LinearAlgebra
+import CubatureRules: CancellationToken, CancelledError, ExplicitSeed, LowerDegreeSeed, cancel!   # public, not exported
 const CR = CubatureRules
 
 @testset "Gauss–Newton in generic arithmetic" begin

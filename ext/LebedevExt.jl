@@ -1,4 +1,4 @@
-# Makes `Lebedev{LebedevJLSeeds}` — spelled `UpstreamLebedev()` — constructible from an
+# Makes `LebedevRule{LebedevJLSeeds}` — spelled `UpstreamLebedev()` — constructible from an
 # installed Lebedev.jl. Loading that package is all that is needed; the registry finds the
 # family with `subtypes` at call time (PLAN §2.5).
 #
@@ -21,7 +21,7 @@ import Lebedev as LebedevPkg
 import CubatureRules: build, npoints, claimed_degree, degree_range, cost_estimate, expand,
                       upstream_lebedev_candidates, upstream_lebedev_table, classify_octahedral,
                       refine_octahedral, octahedral_margins, OctahedralMomentSystem,
-                      Lebedev, LebedevJLSeeds, Sphere, PolynomialDegree, isreference,
+                      LebedevRule, LebedevJLSeeds, Sphere, PolynomialDegree, isreference,
                       BuildContext, Provenance, Certificate, QuadratureRule, Seeded,
                       NoRuleError, RefinementError, LEBEDEV_LAIKOV_1999,
                       UPSTREAM_LEBEDEV_LICENSE, measure, with_bits, finalize_number,
@@ -34,8 +34,8 @@ _order_for(degree::Integer) = (i = findfirst(>=(degree), _orders()); i === nothi
 # Only the specific method: the generic fallback lives in the main package, and redefining
 # it here would be method overwriting, which precompilation forbids.
 function upstream_lebedev_candidates(dom::Sphere{3}, c::PolynomialDegree)
-    (isreference(dom) && _order_for(c.d) !== nothing) || return Lebedev[]
-    return [Lebedev{LebedevJLSeeds}()]
+    (isreference(dom) && _order_for(c.d) !== nothing) || return LebedevRule[]
+    return [LebedevRule{LebedevJLSeeds}()]
 end
 
 function upstream_lebedev_table(degree::Integer)
@@ -48,14 +48,14 @@ function upstream_lebedev_table(degree::Integer)
     return ord, [SVector{3,Float64}(x[i], y[i], z[i]) for i in eachindex(x)], [area * wi for wi in w]
 end
 
-npoints(::Lebedev{LebedevJLSeeds}, dom::Sphere{3}, degree::Integer) = length(upstream_lebedev_table(degree)[2])
-claimed_degree(::Lebedev{LebedevJLSeeds}, dom::Sphere{3}, degree) = upstream_lebedev_table(degree)[1]
-degree_range(::Lebedev{LebedevJLSeeds}, dom::Sphere{3}) = 0:last(_orders())
-degree_range(::Lebedev{LebedevJLSeeds}, dom) = 1:0
-cost_estimate(f::Lebedev{LebedevJLSeeds}, dom::Sphere{3}, degree, T) =
+npoints(::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree::Integer) = length(upstream_lebedev_table(degree)[2])
+claimed_degree(::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree) = upstream_lebedev_table(degree)[1]
+degree_range(::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}) = 0:last(_orders())
+degree_range(::LebedevRule{LebedevJLSeeds}, dom) = 1:0
+cost_estimate(f::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree, T) =
     T === Float64 ? 1.0 : float(npoints(f, dom, degree))        # a lookup, or a refinement
 
-function build(f::Lebedev{LebedevJLSeeds}, dom::Sphere{3}, degree::Int, ctx::BuildContext{T};
+function build(f::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree::Int, ctx::BuildContext{T};
                seed = nothing) where {T}
     isexact(ctx) && throw(ArgumentError("Lebedev nodes are irrational; $(T) is not supported"))
     ord, xs, ws = upstream_lebedev_table(degree)

@@ -1,6 +1,8 @@
 # Property-based tests over (family, degree, T) with Supposition.jl (PLAN §8): every rule
 # the selector can build verifies against its claim, at family and precision boundaries.
-using CubatureRules, Test, Supposition, DoubleFloats
+using CubatureRules, Test, Supposition
+import CubatureRules: ⊗   # public, not exported
+import DoubleFloats: Double64   # `using` would make ⊗ ambiguous in Main
 using Supposition: Data
 
 const FAMILIES_2D = [XiaoGimbutas(), GrundmannMöller(), ConicalProduct()]

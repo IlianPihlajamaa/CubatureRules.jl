@@ -1,4 +1,5 @@
 using CubatureRules, Test
+import CubatureRules: ExplicitSeed, MultistartSeed, candidates   # public, not exported
 const CR = CubatureRules
 
 # Lebedev's published counts, used here only to document where ours agree and where they do
@@ -18,7 +19,7 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
     end
     for e in shipped
         d = e.degree
-        r = rule(Lebedev(), Sphere{3}(); degree = d)
+        r = rule(LebedevRule(), Sphere{3}(); degree = d)
         v = check(r)
         @test npoints(r) == e.npoints
         @test degree(r) == d
@@ -49,21 +50,21 @@ end
     @test npoints(r) < CR.npoints(SphereProduct(), Sphere{3}(), 11)
     @test occursin("selected by rule()", provenance(r).selection)
     # an even-degree request is answered by the odd rule above it, for free
-    re = rule(Lebedev(), Sphere{3}(); degree = 10)
+    re = rule(LebedevRule(), Sphere{3}(); degree = 10)
     @test degree(re) == 11
     # arbitrary precision
     for digits in (30, 60)
-        rb = rule(Lebedev(), Sphere{3}(); degree = 9, digits)
+        rb = rule(LebedevRule(), Sphere{3}(); degree = 9, digits)
         @test passed(check(rb))
         dev = CR.with_bits(() -> abs(sum(weights(rb)) - 4 * BigFloat(π)), CR.digits_to_bits(digits) + 64)
         @test dev < big(10.0)^(-digits + 2)
     end
-    @test_throws NoRuleError rule(Lebedev(), Sphere{3}(); degree = 5, T = Rational{BigInt})
-    @test_throws NoRuleError rule(Lebedev(), Sphere{3}(); degree = d + 2)
-    @test isempty(candidates(Lebedev, Sphere{2}(), PolynomialDegree(5)))
-    @test isempty(candidates(Lebedev, Simplex{2}(), PolynomialDegree(5)))
+    @test_throws NoRuleError rule(LebedevRule(), Sphere{3}(); degree = 5, T = Rational{BigInt})
+    @test_throws NoRuleError rule(LebedevRule(), Sphere{3}(); degree = d + 2)
+    @test isempty(candidates(LebedevRule, Sphere{2}(), PolynomialDegree(5)))
+    @test isempty(candidates(LebedevRule, Simplex{2}(), PolynomialDegree(5)))
     # the provenance records the group and the licence of the seeds
-    r5 = rule(Lebedev(), Sphere{3}(); degree = 5)
+    r5 = rule(LebedevRule(), Sphere{3}(); degree = 5)
     @test provenance(r5).symmetry === :Oh
     @test occursin("generated in-house", provenance(r5).license)
     @test occursin("invariants", certificate(r5).equations)
@@ -74,21 +75,21 @@ end
 @testset "Lebedev seeds are recoverable" begin
     # the shipped numbers are a convenience, not an input: the rule can be found again from
     # its orbit structure alone
-    r = rule(Lebedev(), Sphere{3}(); degree = 9, seed = MultistartSeed(; nstarts = 256))
+    r = rule(LebedevRule(), Sphere{3}(); degree = 9, seed = MultistartSeed(; nstarts = 256))
     v = check(r)
     @test v.exact && v.positive && v.symmetric === true
-    @test npoints(r) == npoints(rule(Lebedev(), Sphere{3}(); degree = 9))
+    @test npoints(r) == npoints(rule(LebedevRule(), Sphere{3}(); degree = 9))
     @test occursin("multistart", lowercase(provenance(r).seed_source))
     # an explicit seed is accepted and recorded as such
     e = CR.lebedev_entry_for(9)
-    r2 = rule(Lebedev(), Sphere{3}(); degree = 9, seed = ExplicitSeed(e.seed; source = "the shipped table"))
+    r2 = rule(LebedevRule(), Sphere{3}(); degree = 9, seed = ExplicitSeed(e.seed; source = "the shipped table"))
     @test passed(check(r2))
     @test occursin("the shipped table", provenance(r2).seed_source)
-    @test_throws ArgumentError rule(Lebedev(), Sphere{3}(); degree = 9, seed = ExplicitSeed([0.1]))
+    @test_throws ArgumentError rule(LebedevRule(), Sphere{3}(); degree = 9, seed = ExplicitSeed([0.1]))
 end
 
 @testset "octahedral symmetry check" begin
-    r = rule(Lebedev(), Sphere{3}(); degree = 5)
+    r = rule(LebedevRule(), Sphere{3}(); degree = 5)
     xs, ws = collect(nodes(r)), collect(weights(r))
     @test CR.check_octahedral_symmetry(xs, ws, 1e-12)
     # break one weight: the group orbit no longer carries a single weight

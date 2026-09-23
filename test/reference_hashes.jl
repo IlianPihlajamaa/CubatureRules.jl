@@ -1,6 +1,7 @@
 # Regenerate test/reference_hashes.toml. Only run this when a rule is changed on purpose,
 # and say why in the commit message: the file is the reproducibility contract.
 using CubatureRules, TOML
+import CubatureRules: rule_hash   # public, not exported
 include(joinpath(@__DIR__, "reference_cases.jl"))
 
 hashes = Dict(name => rule_hash(make()) for (name, make) in REFERENCE_CASES)

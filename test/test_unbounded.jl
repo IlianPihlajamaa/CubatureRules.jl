@@ -1,4 +1,5 @@
 using CubatureRules, Test
+import CubatureRules: ExponentialWeight, candidates, isreference   # public, not exported
 const CR = CubatureRules
 
 @testset "unbounded domains" begin

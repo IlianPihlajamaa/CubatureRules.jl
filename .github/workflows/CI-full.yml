@@ -1,0 +1,53 @@
+# The exhaustive run. CI.yml covers every commit and checks a representative slice of the
+# shipped seed tables; this one checks every degree in them, which is the expensive part —
+# building a degree-47 triangle rule takes 90 s against 2 s at degree 20, and the tables only
+# grow.
+#
+# It runs where the extra confidence is worth the minutes: on a release tag, once a week, and
+# whenever someone asks for it from the Actions tab.
+name: CI (full sweep)
+on:
+  push:
+    tags: ['v*']
+  schedule:
+    - cron: '0 4 * * 1'      # Mondays, 04:00 UTC
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    name: Full sweep — Julia ${{ matrix.version }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['1.11', '1']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          JULIA_NUM_THREADS: 2
+          CUBATURERULES_FULL_SWEEP: '1'
+  tables:
+    # Re-verify every shipped rule from scratch at 60 digits, independently of the machinery
+    # that produced it: exactness and sharpness against the orthonormal basis, positivity,
+    # interiority, symmetry, distinct nodes, and every monomial against its exact moment.
+    name: Seed tables verified at 60 digits
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - run: julia --project -t auto scripts/verify_tables.jl 60

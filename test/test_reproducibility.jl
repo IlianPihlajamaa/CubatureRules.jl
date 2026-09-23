@@ -5,6 +5,7 @@
 # Regenerate (only when a rule is intentionally changed) with
 #     julia --project test/reference_hashes.jl
 using CubatureRules, Test, TOML
+import CubatureRules: rule_hash   # public, not exported
 
 include("reference_cases.jl")
 

@@ -1,21 +1,22 @@
 # Interop with Lebedev.jl, which is GPL-3. Loading it here is *use*, not distribution: no
 # part of it is redistributed by this package, and the test environment is not shipped.
 #
-# Imported under an alias on purpose. This package exports a type named `Lebedev`, so
-# `using Lebedev` would collide with it; the extension loads either way.
+# Plain `using` on both: the family here is `LebedevRule`, so the package name `Lebedev` is
+# free. That the two coexist is part of what this file checks.
 using CubatureRules, Test
-import Lebedev as LebedevJL
+import CubatureRules: selectable   # public, not exported
+using Lebedev
 const CR = CubatureRules
 
 @testset "one family, two sources of seeds" begin
-    @test UpstreamLebedev === CR.Lebedev{CR.LebedevJLSeeds}
-    @test Lebedev() isa Lebedev            # the in-house default
-    @test Lebedev() === CR.Lebedev{CR.InHouseSeeds}()
-    @test CR.family_name(UpstreamLebedev()) == CR.family_name(Lebedev()) == "Lebedev"
+    @test UpstreamLebedev === CR.LebedevRule{CR.LebedevJLSeeds}
+    @test LebedevRule() isa LebedevRule            # the in-house default
+    @test LebedevRule() === CR.LebedevRule{CR.InHouseSeeds}()
+    @test CR.family_name(UpstreamLebedev()) == CR.family_name(LebedevRule()) == "Lebedev"
     # they are told apart by the description, which carries the licence
-    @test CR.describe_family(Lebedev()) == "Lebedev"
+    @test CR.describe_family(LebedevRule()) == "Lebedev"
     @test occursin("GPL-3", CR.describe_family(UpstreamLebedev()))
-    @test CR.family_license(Lebedev()) == ""
+    @test CR.family_license(LebedevRule()) == ""
     @test occursin("GPL-3.0", CR.family_license(UpstreamLebedev()))
     @test CR.missing_dependency(UpstreamLebedev()) === nothing      # the extension is loaded
 end
@@ -25,7 +26,7 @@ end
     @test "Lebedev" in names                       # ours
     @test "Lebedev (Lebedev.jl, GPL-3)" in names   # theirs, with the terms in the name
     # the selector will not take theirs on its own
-    @test CR.selectable(Lebedev()) === true
+    @test CR.selectable(LebedevRule()) === true
     @test CR.selectable(UpstreamLebedev()) === false
     @test all(c -> selectable(c.family), CR.gather(Sphere{3}(), 19, Float64))
     @test any(c -> !selectable(c.family), CR.gather(Sphere{3}(), 19, Float64; all = true))
@@ -87,7 +88,7 @@ end
 @testset "recovering an orbit structure from bare points" begin
     # what makes refining someone else's table possible at all
     for ord in (11, 29, 47)
-        x, y, z, w = LebedevJL.lebedev_by_order(ord)
+        x, y, z, w = lebedev_by_order(ord)
         xs = [CR.SVector(x[i], y[i], z[i]) for i in eachindex(x)]
         got = CR.classify_octahedral(xs, 4π .* w)
         @test got !== nothing
@@ -99,4 +100,17 @@ end
         xs2, _ = CR.expand(s, θ)
         @test length(xs2) == length(xs)
     end
+end
+
+@testset "a family's licence travels automatically" begin
+    # Declaring `family_license` is enough: `rule` stamps it into the provenance, so a data
+    # package cannot produce rules that look unencumbered by forgetting to set it.
+    r = rule(UpstreamLebedev(), Sphere{3}(); degree = 11)
+    @test provenance(r).license == CR.family_license(UpstreamLebedev())
+    # a family declaring nothing keeps the package's own licence
+    @test CR.family_license(LebedevRule()) == ""
+    @test provenance(rule(LebedevRule(), Sphere{3}(); degree = 11)).license != ""
+    # and the stamp survives the selector's own route
+    r2 = rule(Sphere{3}(); degree = 19, copyleft = true)
+    @test occursin("GPL-3.0", provenance(r2).license)
 end

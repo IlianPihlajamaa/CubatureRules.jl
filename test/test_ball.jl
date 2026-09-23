@@ -1,4 +1,5 @@
 using CubatureRules, Test
+import CubatureRules: isreference   # public, not exported
 const CR = CubatureRules
 
 @testset "ball domain" begin
@@ -43,10 +44,10 @@ end
         @test all(x -> indomain(x, Ball{3}()), nodes(r))
     end
     # the angular factor can be any sphere family, and Lebedev is the cheap one
-    r = rule(BallProduct(Lebedev()), Ball{3}(); degree = 9)
+    r = rule(BallProduct(LebedevRule()), Ball{3}(); degree = 9)
     @test passed(check(r))
     @test npoints(r) == 5 * 38
-    @test occursin("Lebedev", CR.describe_family(BallProduct(Lebedev())))
+    @test occursin("Lebedev", CR.describe_family(BallProduct(LebedevRule())))
     @test npoints(r) < npoints(rule(BallProduct(SphereProduct()), Ball{3}(); degree = 9))
     # the selector ranks the combinations for you
     @test first(available(Ball{3}(); degree = 9)).family == "BallProduct(Lebedev)"
@@ -70,7 +71,7 @@ end
 
 @testset "balls off the reference" begin
     b = Ball((1.0, 2.0, 3.0), 2.5)
-    s = rule(BallProduct(Lebedev()), b; degree = 7)
+    s = rule(BallProduct(LebedevRule()), b; degree = 7)
     @test sum(weights(s)) ≈ 4π / 3 * 2.5^3 rtol = 1e-12
     @test all(x -> indomain(x, b), nodes(s))
     @test exactness(s) == PolynomialDegree(7)

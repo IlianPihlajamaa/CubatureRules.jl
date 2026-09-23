@@ -1,4 +1,5 @@
 using CubatureRules, Test
+import CubatureRules: CombinatorFamily, Derived, Seeded, candidates, cost_estimate, degree_range, derivation, properties   # public, not exported
 const CR = CubatureRules
 
 @testset "discovery" begin
@@ -94,8 +95,8 @@ end
     @test occursin("GrundmannMöller degree 1", m3)
     @test_throws NoRuleError rule(Simplex{2}(); degree = 5, family = XiaoGimbutas(), T = Rational{BigInt})
     @test_throws CR.NotYetImplemented Wedge{3}()
-    # a domain that exists but has no family in the dimension asked for
-    @test occursin("Sphere{5}", try rule(Sphere{5}(); degree = 4) catch e; sprint(showerror, e) end)
+    # a domain with no family at all names itself and says when it is coming
+    @test occursin("Polytope", try rule(Polytope{3,Float64}()) catch e; sprint(showerror, e) end)
     @test_throws ArgumentError rule(Simplex{2}(); degree = -1)
     @test_throws ArgumentError rule(Simplex{2}(); npoints = 5)
 end

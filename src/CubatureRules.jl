@@ -67,6 +67,7 @@ include("families/simplex/fullysymmetric.jl")
 include("families/sphere/product.jl")
 include("families/sphere/lebedev.jl")
 include("families/sphere/ballproduct.jl")
+include("families/sphere/gaussianproduct.jl")
 include("composition/tensor.jl")
 
 # selection, application, verification, presentation
@@ -80,30 +81,45 @@ include("emit/cite.jl")
 include("benchmark/construction.jl")
 
 # domains and claims
-export Domain, Interval, Simplex, WeightedDomain, JacobiWeight, HalfLine, RealLine,
-       ExponentialWeight, GaussianWeight, LaguerreRay, HermiteLine,
-       Orthotope, Sphere, Ball, Disk, Polytope, Wedge, Pyramid
+# What `using CubatureRules` brings into scope: the names an ordinary call needs. The rest of
+# the public API is declared `public` below, reachable as `CubatureRules.name` or through an
+# explicit `using CubatureRules: name`, without crowding the caller's namespace. Quadrature
+# and geometry packages collide readily over `vertices`, `⊗` and the like, and a name that is
+# rarely typed is not worth a collision.
+export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain, JacobiWeight,
+       HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace,
+       Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
-export measure, vertices, barycentric, cartesian, indomain, isinterior, isreference,
-       monomial_moment, barycentric_moment, AffineMap, affine_map
+export measure, indomain, isinterior
 # rules
-export QuadratureRule, StaticQuadratureRule, static, nodes, weights, domain, exactness,
-       provenance, certificate, npoints, degree, family, derivation, rule_hash
-export Provenance, Certificate, Verification, Citation, Derived, Seeded
+export QuadratureRule, static, nodes, weights, domain, exactness, provenance, certificate,
+       npoints, degree, family
 # families and the registry
-export RuleFamily, CombinatorFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct, ⊗,
+export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        NewtonCotes, Fejer, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
-       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct, Lebedev, UpstreamLebedev, BallProduct
-export rule, available, compare, candidates, properties, degree_range, cost_estimate, selectable, family_license, license_warnings!,
-       families
-export CancellationToken, cancel!, CancelledError, RefinementError, NoRuleError
-export SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed
+       GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
+       LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct
+export rule, available, compare, families
+export RefinementError, NoRuleError
 # application and transport
-export integrate, map_to, subdivide, transform, duffy, RuleSequence, LevelSequence, EmbeddedRule, embedded,
-       IntegrationResult
+export integrate, map_to, subdivide, transform, duffy,
+       RuleSequence, LevelSequence, EmbeddedRule, embedded, IntegrationResult
 # verification and presentation
 export verify, check, passed, @test_exact, cite
-export benchmark_construction
+
+# Public, but not exported: documented API that most callers never type. `nodes` and
+# `weights` stay exported despite colliding with other quadrature packages — they are what
+# every caller touches, and that collision is inherent rather than clutter.
+public ExponentialWeight, GaussianWeight, vertices, barycentric, cartesian, isreference,
+       monomial_moment, barycentric_moment, AffineMap, affine_map,
+       StaticQuadratureRule, rule_hash,
+       Provenance, Certificate, Verification, Citation, Derived, Seeded,
+       CombinatorFamily, ⊗,
+       candidates, properties, degree_range, cost_estimate, selectable, family_license,
+       license_warnings!, derivation,
+       CancellationToken, cancel!, CancelledError,
+       SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed,
+       benchmark_construction
 
 end # module

@@ -1,5 +1,33 @@
 using CubatureRules, Test, StaticArrays
+import CubatureRules: candidates, degree_range, properties   # public, not exported
 const CR = CubatureRules
+
+# Building a high-degree symmetric rule is by far the most expensive thing in this suite:
+# 93 s at triangle degree 47 against 2 s at degree 20, with verification a fraction of that
+# and the node-separation scan free. Two consequences shape the sweeps below.
+#
+# The separation check runs inside them rather than rebuilding every rule a second time,
+# which is what a separate testset used to do.
+#
+# And the exhaustive sweep is reserved for the full CI run: `CUBATURERULES_FULL_SWEEP=1`
+# checks every shipped degree, and without it the sweep takes every cheap one, then every
+# fourth of the rest, and always the last shipped. The full workflow sets it; the per-commit
+# one does not.
+full_sweep() = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1"
+
+# Cost, not degree, decides what the short sweep covers: the two families reach a given
+# point count at very different degrees — the triangle passes 120 points around degree 25,
+# the tetrahedron around degree 11 — and it is the point count that the build time tracks.
+function sweep_degrees(fam, dom, dmax; cheap = 120)
+    full_sweep() && return collect(1:dmax)
+    small = [d for d in 1:dmax if npoints(fam, dom, d) <= cheap]
+    large = [d for d in 1:dmax if npoints(fam, dom, d) > cheap]
+    return unique!(vcat(small, large[1:4:end], dmax))
+end
+
+# An orbit collapsing onto another would make the point count meaningless.
+node_separation(x) = minimum(maximum(abs, x[i] - x[j])
+                             for i in eachindex(x) for j in (i + 1):length(x); init = Inf)
 
 @testset "Gauss–Jacobi" begin
     for n in (1, 2, 5, 20, 64)
@@ -68,7 +96,7 @@ end
               243, 252, 267, 282, 295, 309, 324, 339, 354, 370, 385, 399, 423, 435, 453]
     dmax = last(degree_range(XiaoGimbutas(), Simplex{2}()))
     @test dmax >= 20
-    for d in 1:dmax
+    for d in sweep_degrees(XiaoGimbutas(), Simplex{2}(), dmax)
         r = rule(XiaoGimbutas(), Simplex{2}(); degree = d)
         e = CR.xg_entry_for(d)
         @test npoints(r) <= counts[e.degree] + 3
@@ -78,6 +106,7 @@ end
         @test v.positive && v.interior && v.symmetric === true
         @test v.sharp !== false
         @test certificate(r).residual < 1e-14
+        @test node_separation(nodes(r)) > 1e-6
     end
 end
 
@@ -105,7 +134,7 @@ end
 @testset "FullySymmetric tetrahedra: every shipped degree verifies" begin
     rg = degree_range(FullySymmetric(), Simplex{3}())
     @test last(rg) >= 8
-    for d in 1:last(rg)
+    for d in sweep_degrees(FullySymmetric(), Simplex{3}(), last(rg))
         r = rule(FullySymmetric(), Simplex{3}(); degree = d)
         @test degree(r) >= d
         @test sum(weights(r)) ≈ 1 / 6
@@ -114,6 +143,7 @@ end
         @test v.positive && v.interior && v.symmetric === true
         @test v.sharp !== false
         @test certificate(r).residual < 1e-14
+        @test node_separation(nodes(r)) > 1e-6
     end
     # arbitrary precision, and the selector prefers it on the tetrahedron
     r = rule(Simplex{3}(); degree = 8, digits = 60)
@@ -121,17 +151,6 @@ end
     v = check(r)
     @test v.exact && v.sharp === true && v.max_residual < big(10.0)^-55
     @test isempty(candidates(FullySymmetric, Simplex{2}(), PolynomialDegree(3)))
-end
-
-@testset "shipped symmetric rules have distinct nodes" begin
-    # an orbit collapsing onto another would make the point count meaningless
-    for (fam, dom) in ((XiaoGimbutas(), Simplex{2}()), (FullySymmetric(), Simplex{3}()))
-        for d in 1:last(degree_range(fam, dom))
-            x = nodes(rule(fam, dom; degree = d))
-            sep = minimum(maximum(abs, x[i] - x[j]) for i in eachindex(x) for j in (i + 1):length(x); init = Inf)
-            @test sep > 1e-6
-        end
-    end
 end
 
 @testset "Newton–Cotes, exact rationals" begin

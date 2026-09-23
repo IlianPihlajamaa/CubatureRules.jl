@@ -25,9 +25,13 @@ const CR = CubatureRules
     @test_throws NoRuleError rule(GaussKronrod(), Interval(); degree = 5, T = Rational{BigInt})
 end
 
-# Loading it is all that is needed; the extension does the rest. Note that QuadratureRules
-# also exports `nodes` and `weights`, so those names are ambiguous here and get qualified.
-using QuadratureRules
+# Loading it is all that is needed; the extension does the rest.
+#
+# `import`, not `using`: QuadratureRules exports `nodes`, `weights` and `QuadratureRule`
+# too, and every test file is included into `Main`, so a `using` here would make those
+# names ambiguous for every file that follows. Julia 1.11 turned that into an error at
+# use rather than a warning at import.
+import QuadratureRules
 
 @testset "QuadratureRules.jl families, once it is loaded" begin
     for f in (Lobatto(), Radau(:right), Radau(:left), ClenshawCurtis())

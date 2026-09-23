@@ -16,7 +16,7 @@
 # harmonics integrate to zero whatever the parameters and a rule of degree 2k is
 # automatically of degree 2k+1; an even-degree request is answered by the odd rule above it.
 
-"Supertype of the sources a [`Lebedev`](@ref) rule can be seeded from."
+"Supertype of the sources a [`LebedevRule`](@ref) rule can be seeded from."
 abstract type LebedevSeeds end
 
 """
@@ -31,12 +31,12 @@ struct InHouseSeeds <: LebedevSeeds end
 
 The caller's own installation of Lebedev.jl, which is GPL-3. Available only once that
 package is loaded, never chosen for you, and the licence travels with every rule built from
-it. Spelled `UpstreamLebedev()`; see [`Lebedev`](@ref).
+it. Spelled `UpstreamLebedev()`; see [`LebedevRule`](@ref).
 """
 struct LebedevJLSeeds <: LebedevSeeds end
 
 """
-    Lebedev()
+    LebedevRule()
 
 Octahedrally symmetric, positive-weight rules on `Sphere{3}()`, refined by Gauss–Newton on
 the `O_h`-invariant moment system to any requested precision. Seeded: available at the
@@ -47,15 +47,15 @@ which is why degree 13 is answered by a 78-point rule rather than the published 
 — that rule has a negative weight. Minimal rules are not unique, so a shipped rule need not
 coincide node for node with any published table.
 
-The type parameter says where the seeds came from. `Lebedev()` is
-`Lebedev{InHouseSeeds}()`, the table shipped here; `UpstreamLebedev()` is
-`Lebedev{LebedevJLSeeds}()`, the caller's own Lebedev.jl, which reaches degree 125 and
+The type parameter says where the seeds came from. `LebedevRule()` is
+`LebedevRule{InHouseSeeds}()`, the table shipped here; `UpstreamLebedev()` is
+`LebedevRule{LebedevJLSeeds}()`, the caller's own Lebedev.jl, which reaches degree 125 and
 carries that package's GPL-3 licence into every rule built from it.
 """
-struct Lebedev{S<:LebedevSeeds} <: RuleFamily end
-Lebedev() = Lebedev{InHouseSeeds}()
+struct LebedevRule{S<:LebedevSeeds} <: RuleFamily end
+LebedevRule() = LebedevRule{InHouseSeeds}()
 
-# `UpstreamLebedev()` is `Lebedev{LebedevJLSeeds}()`: Lebedev rules from the caller's own
+# `UpstreamLebedev()` is `LebedevRule{LebedevJLSeeds}()`: Lebedev rules from the caller's own
 # Lebedev.jl, which is GPL-3. Documented on `Lebedev` above rather than here, because a
 # docstring on an alias of a parametric type documents the same binding twice, which
 # Documenter reports as a duplicate.
@@ -66,21 +66,21 @@ Lebedev() = Lebedev{InHouseSeeds}()
 # selected on its own: `rule(Sphere{3}(); degree = 29)` returns an in-house rule unless
 # `copyleft = true` is passed, while `available` lists the variant with its licence in the
 # family name.
-const UpstreamLebedev = Lebedev{LebedevJLSeeds}
+const UpstreamLebedev = LebedevRule{LebedevJLSeeds}
 
-derivation(::Type{<:Lebedev}) = Seeded()
-family_name(::Lebedev) = "Lebedev"
-describe_family(::Lebedev{InHouseSeeds}) = "Lebedev"
-describe_family(::Lebedev{LebedevJLSeeds}) = "Lebedev (Lebedev.jl, GPL-3)"
-family_license(::Lebedev{InHouseSeeds}) = ""
-family_license(::Lebedev{LebedevJLSeeds}) = UPSTREAM_LEBEDEV_LICENSE
+derivation(::Type{<:LebedevRule}) = Seeded()
+family_name(::LebedevRule) = "Lebedev"
+describe_family(::LebedevRule{InHouseSeeds}) = "Lebedev"
+describe_family(::LebedevRule{LebedevJLSeeds}) = "Lebedev (Lebedev.jl, GPL-3)"
+family_license(::LebedevRule{InHouseSeeds}) = ""
+family_license(::LebedevRule{LebedevJLSeeds}) = UPSTREAM_LEBEDEV_LICENSE
 
 # Never chosen on its own: a rule carrying terms this package cannot pass on reaches a
 # caller only through `copyleft = true` or by naming the family.
-selectable(::Lebedev{LebedevJLSeeds}) = false
+selectable(::LebedevRule{LebedevJLSeeds}) = false
 
 # nothing once Lebedev.jl is loaded and its extension has supplied the table hook
-missing_dependency(::Lebedev{LebedevJLSeeds}) =
+missing_dependency(::LebedevRule{LebedevJLSeeds}) =
     applicable(upstream_lebedev_table, 1) ? nothing : "Lebedev.jl"
 
 """
@@ -157,43 +157,43 @@ end
 function _lebedev_entry(degree)
     e = lebedev_entry_for(degree)
     e === nothing && throw(ArgumentError("no Lebedev seed covers degree $degree " *
-                                         "(shipped range $(degree_range(Lebedev(), Sphere{3}())))"))
+                                         "(shipped range $(degree_range(LebedevRule(), Sphere{3}())))"))
     return e
 end
 
 function _inhouse_candidates(dom::Sphere{3}, c::PolynomialDegree)
-    (isreference(dom) && lebedev_entry_for(c.d) !== nothing) || return Lebedev[]
-    return [Lebedev()]
+    (isreference(dom) && lebedev_entry_for(c.d) !== nothing) || return LebedevRule[]
+    return [LebedevRule()]
 end
-_inhouse_candidates(dom::Domain, ::PolynomialDegree) = Lebedev[]
+_inhouse_candidates(dom::Domain, ::PolynomialDegree) = LebedevRule[]
 
 # `families()` yields the type without its parameter, so one method answers for both
 # variants: the in-house seeds always, the upstream ones only when the extension is loaded.
-function candidates(::Type{<:Lebedev}, dom::Domain, c::PolynomialDegree)
-    out = Lebedev[]
+function candidates(::Type{<:LebedevRule}, dom::Domain, c::PolynomialDegree)
+    out = LebedevRule[]
     append!(out, _inhouse_candidates(dom, c))
     append!(out, upstream_lebedev_candidates(dom, c))
     return out
 end
 
 "Candidates backed by the caller's Lebedev.jl; empty until its extension is loaded."
-upstream_lebedev_candidates(dom, c) = Lebedev[]
+upstream_lebedev_candidates(dom, c) = LebedevRule[]
 
-npoints(::Lebedev{InHouseSeeds}, dom, degree::Integer) = _lebedev_entry(degree).npoints
-claimed_degree(::Lebedev{InHouseSeeds}, dom, degree) = _lebedev_entry(degree).degree
-function degree_range(::Lebedev{InHouseSeeds}, dom::Sphere{3})
+npoints(::LebedevRule{InHouseSeeds}, dom, degree::Integer) = _lebedev_entry(degree).npoints
+claimed_degree(::LebedevRule{InHouseSeeds}, dom, degree) = _lebedev_entry(degree).degree
+function degree_range(::LebedevRule{InHouseSeeds}, dom::Sphere{3})
     es = lebedev_entries()
     isempty(es) ? (1:0) : (0:maximum(e -> e.degree, es))
 end
-degree_range(::Lebedev{InHouseSeeds}, dom) = 1:0
-properties(::Lebedev, dom, degree) = (positive = true, interior = true, symmetry = :Oh, nested = false)
-cost_estimate(f::Lebedev{InHouseSeeds}, dom, degree, T) =
+degree_range(::LebedevRule{InHouseSeeds}, dom) = 1:0
+properties(::LebedevRule, dom, degree) = (positive = true, interior = true, symmetry = :Oh, nested = false)
+cost_estimate(f::LebedevRule{InHouseSeeds}, dom, degree, T) =
     float(npoints(f, dom, degree)) * length(invariant_exponents(claimed_degree(f, dom, degree))) *
     _precision_factor(T)
 
 # --- construction -------------------------------------------------------------------------
 
-function build(f::Lebedev{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::BuildContext{T};
+function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::BuildContext{T};
                seed::SeedSource = TableSeed()) where {T}
     isexact(ctx) && throw(ArgumentError("Lebedev nodes are irrational; $(T) is not supported"))
     e = _lebedev_entry(degree)

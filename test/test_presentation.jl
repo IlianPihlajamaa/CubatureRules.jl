@@ -1,4 +1,5 @@
 using CubatureRules, Test
+import CubatureRules: Certificate, benchmark_construction   # public, not exported
 const CR = CubatureRules
 
 @testset "show" begin

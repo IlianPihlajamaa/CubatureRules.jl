@@ -1,4 +1,5 @@
 using CubatureRules, Test, StaticArrays
+import CubatureRules: monomial_moment   # public, not exported
 const CR = CubatureRules
 
 @testset "integrate is exact on polynomials up to the degree" begin

@@ -5,7 +5,10 @@ module TestFamilyPackage
 
 using CubatureRules
 using StaticArrays
-import CubatureRules: candidates, build, npoints, properties, degree_range, derivation
+# The family interface is public rather than exported, so it is imported by name — which is
+# also what a real downstream package does, and what `docs/src/extending.md` recommends.
+import CubatureRules: candidates, build, npoints, properties, degree_range, derivation,
+                      isreference, Derived, Provenance
 
 "The one-point centroid rule on any reference simplex: degree 1."
 struct CentroidRule <: RuleFamily end

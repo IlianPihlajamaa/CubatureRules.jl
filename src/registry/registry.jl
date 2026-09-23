@@ -218,7 +218,29 @@ end
 function _build(f, dom, degree, T, bits, cancel, seed)
     ctx = BuildContext{T}(bits; cancel)
     ref = reference(dom)
-    return seed === nothing ? build(f, ref, Int(degree), ctx) : build(f, ref, Int(degree), ctx; seed)
+    r = seed === nothing ? build(f, ref, Int(degree), ctx) : build(f, ref, Int(degree), ctx; seed)
+    return _stamp_license(f, r)
+end
+
+"""
+    _stamp_license(f, r)
+
+Put the family's terms into the rule's provenance if the family declares any and the rule
+has not already recorded them.
+
+A rule from an encumbered source has to carry its terms wherever it goes, and leaving that
+to each family author to remember is how it gets forgotten — a data package that omits it
+produces rules that *look* unencumbered. Declaring [`family_license`](@ref) is therefore
+enough on its own; nothing further is required of the author.
+"""
+function _stamp_license(f, r::QuadratureRule)
+    lic = family_license(f)
+    (isempty(lic) || r.provenance.license == lic) && return r
+    p = r.provenance
+    prov = Provenance(family = p.family, derivation = p.derivation, path = p.path,
+                      seed_source = p.seed_source, citations = p.citations, license = lic,
+                      selection = p.selection, symmetry = p.symmetry)
+    return QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, prov, r.certificate)
 end
 
 # ---------------------------------------------------------------------------------------

@@ -15,7 +15,7 @@
 | `TanhSinh` | interval | none (`NoClaim`) | derived | set by the level | floating |
 | `ExpSinh` | `HalfLine()` | none (`NoClaim`) | derived | set by the level | floating |
 | `SinhSinh` | `RealLine()` | none (`NoClaim`) | derived | set by the level | floating |
-| `Lebedev{LebedevJLSeeds}` | `Sphere{3}` | to 125, from Lebedev.jl | seeded elsewhere | Lebedev's counts | floating |
+| `LebedevRule{LebedevJLSeeds}` | `Sphere{3}` | to 125, from Lebedev.jl | seeded elsewhere | Lebedev's counts | floating |
 | `BallProduct` | `Ball{D}` | any | derived | radial × angular | floating |
 | `Lebedev` | `Sphere{3}` | odd, tabulated | seeded | Lebedev counts (78 at degree 13) | floating |
 | `SphereProduct` | `Sphere{2}`, `Sphere{3}` | any | derived | `d+1` on the circle, ``\lceil (d+1)/2 \rceil (d+1)`` on the sphere | floating |
@@ -183,7 +183,7 @@ moments come from the sphere's, divided by ``|\alpha| + D``.
 ## Lebedev
 
 ```@docs
-Lebedev
+LebedevRule
 ```
 
 Octahedrally symmetric, positive-weight rules on the sphere: the `SphereProduct` costs about
@@ -191,7 +191,7 @@ twice the nodes of one of these, so the selector prefers Lebedev wherever a seed
 
 ```julia
 rule(Sphere{3}(); degree = 11)            # 50 points, not the product rule's 72
-rule(Lebedev(), Sphere{3}(); degree = 15, digits = 60)
+rule(LebedevRule(), Sphere{3}(); degree = 15, digits = 60)
 ```
 
 The rules are invariant under the 48 signed permutations of the coordinates, whose orbits
@@ -213,8 +213,8 @@ weight: the search requires positive weights, so it reports a 78-point rule inst
 
 ### Rules from an installed Lebedev.jl
 
-The type parameter says where the seeds came from. `Lebedev()` is `Lebedev{InHouseSeeds}()`,
-the table above. `UpstreamLebedev()` is `Lebedev{LebedevJLSeeds}()`, the caller's own
+The type parameter says where the seeds came from. `LebedevRule()` is `LebedevRule{InHouseSeeds}()`,
+the table above. `UpstreamLebedev()` is `LebedevRule{LebedevJLSeeds}()`, the caller's own
 [Lebedev.jl](https://github.com/stefabat/Lebedev.jl) — GPL-3, and tabulated to degree 125.
 This package ships none of those numbers.
 
@@ -235,7 +235,7 @@ rule(UpstreamLebedev(), Sphere{3}(); degree = 29, digits = 40)   # refined, stil
 in-house one is chosen automatically: a rule whose terms this package cannot pass on should
 not be the silent answer to a request that said only "degree 19". Ask for it by name, or
 pass `copyleft = true`. When a cheaper rule is passed over for this reason, `rule` says so
-once per case — see [`license_warnings!`](@ref) to silence it.
+once per case — see [`license_warnings!`](@ref CubatureRules.license_warnings!) to silence it.
 
 Refinement is offered on both. A rule refined from Lebedev.jl's table is a derived work of
 it, so the GPL-3 licence travels into the refined rule's `provenance` unchanged and the

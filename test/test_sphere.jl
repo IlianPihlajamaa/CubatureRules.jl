@@ -1,4 +1,5 @@
 using CubatureRules, Test, LinearAlgebra
+import CubatureRules: isreference   # public, not exported
 const CR = CubatureRules
 
 @testset "sphere domain" begin
@@ -93,9 +94,9 @@ end
     # both families are offered; Lebedev leads on node count where it is tabulated
     @test "SphereProduct" in [row.family for row in available(Sphere{3}(); degree = 5)]
     @test first(available(Sphere{3}(); degree = 5)).family == "Lebedev"
-    @test isempty(available(Sphere{5}(); degree = 5))
-    msg = try rule(Sphere{5}(); degree = 5) catch e; sprint(showerror, e) end
-    @test occursin("Sphere{5}", msg)
+    # every dimension is served now, so a higher sphere is offered rather than refused
+    @test !isempty(available(Sphere{5}(); degree = 5))
+    @test family(rule(Sphere{5}(); degree = 5)) == "SphereProduct"
 end
 
 @testset "spheres off the reference" begin
@@ -115,6 +116,9 @@ end
 @testset "domains still to come" begin
     @test_throws CR.NotYetImplemented Polytope{3,Float64}()
     @test_throws CR.NotYetImplemented Pyramid()
-    # a sphere in a dimension whose harmonics are not implemented says so
-    @test_throws ArgumentError CR.verification_basis(Sphere{5}(), 3, BigFloat, false)
+    # above S² there are no harmonics here, and none are needed: monomials with exact
+    # moments are a spanning test set even though they are not a basis on a sphere
+    b, name = CR.verification_basis(Sphere{5}(), 3, BigFloat, false)
+    @test occursin("monomials", name)
+    @test occursin("test set rather than a basis", name)
 end

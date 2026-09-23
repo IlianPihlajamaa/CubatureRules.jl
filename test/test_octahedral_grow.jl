@@ -1,4 +1,5 @@
 using CubatureRules, Test
+import CubatureRules: derivation   # public, not exported
 const CR = CubatureRules
 
 @testset "octahedral elimination moves" begin

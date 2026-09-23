@@ -1,6 +1,8 @@
 # Number types exercised in CI (PLAN §7): Float32, Float64, Double64, BigFloat at several
 # precisions, Rational{BigInt} for the exact families.
-using CubatureRules, Test, DoubleFloats
+using CubatureRules, Test
+import CubatureRules: monomial_moment, ⊗   # public, not exported
+import DoubleFloats: Double64   # `using` would make ⊗ ambiguous in Main
 const CR = CubatureRules
 
 @testset "Float32" begin

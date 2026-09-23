@@ -11,7 +11,7 @@ Every rule goes through one pipeline:
   MPFR arithmetic is correctly rounded, which is why `rule(...)` gives bitwise-identical
   output on every platform.
 - **Certify**: the defining-equation residual of the delivered rule is evaluated at twice
-  the precision and attached as a [`Certificate`](@ref).
+  the precision and attached as a [`Certificate`](@ref CubatureRules.Certificate).
 
 ## Certificate versus verification
 

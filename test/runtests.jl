@@ -16,6 +16,7 @@ const CR = CubatureRules
     @testset "Lebedev" include("test_lebedev.jl")
     @testset "Lebedev.jl interop" include("test_upstream_lebedev.jl")
     @testset "balls" include("test_ball.jl")
+    @testset "Gaussian space and spheres in any dimension" include("test_gaussian.jl")
     @testset "registry and selection" include("test_registry.jl")
     @testset "application" include("test_apply.jl")
     @testset "claim preservation" include("test_transport.jl")
