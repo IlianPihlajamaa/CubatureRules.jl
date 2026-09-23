@@ -19,6 +19,12 @@
 | `BallProduct` | `Ball{D}` | any | derived | radial × angular | floating |
 | `Lebedev` | `Sphere{3}` | odd, tabulated | seeded | Lebedev counts (78 at degree 13) | floating |
 | `SphereProduct` | `Sphere{2}`, `Sphere{3}` | any | derived | `d+1` on the circle, ``\lceil (d+1)/2 \rceil (d+1)`` on the sphere | floating |
+| `ModifiedChebyshev` | interval, `MomentWeight` | any | derived | ``\lceil (d+1)/2 \rceil`` | floating |
+
+`ModifiedChebyshev` is the escape hatch: it builds a Gauss rule for a weight the package has
+never heard of, from that weight's moments. It has its own page, [Weights given by
+moments](moments.md), because the interesting part is not the family but what arbitrary
+precision does to an algorithm normally written off as too ill-conditioned to use.
 
 ## XiaoGimbutas
 
