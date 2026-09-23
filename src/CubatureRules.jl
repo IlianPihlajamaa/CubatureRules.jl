@@ -114,7 +114,7 @@ export verify, check, passed, @test_exact, cite
 # Public, but not exported: documented API that most callers never type. `nodes` and
 # `weights` stay exported despite colliding with other quadrature packages — they are what
 # every caller touches, and that collision is inherent rather than clutter.
-public MonicRecurrence, monic, monomial_recurrence, wheeler, MomentInterval, MomentBreakdownError,
+public MonicRecurrence, monic, monomial_recurrence, shift, wheeler, MomentInterval, MomentBreakdownError,
        ExponentialWeight, GaussianWeight,vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map,
        StaticQuadratureRule, rule_hash,

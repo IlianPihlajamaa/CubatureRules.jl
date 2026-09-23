@@ -23,14 +23,16 @@
     monic(rec::Recurrence) -> MonicRecurrence
 
 The monic form of an orthonormal [`Recurrence`](@ref): the same `a`, and `b` squared, since
-the orthonormal coefficient is `√βₖ`. Lets any recurrence the package already knows serve as
-the auxiliary family for a [`MomentWeight`](@ref):
+the orthonormal coefficient is `√βₖ`. `b₀` is returned as zero — it multiplies `π₋₁ = 0` and
+so is never used, while the orthonormal families are entitled to leave it undefined. Lets any
+recurrence the package already knows serve as the auxiliary family for a
+[`MomentWeight`](@ref):
 
 ```julia
 MomentWeight(monic(jacobi_recurrence(0, 0)), moments)
 ```
 """
-monic(rec::Recurrence) = MonicRecurrence(rec.a, (k, T) -> rec.b(k, T)^2)
+monic(rec::Recurrence) = MonicRecurrence(rec.a, (k, T) -> k == 0 ? zero(T) : rec.b(k, T)^2)
 
 """
     MomentBreakdownError(k, value, bits)

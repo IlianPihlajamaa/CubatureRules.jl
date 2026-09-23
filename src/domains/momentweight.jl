@@ -31,6 +31,26 @@ against this family are the ordinary moments.
 monomial_recurrence() = MonicRecurrence((k, T) -> zero(T), (k, T) -> zero(T))
 
 """
+    shift(aux::MonicRecurrence, lo, hi)
+
+`aux`, monic-orthogonal on `[-1, 1]`, carried affinely to `[lo, hi]`. Monic families do not
+survive a change of variable unchanged — `π̃ₖ(x) = hᵏ πₖ(t)` with `h = (hi - lo)/2` — but the
+recurrence does, as `ãₖ = h aₖ + (hi + lo)/2` and `b̃ₖ = h² bₖ`.
+
+Saves writing out a shifted classical family by hand:
+
+```julia
+shift(monic(jacobi_recurrence(0, 0)), 0, 1)     # monic shifted Legendre on [0,1]
+```
+
+The endpoints are converted at the working precision rather than stored, so this is exact at
+any precision for rational `lo` and `hi`.
+"""
+shift(aux::MonicRecurrence, lo, hi) =
+    MonicRecurrence((k, T) -> (T(hi) - T(lo)) / 2 * aux.a(k, T) + (T(hi) + T(lo)) / 2,
+                    (k, T) -> ((T(hi) - T(lo)) / 2)^2 * aux.b(k, T))
+
+"""
     MomentWeight(aux, moments; label = "MomentWeight")
 
 A measure on an interval described by its **modified moments**

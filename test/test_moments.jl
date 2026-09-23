@@ -10,7 +10,8 @@ const CR = CubatureRules
 const LEBESGUE = OrdinaryMoments((k, T) -> one(T) / (k + 1); label = "Lebesgue on [0,1]")
 const LEB_DOM = WeightedDomain(Interval(0, 1), LEBESGUE)
 
-# Monic shifted Legendre on [0,1], the natural auxiliary family there.
+# Monic shifted Legendre on [0,1], the natural auxiliary family there, written out by hand so
+# that `shift` has something independent to be checked against.
 const SHIFTED_LEGENDRE = MonicRecurrence((k, T) -> one(T) / 2,
                                          (k, T) -> k == 0 ? zero(T) : T(k)^2 / T(4 * (4 * k^2 - 1)))
 # w(x) = log(1/x) on [0,1], which has no classical Gauss family. Modified moments against the
@@ -51,10 +52,20 @@ end
         @test maximum(abs, α .- 1 // 2) < 1e-100
         @test maximum(abs(β[k] - SHIFTED_LEGENDRE.b(k - 1, BigFloat)) for k in 2:12) < 1e-100
     end
-    # monic() agrees with the hand-written shifted family, up to the interval it lives on
     m = monic(jacobi_recurrence(0, 0))
     @test m.b(3, Float64) ≈ jacobi_recurrence(0, 0).b(3, Float64)^2
     @test all(k -> monomial_recurrence().a(k, Float64) == 0, 0:5)
+    # Shifting monic Legendre to [0,1] must reproduce the hand-written family. `a` comes out
+    # bit for bit; `b` cannot, because monic() squares an orthonormal coefficient that was
+    # itself a square root, so it is checked to within a few ulps of the working precision.
+    with_bits(256) do
+        s = CR.shift(m, 0, 1)
+        slack = ldexp(BigFloat(1), -240)
+        @test all(k -> s.a(k, BigFloat) == SHIFTED_LEGENDRE.a(k, BigFloat), 0:20)
+        @test all(0:20) do k
+            isapprox(s.b(k, BigFloat), SHIFTED_LEGENDRE.b(k, BigFloat); rtol = slack)
+        end
+    end
 
     # Too few moments to be a measure at all: Wheeler must say so rather than return numbers.
     bogus = OrdinaryMoments((k, T) -> k == 2 ? -one(T) : one(T))
