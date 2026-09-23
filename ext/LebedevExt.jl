@@ -70,7 +70,7 @@ function build(f::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree::Int, ctx:
             "the order-$ord table from Lebedev.jl does not decompose into whole O_h orbits, " *
             "so it cannot be refined here; ask for Float64 to get it as it stands"))
         structure, θ64 = got
-        θ, res, guard = refine_octahedral(structure, ord, θ64, ctx.bits; cancel = ctx.cancel)
+        θ, res, guard = refine_octahedral(structure, ord, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
         res.converged || throw(RefinementError("Lebedev",
             "Gauss–Newton did not converge on the order-$ord table from Lebedev.jl " *
             "(residual $(Float64(res.residual)))"))

@@ -120,7 +120,7 @@ Gauss–Newton with backtracking line search and a rank-revealing solve, in the 
 residual below `res_floor`. Checks the cancellation token once per iteration.
 """
 function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
-                      maxiter::Int = 60, cancel = nothing) where {S}
+                      maxiter::Int = 60, cancel = nothing, verbose::Integer = 0) where {S}
     θ = collect(θ0)
     r, J = F(θ)
     nr = norm(r)
@@ -134,15 +134,20 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
     κmax = κ
     converged = nr <= res_floor
     it = 0
+    if verbose >= 1
+        @info @sprintf("Gauss–Newton: %d equations, %d unknowns, %d bits, cond %.2e, residual %.3e",
+                       length(r), length(θ), precision(S), κ, Float64(nr))
+    end
     while !converged && it < maxiter
         it += 1
         checkcancel(cancel)
+        titer = time()
         Δ, κ, _ = lsq_step(J, r; rank_rtol)
         κmax = max(κmax, κ)
         t = one(S)
         accepted = false
         local θn, rn, Jn, nrn
-        for _ in 1:30
+        for halving in 0:29
             θn = θ - t * Δ
             rn, Jn = F(θn)
             nrn = norm(rn)
@@ -150,13 +155,22 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
                 accepted = true
                 break
             end
+            verbose >= 2 && @info @sprintf("    backtracking %2d: t = 2^-%d, residual %.3e > %.3e",
+                                           halving + 1, halving, Float64(nrn), Float64(nr))
             t /= 2
         end
         step = norm(Δ) * t
         push!(history, (Float64(accepted ? nrn : nr), Float64(step), κ))
+        if verbose >= 1
+            @info @sprintf("  iter %2d: residual %.3e  step %.3e  cond %.2e  %6.1f s%s",
+                           it, Float64(accepted ? nrn : nr), Float64(step), κ, time() - titer,
+                           accepted ? "" : "  (no descent)")
+        end
         if !accepted
             # no descent possible: converged only if we are already at the noise floor
             converged = norm(Δ) <= step_tol || nr <= 16res_floor
+            verbose >= 1 && @info(converged ? "  stopped at the noise floor" :
+                                              "  stopped without descent and above the noise floor")
             break
         end
         θ, r, J, nr = θn, rn, Jn, nrn
@@ -165,6 +179,10 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
     # `estimate_cond`, not another `lsq_step`: the step it would compute is thrown away, and
     # on a large system that discarded factorisation costs as much as an iteration.
     κ = estimate_cond(J)
+    if verbose >= 1
+        @info @sprintf("Gauss–Newton %s after %d iterations: residual %.3e, cond %.2e",
+                       converged ? "converged" : "gave up", it, Float64(nr), κ)
+    end
     return RefineResult{S}(θ, nr, it, κ, max(κmax, κ), converged, history)
 end
 

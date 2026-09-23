@@ -74,3 +74,45 @@ seeds above degree 10 were found; a from-scratch search costs hours there.
 
 `rule(...)` constructs and returns; it does not memoise. Rules are immutable values with
 content-based `==` and `hash`, so a user who wants memoisation can use a `Dict`.
+
+## Watching a long build
+
+`rule` is silent by default. For a build that takes minutes — a large symmetric refinement,
+or a moment problem that has to escalate precision — pass `verbose = true`:
+
+```julia
+r = rule(UpstreamLebedev(), Sphere{3}(); degree = 125, digits = 100, verbose = true)
+```
+
+```
+[ Info: building
+│   family = "LebedevRule{LebedevJLSeeds}"
+│   degree = 125
+│   points = 5294
+└   working_bits = 333
+[ Info: octahedral refinement to degree 125: 132 orbits, 352 unknowns, 352 equations, seed cond 9.01e+54
+[ Info:   attempt 1 at 550 bits (333 target + 217 guard)
+[ Info: Gauss–Newton: 352 equations, 352 unknowns, 550 bits, cond 9.01e+54, residual 1.207e-13
+[ Info:   iter  1: residual 3.118e-25  step 1.674e-03  cond 9.01e+54   214.6 s
+```
+
+The first block is printed before anything expensive begins, so a caller staring at a silent
+minute knows what is being attempted and roughly what it will cost. Then one line per
+iteration: residual, step, condition number and elapsed time. `verbose = 2` adds the inner
+detail — line-search backtracking, precision escalation, guard re-runs.
+
+It is emitted with `@info`, so it obeys the ambient logger: redirect it, filter it, or
+capture it with `Test.collect_test_logs` like any other Julia logging. Nothing is printed
+unless asked, because a library that logs by default is one people stop using.
+
+The numbers are worth reading rather than just watching. A moment-defined weight escalating
+its precision prints the disagreement between successive attempts, which is the conditioning
+made visible:
+
+```
+[ Info:   268 bits: moment residual 4.217e-81, disagrees with 204 bits by 2.568e-06 (want 1.670e-52)
+[ Info:   716 bits: moment residual 8.703e-216, disagrees with 460 bits by 1.578e-83 (want 1.670e-52)
+```
+
+A residual of 1e-81 accompanying an error of 2.6e-06 is the whole argument of
+[Weights given by moments](moments.md), printed as it happens.

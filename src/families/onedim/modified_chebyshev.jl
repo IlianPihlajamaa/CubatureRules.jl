@@ -159,7 +159,7 @@ conditioning — it is measured, and returned as `cond`, the ratio of the node e
 moment residual that accompanied it.
 """
 function modified_chebyshev_work(mw::MomentWeight, n::Integer, bits::Integer;
-                                 maxbits::Integer = 16 * bits + 4096)
+                                 maxbits::Integer = 16 * bits + 4096, verbose::Integer = 0)
     base = bits + gj_guard_bits(n)
     tol = ldexp(BigFloat(1), -(bits + 4))
     compute(trial) = with_bits(trial) do
@@ -192,12 +192,18 @@ function modified_chebyshev_work(mw::MomentWeight, n::Integer, bits::Integer;
         end
         trial = base + extra
         cur = compute(trial)
-        cur === nothing && continue          # broke down; more precision is the answer
+        if cur === nothing                   # broke down; more precision is the answer
+            verbose >= 1 && @info @sprintf("  %d bits: Wheeler's recursion broke down", trial)
+            continue
+        end
         if prev !== nothing
             x, w, iters, res = cur
             gap = with_bits(trial) do
                 rule_discrepancy(prev[1], prev[2], x, w)
             end
+            verbose >= 1 &&
+                @info @sprintf("  %d bits: moment residual %.3e, disagrees with %d bits by %.3e (want %.3e)",
+                               trial, Float64(res), prev_bits, Float64(gap), Float64(tol))
             if gap <= tol
                 # `prev` carried an error of about `gap` from a rounding unit of 2^-prev_bits,
                 # so their ratio is the amplification the moment problem applies — the number
@@ -266,7 +272,9 @@ function build(f::ModifiedChebyshev, dom::MomentInterval, degree::Int, ctx::Buil
         throw(ArgumentError("modified Chebyshev nodes are irrational; $(T) is not supported"))
     n = mc_points(degree)
     mw = dom.weight
-    x, w, iters, used, res, cond = modified_chebyshev_work(mw, n, ctx.bits)
+    ctx.verbose >= 1 && @info @sprintf("modified Chebyshev: %d points from %d moments of %s, target %d bits",
+                                       n, 2n + 2, mw.label, ctx.bits)
+    x, w, iters, used, res, cond = modified_chebyshev_work(mw, n, ctx.bits; verbose = ctx.verbose)
     xs = [finalize_number(ctx, xi) for xi in x]
     ws = [finalize_number(ctx, wi) for wi in w]
     spent = used - ctx.bits - gj_guard_bits(n)

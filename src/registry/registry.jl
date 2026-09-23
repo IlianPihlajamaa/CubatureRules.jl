@@ -133,8 +133,8 @@ Base.showerror(io::IO, e::NoRuleError) = print(io, e.msg)
 # rule(...)
 
 """
-    rule(domain; degree, T = Float64, digits, positive = false, interior = false, family, cancel, seed, copyleft = false)
-    rule(family, domain; degree, npoints, T, digits, cancel, seed)
+    rule(domain; degree, T = Float64, digits, positive = false, interior = false, family, cancel, seed, copyleft = false, verbose = false)
+    rule(family, domain; degree, npoints, T, digits, cancel, seed, verbose = false)
 
 Construct a quadrature rule of at least polynomial degree `degree` on `domain`.
 
@@ -148,6 +148,13 @@ ambient BigFloat precision at the time of the call; any other `T` its own precis
 
 `cancel` takes a [`CancellationToken`](@ref); `seed` a seed source for seeded families.
 
+`verbose = true` reports what is about to be built before the expensive part starts — the
+family, the size of the system, the working precision and the guard — then one line per
+iteration of any iterative solve, with its residual, step, condition number and elapsed time.
+`verbose = 2` adds the inner detail. It is worth turning on for anything that takes minutes:
+a large symmetric refinement gives no other sign of life. Progress is emitted with `@info`,
+so it obeys the ambient logger.
+
 `copyleft = true` lets the selector also consider families whose rules carry terms this
 package cannot pass on — see [`selectable`](@ref). Without it those are listed by
 [`available`](@ref) but never chosen, and `rule` warns when it passes over a cheaper one
@@ -157,9 +164,9 @@ There is no default degree: `rule(domain)` errors, listing what is available.
 """
 function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, digits = nothing,
               positive::Bool = false, interior::Bool = false, family = nothing, cancel = nothing, seed = nothing,
-              copyleft::Bool = false)
+              copyleft::Bool = false, verbose = false)
     if family !== nothing
-        return rule(family, dom; degree, npoints, T, digits, cancel, seed)
+        return rule(family, dom; degree, npoints, T, digits, cancel, seed, verbose)
     end
     npoints === nothing || throw(ArgumentError("`npoints` requires an explicit `family`"))
     degree === nothing && throw(NoRuleError(no_degree_message(dom)))
@@ -174,13 +181,13 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
                 "; ranked by (npoints, derived before seeded, family name)" *
                 (positive ? "; positive = true" : "") * (interior ? "; interior = true" : "") *
                 (copyleft ? "; copyleft = true" : "")
-    r = _build(chosen.family, dom, degree, Tout, bits, cancel, seed)
+    r = _build(chosen.family, dom, degree, Tout, bits, cancel, seed, verbosity(verbose))
     r = QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, with_selection(r.provenance, selection), r.certificate)
     return isreference(dom) ? r : map_to(r, dom)
 end
 
 function rule(f::RuleFamily, dom::Domain; degree = nothing, npoints = nothing, T = nothing, digits = nothing,
-              cancel = nothing, seed = nothing, positive::Bool = false, interior::Bool = false)
+              cancel = nothing, seed = nothing, positive::Bool = false, interior::Bool = false, verbose = false)
     ref = reference_domain(dom)
     ref === nothing && throw(NoRuleError("$(describe_family(f)) does not support $(dom)"))
     if npoints !== nothing
@@ -209,16 +216,24 @@ function rule(f::RuleFamily, dom::Domain; degree = nothing, npoints = nothing, T
     c = Candidate(f, ref, degree, Tout)
     (positive && !c.positive) && throw(NoRuleError("$(c.name) at degree $degree does not have positive weights"))
     (interior && !c.interior) && throw(NoRuleError("$(c.name) at degree $degree has boundary nodes"))
-    r = _build(f, dom, degree, Tout, bits, cancel, seed)
+    r = _build(f, dom, degree, Tout, bits, cancel, seed, verbosity(verbose))
     r = QuadratureRule(r.nodes, r.weights, r.domain, r.exactness,
                        with_selection(r.provenance, "family chosen explicitly by the caller"), r.certificate)
     return isreference(dom) ? r : map_to(r, dom)
 end
 
-function _build(f, dom, degree, T, bits, cancel, seed)
-    ctx = BuildContext{T}(bits; cancel)
+function _build(f, dom, degree, T, bits, cancel, seed, verbose::Int = 0)
+    ctx = BuildContext{T}(bits; cancel, verbose)
     ref = reference(dom)
+    if verbose >= 1
+        # Said before anything expensive begins, so that a caller staring at a silent minute
+        # knows what is being attempted and roughly what it will cost.
+        n = try npoints(f, ref, Int(degree)) catch; nothing end
+        @info "building" family = describe_family(f) domain = ref degree = Int(degree) points = n output = T working_bits = bits
+    end
+    t0 = time()
     r = seed === nothing ? build(f, ref, Int(degree), ctx) : build(f, ref, Int(degree), ctx; seed)
+    verbose >= 1 && @info @sprintf("built %s: %d points in %.1f s", describe_family(f), length(r.nodes), time() - t0)
     return _stamp_license(f, r)
 end
 

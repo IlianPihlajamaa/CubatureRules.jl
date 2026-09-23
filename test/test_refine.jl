@@ -108,3 +108,33 @@ end
     @test occursin("grown from the degree below", provenance(r).seed_source)
     @test_throws ArgumentError rule(XiaoGimbutas(), Simplex{2}(); degree = 1, seed = LowerDegreeSeed())
 end
+
+@testset "progress reporting" begin
+    # Silent unless asked: a library that logs by default is a library people stop using.
+    @test_logs rule(XiaoGimbutas(), Simplex{2}(); degree = 5)
+    @test_logs rule(XiaoGimbutas(), Simplex{2}(); degree = 5, verbose = false)
+
+    logs, _ = Test.collect_test_logs() do
+        rule(XiaoGimbutas(), Simplex{2}(); degree = 9, digits = 40, verbose = true)
+    end
+    said = join(string.(getproperty.(logs, :message)), "\n")
+    @test occursin("building", said)                    # before the expensive part starts
+    @test occursin("symmetric refinement to degree 9", said)
+    @test occursin("Gauss–Newton", said)
+    @test occursin("iter  1:", said)                    # one line per iteration, with timing
+    @test occursin("converged after", said)
+    @test count(l -> occursin("iter ", string(l.message)), logs) >= 1
+
+    # Level 2 adds the inner detail and never says less than level 1.
+    deep, _ = Test.collect_test_logs() do
+        rule(XiaoGimbutas(), Simplex{2}(); degree = 9, digits = 40, verbose = 2)
+    end
+    @test length(deep) >= length(logs)
+
+    # verbose is accepted on the domain form too, and routed through to the same place
+    vlogs, _ = Test.collect_test_logs() do
+        rule(Simplex{2}(); degree = 9, digits = 40, verbose = true)
+    end
+    @test occursin("building", join(string.(getproperty.(vlogs, :message)), "\n"))
+    @test CR.verbosity(true) == 1 && CR.verbosity(false) == 0 && CR.verbosity(2) == 2
+end

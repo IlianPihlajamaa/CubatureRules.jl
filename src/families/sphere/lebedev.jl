@@ -214,7 +214,7 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
             "an explicit seed for degree $n needs $(nunknowns(structure)) parameters (structure $structure)"))
         θ64, seed_desc = seed.θ, describe(seed)
     end
-    θ, res, guard = refine_octahedral(structure, n, θ64, ctx.bits; cancel = ctx.cancel)
+    θ, res, guard = refine_octahedral(structure, n, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
     res.converged || throw(RefinementError("Lebedev",
         "Gauss–Newton did not converge at degree $n (residual $(Float64(res.residual)) after " *
         "$(res.iterations) iterations); the seed is not returned unrefined"))

@@ -108,24 +108,33 @@ the condition number measured at the seed, Gauss–Newton at `bits + guard`, and
 re-run with more guard if the condition number found along the way demands it.
 """
 function refine_symmetric(structure::SymmetricStructure, n::Integer, θ64::Vector{Float64},
-                                   bits::Integer; cancel = nothing, basis = invariant_basis(structure.N, n))
+                                   bits::Integer; cancel = nothing, basis = invariant_basis(structure.N, n),
+                                   verbose::Integer = 0)
     sys64 = SymmetricMomentSystem(structure, n, Float64, basis)
     r64, J64 = sys64(θ64)
     κ0 = lsq_step(J64, r64; rank_rtol = 1e-14)[2]
     guard = guard_bits_from_cond(κ0)
+    if verbose >= 1
+        @info @sprintf("symmetric refinement to degree %d: %d orbits, %d unknowns, %d equations, seed cond %.2e",
+                       n, length(structure.orbits), length(θ64), length(r64), κ0)
+    end
     for attempt in 1:2
         wbits = bits + guard
+        verbose >= 1 && @info @sprintf("  attempt %d at %d bits (%d target + %d guard)",
+                                       attempt, wbits, bits, guard)
         res = with_bits(wbits) do
             sys = SymmetricMomentSystem(structure, n, BigFloat, basis)
             θ0 = BigFloat.(θ64)
             gauss_newton(sys, θ0; step_tol = ldexp(BigFloat(1), -(bits + 16)),
                          res_floor = ldexp(BigFloat(1), -(wbits - 12)),
-                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel)
+                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose)
         end
         needed = guard_bits_from_cond(res.cond_max)
         if needed <= guard || attempt == 2
             return res.θ, res, guard
         end
+        verbose >= 1 && @info @sprintf("  conditioning asks for %d guard bits, not %d — re-running",
+                                       needed, guard)
         guard = needed
     end
 end
@@ -177,7 +186,7 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
             "an explicit seed for degree $n needs $(nunknowns(structure)) parameters (structure $structure)"))
         θ64, seed_desc = seed.θ, describe(seed)
     end
-    θ, res, guard = refine_symmetric(structure, n, θ64, ctx.bits; cancel = ctx.cancel, basis)
+    θ, res, guard = refine_symmetric(structure, n, θ64, ctx.bits; cancel = ctx.cancel, basis, verbose = ctx.verbose)
     res.converged || throw(RefinementError(name,
         "Gauss–Newton did not converge at degree $n (residual $(Float64(res.residual)) after $(res.iterations) " *
         "iterations); the seed is not returned unrefined"))

@@ -34,8 +34,23 @@ output number type `T`, the target precision in bits, and the cancellation token
 struct BuildContext{T}
     bits::Int
     cancel::Union{Nothing,CancellationToken}
+    verbose::Int
 end
-BuildContext{T}(bits::Int; cancel = nothing) where {T} = BuildContext{T}(bits, cancel)
+BuildContext{T}(bits::Int; cancel = nothing, verbose = 0) where {T} =
+    BuildContext{T}(bits, cancel, verbosity(verbose))
+
+"""
+    verbosity(v) -> Int
+
+Normalise a `verbose` argument. `false` and `0` are silent; `true` and `1` report what is
+about to be attempted, each iteration of an iterative solve, and anything that goes wrong;
+`2` adds the inner detail — line-search backtracking, precision escalation, guard re-runs.
+
+Progress goes through `@info`, so it obeys the ambient logger and can be captured, filtered
+or redirected like any other Julia logging.
+"""
+verbosity(v::Bool) = v ? 1 : 0
+verbosity(v::Integer) = Int(v)
 
 outtype(::BuildContext{T}) where {T} = T
 isexact(::BuildContext{T}) where {T} = T <: Rational || T <: Integer
