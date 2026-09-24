@@ -37,8 +37,6 @@ exactness
 family
 provenance
 certificate
-static
-StaticQuadratureRule
 rule_hash
 ```
 
@@ -56,8 +54,6 @@ NoClaim
 ```@docs
 integrate
 IntegrationResult
-RuleSequence
-LevelSequence
 EmbeddedRule
 embedded
 ```

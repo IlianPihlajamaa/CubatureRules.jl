@@ -25,7 +25,7 @@
 - With `batch = true`, `f` is called once with all nodes — a `D × N` matrix (a vector in
   1D) — and must return the `N` values.
 
-For hot loops use `static(rule)`, which keeps everything in registers.
+Nothing is allocated when `f` does not allocate.
 """
 function integrate(f::F, r::QuadratureRule; batch::Bool = false) where {F}
     batch && return _integrate_batch(f, r)
@@ -38,7 +38,7 @@ function integrate(f::F, r::QuadratureRule; batch::Bool = false) where {F}
     return acc
 end
 
-function _integrate_batch(f, r::AnyRule)
+function _integrate_batch(f, r::QuadratureRule)
     x = nodes(r)
     X = eltype(x) <: Number ? collect(x) : reduce(hcat, x)
     vals = f(X)
@@ -63,7 +63,7 @@ function integrate(f::F, r::QuadratureRule, dom::Domain) where {F}
     return acc
 end
 
-function integrate(f::F, r::AnyRule, cells::AbstractVector{<:Domain}; threaded::Bool = false) where {F}
+function integrate(f::F, r::QuadratureRule, cells::AbstractVector{<:Domain}; threaded::Bool = false) where {F}
     isempty(cells) && throw(ArgumentError("no cells to integrate over"))
     threaded && Threads.nthreads() > 1 && return _integrate_threaded(f, r, cells)
     acc = integrate(f, r, cells[1])
@@ -79,7 +79,7 @@ end
 # Every name assigned inside the threaded loop must be used nowhere else in this function.
 # A name that is also assigned outside becomes one shared (boxed) variable, which every
 # thread then writes — a race that silently returns wrong sums.
-function _integrate_threaded(f::F, r::AnyRule, cells) where {F}
+function _integrate_threaded(f::F, r::QuadratureRule, cells) where {F}
     nt = Threads.nthreads()
     partials = Vector{Any}(nothing, nt)
     chunks = [(t - 1) * length(cells) ÷ nt + 1:t * length(cells) ÷ nt for t in 1:nt]
@@ -111,33 +111,3 @@ end
 _coordtype(d::Interval) = typeof(d.a)
 _coordtype(d::Orthotope) = eltype(d.lo)
 
-# ---------------------------------------------------------------------------------------
-# The runtime form: inlined, and unrolled at compile time (the node count is a type
-# parameter), so the node tuple is never indexed dynamically and never leaves registers.
-
-@inline function integrate(f::F, r::StaticQuadratureRule; batch::Bool = false) where {F}
-    batch && return _integrate_batch(f, r)
-    return _unrolled_sum(f, r.nodes, r.weights)
-end
-
-@inline function integrate(f::F, r::StaticQuadratureRule, dom::Domain) where {F}
-    A, b, J = _affine(domain(r), dom, _maptype(eltype(r), _coordtype(dom)))
-    return J * _unrolled_sum(y -> f(A * y + b), r.nodes, r.weights)
-end
-
-@generated function _unrolled_sum(f::F, x::SVector{N}, w::SVector{N}) where {F,N}
-    N > 256 && return :(_loop_sum(f, x, w))
-    ex = :(w[1] * f(x[1]))
-    for i in 2:N
-        ex = :($ex + w[$i] * f(x[$i]))
-    end
-    return :(@inbounds $ex)
-end
-
-function _loop_sum(f::F, x, w) where {F}
-    @inbounds acc = w[1] * f(x[1])
-    @inbounds for i in 2:length(w)
-        acc += w[i] * f(x[i])
-    end
-    return acc
-end

@@ -1,5 +1,5 @@
 using CubatureRules, Test, StaticArrays, LinearAlgebra
-import CubatureRules: Certificate, Derived, Provenance, StaticQuadratureRule, barycentric, barycentric_moment, cartesian, derivation, isreference, monomial_moment, rule_hash   # public, not exported
+import CubatureRules: Certificate, Derived, Provenance, barycentric, barycentric_moment, cartesian, derivation, isreference, monomial_moment, rule_hash   # public, not exported
 const CR = CubatureRules
 
 @testset "claims" begin
@@ -69,7 +69,7 @@ end
     @test maximum(abs, (vp - vm) / 2h - gy) < 1e-6
 end
 
-@testset "rule records, static form, equality" begin
+@testset "rule records and equality" begin
     r = rule(Simplex{2}(); degree = 4)
     @test npoints(r) == length(nodes(r)) == length(weights(r))
     @test degree(r) >= 4
@@ -77,15 +77,9 @@ end
     @test exactness(r) isa PolynomialDegree
     @test provenance(r) isa Provenance
     @test certificate(r) isa Certificate
-    s = static(r)
-    @test s isa StaticQuadratureRule
-    @test isbits(s)
-    @test npoints(s) == npoints(r)
-    @test family(s) == family(r)
     # 1D specialisation stores scalars
     l = rule(Interval(); degree = 7)
     @test nodes(l) isa Vector{Float64}
-    @test isbits(static(l))
     # content equality and hashing: same construction twice is the same rule
     r2 = rule(Simplex{2}(); degree = 4)
     @test r == r2

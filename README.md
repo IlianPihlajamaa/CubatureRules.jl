@@ -47,15 +47,16 @@ Verification: PASSED
 
 ## When to use something else
 
+This package provides rules; it does not integrate adaptively to a tolerance.
+
 | If you need | Use |
 |---|---|
-| Adaptive integration in one dimension | [QuadGK.jl](https://github.com/JuliaMath/QuadGK.jl) |
-| Adaptive integration on boxes | [HCubature.jl](https://github.com/JuliaMath/HCubature.jl) |
+| Adaptive integration on an interval | [QuadGK.jl](https://github.com/JuliaMath/QuadGK.jl) |
+| Adaptive integration on a box | [HCubature.jl](https://github.com/JuliaMath/HCubature.jl) |
+| Adaptive integration on a triangle or tetrahedron | [HAdaptiveIntegration.jl](https://github.com/zmoitier/HAdaptiveIntegration.jl) |
 | Gauss rules with very many points in `Float64` | [FastGaussQuadrature.jl](https://github.com/JuliaApproximation/FastGaussQuadrature.jl) |
 
-This package increases the degree of a single rule rather than subdividing the domain, so it
-works best for smooth integrands. Gauss–Kronrod rules come from QuadGK.jl, and Lobatto,
-Radau and Clenshaw–Curtis rules from
+Gauss–Kronrod rules come from QuadGK.jl, and Lobatto, Radau and Clenshaw–Curtis rules from
 [QuadratureRules.jl](https://github.com/JuliaGNI/QuadratureRules.jl) when it is loaded.
 
 ## Installation

@@ -115,6 +115,7 @@ families and tooling on top of what lands here.
 - [x] `ExactnessClaim`: `PolynomialDegree`, `SpanOf`, `NoClaim`
 - [x] `QuadratureRule{D,T,Dom,C,S,W}` with storage as a type parameter
 - [x] `static(rule)` → `SVector`-backed, `isbits`, provenance moved to a type parameter
+      *(removed in v0.5 after measurement; see below)*
 - [x] `Provenance`: family, derivation path, seed source, citation, licence, selection record
 - [x] `Certificate`: defining-equation residual, precision used, cond(J) estimate, guard digits
 - [x] `Verification`: basis used, max residual, sharpness result, method, empirical flag
@@ -185,6 +186,7 @@ families and tooling on top of what lands here.
 - [x] `integrate(f, rule, domain)` over the affine map
 - [x] `batch = true` variant calling `f` once with the full node matrix
 - [x] Hot path runs on `static(rule)`; verified zero-allocation with `@allocated`
+      *(the ordinary rule is also zero-allocation, which is now what the test checks)*
 
 ### Verification (§8)
 
@@ -233,7 +235,7 @@ families and tooling on top of what lands here.
       platforms in CI
 - [x] A test package adding a family is found by the selector without registration
 - [x] Every shipped data file has a provenance entry
-- [x] Zero allocations in the `static` inner loop
+- [x] Zero allocations in the `static` inner loop *(now in the ordinary rule's loop)*
 
 **Stage risks**
 
@@ -327,11 +329,12 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] `Orthotope` domain
 - [x] `TensorProduct` over any 1D families; conservative total-degree claim (§2.2)
 - [x] `r₁ ⊗ r₂`
-- [x] `RuleSequence` for nested families (§3.3)
+- [x] `RuleSequence` for nested families (§3.3) *(removed in v0.5; see below)*
 - [x] Embedded error estimates at zero extra evaluations, generalised beyond Kronrod
       *(`EmbeddedRule` pairs any rule with a coarser one on a subset of its nodes; Kronrod
       and nested Fejér 2 both work)*
 - [x] `integrate(f, domain; rtol)` order-adaptive, returning `IntegrationResult` (§3.4)
+      *(removed in v0.5; see below)*
 
 **Exit criteria**
 
@@ -413,6 +416,21 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [ ] Oscillatory weights: Filon-type rules as `PolynomialDegree` on an oscillatory
       `WeightedDomain`, complex `T`, with the small-$\omega$ cancellation handled by a
       series branch or extra guard digits
+
+**Removed in this stage**
+
+- `static(rule)` and `StaticQuadratureRule`. Measured on triangle rules of 7 to 445 points:
+  1.0–1.4× faster in most cases even with a nearly free integrand, 1.9× only at 7 points
+  (about 4 ns), 0.84× at 445 points, within noise with a realistic integrand, and 0.2–2.5 s
+  of compilation per rule size. The ordinary rule already allocates nothing.
+  FixedSizeArrays.jl measured the same as `Vector`. See `docs/src/design/application.md`.
+- `integrate(f, domain; rtol)`, `RuleSequence` and `LevelSequence`. The driver assumed one
+  family forms a clean sequence of rules, which seeded families with gaps and upper limits do
+  not; two requested degrees giving the same rule made it report convergence on an answer
+  wrong in the fifth digit; and it built and refined rules out of sight. Adaptive
+  integration is left to QuadGK.jl, HCubature.jl and HAdaptiveIntegration.jl.
+  `EmbeddedRule`, `embedded` and `IntegrationResult` remain. See
+  `docs/src/design/errors.md`.
 
 **Exit criteria**
 

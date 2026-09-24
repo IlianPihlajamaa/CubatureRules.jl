@@ -22,7 +22,7 @@ const CR = CubatureRules
     @testset "application" include("test_apply.jl")
     @testset "claim preservation" include("test_transport.jl")
     @testset "composition" include("test_composition.jl")
-    @testset "sequences and tolerance" include("test_sequence.jl")
+    @testset "embedded rules" include("test_embedded.jl")
     @testset "verification" include("test_verify.jl")
     @testset "number types" include("test_numbertypes.jl")
     @testset "presentation" include("test_presentation.jl")

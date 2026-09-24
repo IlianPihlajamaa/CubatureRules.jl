@@ -29,9 +29,8 @@ for cell in mesh
 end
 ```
 
-For the same reason there is no `integrate(f, domain; degree = 20)`. The only form of
-`integrate` that takes a domain is the one that integrates to a tolerance, described in
-[I want to integrate to a tolerance](tolerance.md).
+For the same reason `integrate` always takes a rule, never a domain. To judge how accurate
+the result is, see [I want an error estimate](errors.md).
 
 ## Domains
 

@@ -76,7 +76,7 @@ include("composition/tensor.jl")
 include("registry/registry.jl")
 include("apply/transport.jl")
 include("apply/integrate.jl")
-include("apply/sequence.jl")
+include("apply/embedded.jl")
 include("verify/verify.jl")
 include("emit/show.jl")
 include("emit/cite.jl")
@@ -95,7 +95,7 @@ export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain,
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
 export measure, indomain, isinterior
 # rules
-export QuadratureRule, static, nodes, weights, domain, exactness, provenance, certificate,
+export QuadratureRule, nodes, weights, domain, exactness, provenance, certificate,
        npoints, degree, family
 # families and the registry
 export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
@@ -107,7 +107,7 @@ export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport
 export integrate, map_to, subdivide, transform, duffy,
-       RuleSequence, LevelSequence, EmbeddedRule, embedded, IntegrationResult
+       EmbeddedRule, embedded, IntegrationResult
 # verification and presentation
 export verify, check, passed, @test_exact, cite
 
@@ -118,7 +118,7 @@ public MonicRecurrence, monic, monomial_recurrence, shift, wheeler, MomentInterv
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight,vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map,
-       StaticQuadratureRule, rule_hash,
+       rule_hash,
        Provenance, Certificate, Verification, Citation, Derived, Seeded,
        CombinatorFamily, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,

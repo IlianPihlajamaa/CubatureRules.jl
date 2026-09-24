@@ -305,6 +305,9 @@ Building this in costs almost nothing; adding it later is a breaking change.
 
 ### 2.4 Two representations: construction-time and runtime
 
+> **Superseded in v0.5.** The runtime form (`static`) was removed after measurement showed
+> it was not worth its compile time; see ROADMAP.md, v0.5, and `docs/src/design/application.md`.
+
 ```julia
 struct QuadratureRule{D,T,Dom<:Domain{D},C<:ExactnessClaim,S,W}
     nodes::S                        # Vector{SVector{D,T}} or SVector{N,SVector{D,T}}
@@ -582,6 +585,9 @@ single abstraction buys three things at once: convergence studies, embedded erro
 estimates, and the accuracy-targeted interface below.
 
 ### 3.4 Accuracy-targeted integration
+
+> **Superseded in v0.5.** This driver and the rule sequences of §3.3 were removed; see
+> ROADMAP.md, v0.5, and `docs/src/design/errors.md`. Embedded error estimates remain.
 
 ```julia
 integrate(f, domain; rtol = 1e-30)

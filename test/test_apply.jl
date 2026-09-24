@@ -56,19 +56,19 @@ hot_g(x) = exp(x)
 allocs(f::F, r) where {F} = (integrate(f, r); @allocated integrate(f, r))
 allocs(f::F, r, d) where {F} = (integrate(f, r, d); @allocated integrate(f, r, d))
 
-@testset "hot path on static rules allocates nothing" begin
-    s = static(rule(Simplex{2}(); degree = 6))
+@testset "the hot path allocates nothing" begin
+    s = rule(Simplex{2}(); degree = 6)
     @test allocs(hot_f, s) == 0
     t = Simplex((0.0, 0.0), (2.0, 0.0), (0.0, 1.0))
     @test allocs(hot_f, s, t) == 0
-    sl = static(rule(Interval(); degree = 9))
+    sl = rule(Interval(); degree = 9)
     @test allocs(hot_g, sl) == 0
     @test integrate(hot_g, sl) ≈ exp(1) - exp(-1)
     @test allocs(hot_g, sl, Interval(0.0, 2.0)) == 0
 end
 
 @testset "threaded mesh integration" begin
-    r = static(rule(Simplex{2}(); degree = 5))
+    r = rule(Simplex{2}(); degree = 5)
     m = 40
     h = 1 / m
     cells = [Simplex((i * h, j * h), ((i + 1) * h, j * h), ((i + 1) * h, (j + 1) * h)) for i in 0:(m - 1), j in 0:(m - 1)]

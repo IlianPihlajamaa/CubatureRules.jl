@@ -111,30 +111,8 @@ end
     @test abs(integrate(x -> exp(-x^2), rb) - sqrt(big(π))) < big(10.0)^-38
 end
 
-@testset "tolerance-driven integration on unbounded domains" begin
-    # nothing here answers a degree request, so the sweep walks levels instead
-    r = integrate(x -> exp(-x), HalfLine(); rtol = 1e-10)
-    @test r.converged && r.degree == -1 && r.family == "ExpSinh"
-    @test r.value ≈ 1 atol = 1e-14
-    r = integrate(x -> exp(-x^2), RealLine(); rtol = 1e-10)
-    @test r.converged && r.family == "SinhSinh"
-    @test r.value ≈ sqrt(π) atol = 1e-13
-    r = integrate(x -> exp(-x) / sqrt(x), HalfLine(); rtol = 1e-12)
-    @test r.converged
-    @test r.value ≈ sqrt(π) atol = 1e-13
-    # a weighted domain still has a degree-based family, and keeps using it
-    r = integrate(x -> x^5, LaguerreRay(); rtol = 1e-12)
-    @test r.converged && r.family == "GaussLaguerre"
-    @test r.value ≈ 120 rtol = 1e-13
-    # a level family can also be named explicitly, including on an interval
-    r = integrate(x -> 1 / sqrt(1 - x^2), Interval(); rtol = 1e-8, family = TanhSinh())
-    @test r.converged
-    @test r.value ≈ π atol = 1e-7
-    s = CR.LevelSequence(ExpSinh(), HalfLine(); levels = 2:5)
-    @test length(s) == 4 && eltype(collect(s)) <: QuadratureRule
-    @test occursin("levels [2, 3, 4, 5]", sprint(show, s))
-    @test_throws ArgumentError CR.LevelSequence(GaussLegendre(), Interval())
-    # the selector explains itself when asked for a degree it cannot give
+@testset "the selector on unbounded domains" begin
+    # nothing here answers a degree request; the selector says which level family would
     msg = try rule(HalfLine(); degree = 5) catch e; sprint(showerror, e) end
     @test occursin("ExpSinh", msg) && occursin("rule(ExpSinh(4), HalfLine())", msg)
     msg = try rule(RealLine()) catch e; sprint(showerror, e) end

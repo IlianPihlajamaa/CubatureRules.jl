@@ -1,4 +1,9 @@
-# Rules: the construction-time record and the runtime (static) form (PLAN §2.4).
+# Rules (PLAN §2.4).
+#
+# There is one rule type. A separate SVector-backed runtime form existed until v0.5 and was
+# removed after measurement: 1.0–1.4× faster at best even on a near-free integrand, slower
+# for large rules, compile time growing to seconds per rule size, and no allocation saving —
+# integrating with this type already allocates nothing.
 
 """
     QuadratureRule{D,T,Dom,C,S,W}
@@ -7,8 +12,9 @@ A quadrature rule of dimension `D` in number type `T` on domain `Dom`, with exac
 claim `C`. Storage is a type parameter: `S` is the node container (`Vector{T}` in 1D,
 `Vector{SVector{D,T}}` otherwise) and `W` the weight container.
 
-This is the *construction-time record*: it carries everything needed to explain, verify and
-cite itself. For hot loops convert it with [`static`](@ref).
+A rule carries everything needed to explain, verify and cite itself, and integrating with
+it allocates nothing when the integrand does not. Code that needs an `isbits` rule, such as
+a GPU kernel, can take `SVector{N}(nodes(r))` and `SVector{N}(weights(r))` directly.
 
 Fields are accessed through [`nodes`](@ref), [`weights`](@ref), [`domain`](@ref),
 [`exactness`](@ref), [`provenance`](@ref) and [`certificate`](@ref).
@@ -151,50 +157,3 @@ _exact_string(x::AbstractFloat) = repr(x)
 _exact_string(x::Rational) = string(numerator(x), "//", denominator(x))
 _exact_string(x) = string(x)
 
-# ---------------------------------------------------------------------------------------
-# Runtime form.
-
-"""
-    StaticQuadratureRule{D,T,N,Dom,C,F}
-
-The runtime form of a rule: nodes and weights in `SVector`s, no provenance or
-certificate (the family name is kept as the type parameter `F`). `isbits` whenever `T`
-and the domain are, so it can live in registers and on a GPU. Produced by
-[`static`](@ref).
-"""
-struct StaticQuadratureRule{D,T,N,Dom<:Domain{D},C<:ExactnessClaim,F,S}
-    nodes::S
-    weights::SVector{N,T}
-    domain::Dom
-    exactness::C
-end
-
-"""
-    static(rule)
-
-Convert a construction-time [`QuadratureRule`](@ref) to its runtime form
-[`StaticQuadratureRule`](@ref). Intended for small rules in hot loops.
-"""
-function static(r::QuadratureRule{D,T}) where {D,T}
-    N = npoints(r)
-    F = Symbol(family(r))
-    w = SVector{N,T}(r.weights)
-    x = D == 1 ? SVector{N,T}(r.nodes) : SVector{N,SVector{D,T}}(r.nodes)
-    return StaticQuadratureRule{D,T,N,typeof(r.domain),typeof(r.exactness),F,typeof(x)}(x, w, r.domain, r.exactness)
-end
-
-nodes(r::StaticQuadratureRule) = r.nodes
-weights(r::StaticQuadratureRule) = r.weights
-domain(r::StaticQuadratureRule) = r.domain
-exactness(r::StaticQuadratureRule) = r.exactness
-npoints(::StaticQuadratureRule{D,T,N}) where {D,T,N} = N
-degree(r::StaticQuadratureRule) = degree(r.exactness)
-family(::StaticQuadratureRule{D,T,N,Dom,C,F}) where {D,T,N,Dom,C,F} = String(F)
-Base.eltype(::Type{<:StaticQuadratureRule{D,T}}) where {D,T} = T
-
-function Base.show(io::IO, r::StaticQuadratureRule{D,T,N}) where {D,T,N}
-    print(io, "StaticQuadratureRule{", D, ",", T, "}(", family(r), ", ", N, " points, ",
-          describe(r.exactness), ", on ", r.domain, ")")
-end
-
-const AnyRule = Union{QuadratureRule,StaticQuadratureRule}

@@ -51,16 +51,20 @@ case the provenance records the claim as asserted by the caller.
 nodes towards the vertex at the origin by `x ↦ u^{q-1} x` with `u = Σxᵢ`, which cancels a
 singularity of the form `r^{-(q-1)D}` at that vertex.
 
-## Static rules
+## Why there is only one rule type
 
-[`static`](@ref)`(r)` converts a rule into a `StaticQuadratureRule`, which stores the nodes and weights
-as `SVector`s in tuples. Its size is part of its type, so the compiler can unroll the sum
-and keep everything in registers, and integration allocates nothing. All the `integrate`
-methods above accept a static rule.
+Earlier versions also had a `static` form that stored nodes and weights as `SVector`s, with
+the number of points in the type, and unrolled the sum at compile time. It was removed in
+v0.5 after measurement on triangle rules of 7 to 445 points:
 
-A static rule has a different type for every number of points, so functions that use many
-different ones are compiled for each of them. For rules with thousands of points, the
-regular `QuadratureRule` is usually the better choice.
+- with a nearly free integrand it was 1.0–1.4× faster in most cases, 1.9× only at 7 points
+  (about 4 ns), and 0.84× (slower) at 445 points;
+- with an integrand such as `exp` the difference was within noise;
+- compiling each new size took from 0.2 s at 7 points to 2.5 s at 445 points;
+- integration with the ordinary rule already allocates nothing.
+
+Code that needs an `isbits` rule, such as a GPU kernel, can build one directly with
+`SVector{N}(nodes(r))` and `SVector{N}(weights(r))`.
 
 ## Tensor products of rules
 

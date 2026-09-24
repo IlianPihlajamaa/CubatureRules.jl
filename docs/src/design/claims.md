@@ -37,12 +37,11 @@ Operations that change a rule state what they do to its claim:
 |---|---|
 | `map_to(r, dom)` (affine) | preserved |
 | `subdivide(r, dom, n)` | preserved |
-| `static(r)` | preserved |
 | `transform(r, φ, Jφ)` | replaced by `NoClaim`, unless the caller passes `claim` |
 | `duffy(r; power)` | replaced by `NoClaim` |
 
 A polynomial composed with an affine map is a polynomial of the same degree, so the first
-three keep the claim. A nonlinear map does not preserve polynomials, so the claim is
+two keep the claim. A nonlinear map does not preserve polynomials, so the claim is
 removed rather than reduced. If a caller knows that the claim holds for a particular map,
 it can be passed to `transform`; the provenance then records that the claim was asserted by
 the caller and not derived by the package.
