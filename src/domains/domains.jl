@@ -10,6 +10,39 @@ abstract type Domain{D,T} end
 dimension(::Domain{D}) where {D} = D
 dimension(::Type{<:Domain{D}}) where {D} = D
 
+"""
+    measure(dom)
+
+The total mass of the domain: its length, area or volume, or on a weighted domain the
+integral of the weight. The weights of a rule on `dom` add up to this. Unbounded unweighted
+domains return `Inf`.
+"""
+function measure end
+
+"""
+    isreference(dom) -> Bool
+
+Whether `dom` is the reference domain of its kind — `[-1, 1]`, the unit simplex, the unit
+sphere and so on — on which families construct their rules.
+"""
+function isreference end
+
+"""
+    reference(dom)
+
+The reference domain of the same kind as `dom`. A rule requested on `dom` is built on
+`reference(dom)` and mapped. A domain carrying a [`MomentWeight`](@ref) is its own reference,
+because its moments are stated for that interval.
+"""
+function reference end
+
+"""
+    vertices(s::Simplex)
+
+The vertices of the simplex, as a tuple of `SVector`s.
+"""
+function vertices end
+
 # ---------------------------------------------------------------------------------------
 # Interval
 

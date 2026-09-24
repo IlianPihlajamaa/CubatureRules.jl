@@ -40,14 +40,63 @@ function QuadratureRule(nodes::AbstractVector{T}, weights::AbstractVector{T}, do
         nodes, weights, domain, claim, prov, cert)
 end
 
+"""
+    nodes(r)
+
+The nodes of the rule: a vector of numbers in one dimension, otherwise a vector of
+`SVector{D}`. For a rule built with `rule` on a mapped domain, the nodes are on that domain.
+"""
 nodes(r::QuadratureRule) = r.nodes
+
+"""
+    weights(r)
+
+The weights of the rule, in the same order as [`nodes`](@ref). On a weighted domain they
+include the weight, so they add up to its total mass.
+"""
 weights(r::QuadratureRule) = r.weights
+
+"""
+    domain(r)
+
+The domain the rule integrates over.
+"""
 domain(r::QuadratureRule) = r.domain
+
+"""
+    exactness(r) -> ExactnessClaim
+
+The rule's exactness claim: a [`PolynomialDegree`](@ref), a [`SpanOf`](@ref) or
+[`NoClaim`](@ref). Use [`degree`](@ref) for the degree itself.
+"""
 exactness(r::QuadratureRule) = r.exactness
+
+"""
+    provenance(r) -> Provenance
+
+How the rule was made: the family, the seed, the steps of the construction, the citations,
+the licence of its data, and why the selector chose it. See
+[`Provenance`](@ref CubatureRules.Provenance).
+"""
 provenance(r::QuadratureRule) = r.provenance
+
+"""
+    certificate(r) -> Union{Certificate,Nothing}
+
+The record of how the rule's defining equations were solved: their residual, the condition
+number, the guard digits and the number of iterations. This describes the solver, not the
+correctness of the rule; for that, use [`check`](@ref). See
+[`Certificate`](@ref CubatureRules.Certificate).
+"""
 certificate(r::QuadratureRule) = r.certificate
 npoints(r::QuadratureRule) = length(r.weights)
 degree(r::QuadratureRule) = degree(r.exactness)
+
+"""
+    family(r) -> String
+
+The name of the family that built the rule.
+"""
 family(r::QuadratureRule) = r.provenance.family
 derivation(r::QuadratureRule) = r.provenance.derivation
 Base.eltype(::Type{<:QuadratureRule{D,T}}) where {D,T} = T

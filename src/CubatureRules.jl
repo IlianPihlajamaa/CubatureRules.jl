@@ -123,6 +123,10 @@ public MonicRecurrence, monic, monomial_recurrence, shift, wheeler, MomentInterv
        CombinatorFamily, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,
        license_warnings!, derivation,
+       # the rest of the family interface: what docs/src/tutorial/families.md tells authors to use
+       build, BuildContext, outtype, isexact, finalize_number, checkcancel, claimed_degree,
+       degree_for_npoints, supports_type, describe_family, reference, verification_basis,
+       verify_convergence, classify_octahedral,
        CancellationToken, cancel!, CancelledError,
        SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed,
        benchmark_construction

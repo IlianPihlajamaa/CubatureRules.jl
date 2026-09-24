@@ -15,6 +15,12 @@ struct CancellationToken
     flag::Threads.Atomic{Bool}
 end
 CancellationToken() = CancellationToken(Threads.Atomic{Bool}(false))
+"""
+    cancel!(token)
+
+Ask the construction that was given `token` to stop. It throws a
+[`CancelledError`](@ref) at its next check.
+"""
 cancel!(t::CancellationToken) = (t.flag[] = true; t)
 iscancelled(t::CancellationToken) = t.flag[]
 iscancelled(::Nothing) = false
@@ -23,6 +29,12 @@ iscancelled(::Nothing) = false
 struct CancelledError <: Exception end
 Base.showerror(io::IO, ::CancelledError) = print(io, "rule construction was cancelled")
 
+"""
+    checkcancel(token)
+
+Throw a [`CancelledError`](@ref) if `token` has been cancelled; do nothing for `nothing`.
+Family authors call this as `checkcancel(ctx.cancel)` in long loops.
+"""
 checkcancel(t) = iscancelled(t) && throw(CancelledError())
 
 """
@@ -52,7 +64,20 @@ or redirected like any other Julia logging.
 verbosity(v::Bool) = v ? 1 : 0
 verbosity(v::Integer) = Int(v)
 
+"""
+    outtype(ctx::BuildContext) -> Type
+
+The number type the rule is to be delivered in.
+"""
 outtype(::BuildContext{T}) where {T} = T
+
+"""
+    isexact(ctx::BuildContext) -> Bool
+
+Whether the requested output type is exact (`Rational` or `Integer`). Families whose nodes are
+irrational should throw an `ArgumentError` in that case, and declare `supports_type` so that
+the selector does not offer them.
+"""
 isexact(::BuildContext{T}) where {T} = T <: Rational || T <: Integer
 target_digits(ctx::BuildContext) = isexact(ctx) ? typemax(Int) : floor(Int, ctx.bits * log10(2))
 

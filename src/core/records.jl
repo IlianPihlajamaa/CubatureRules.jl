@@ -27,7 +27,11 @@ principles at any order; a *seeded* rule is refined from a starting point that e
 at tabulated orders.
 """
 abstract type DerivationClass end
+
+"A family whose rules are computed from a formula or a well-conditioned algorithm, at any degree."
 struct Derived <: DerivationClass end
+
+"A family whose rules are refined from stored starting values, and so exist only at tabulated degrees."
 struct Seeded <: DerivationClass end
 Base.show(io::IO, ::Derived) = print(io, "Derived()")
 Base.show(io::IO, ::Seeded) = print(io, "Seeded()")

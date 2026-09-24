@@ -265,6 +265,16 @@ end
 reference_nodes(r::QuadratureRule{1,T,<:MomentInterval}, ::Type{S}) where {T,S} =
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
 
+"""
+    verification_basis(domain, degrees, S, exact) -> (basis, description)
+
+The basis [`verify`](@ref) tests a rule on `domain` against, for the given degrees, in
+arithmetic `S`; `exact` is set for rules in exact rational arithmetic. Define a method for a
+new kind of domain to make its degree claims verifiable. The description is shown in the
+verification report.
+"""
+function verification_basis end
+
 verification_basis(dom::Simplex{2}, n, ::Type{S}, exact) where {S} = DubinerBasis{S}(n; normalize = !exact),
     exact ? "Dubiner (unnormalised, exact arithmetic)" : "orthonormal Dubiner"
 verification_basis(dom::Simplex{3}, n, ::Type{S}, exact) where {S} = TetVerifyBasis{S}(n; normalize = !exact),

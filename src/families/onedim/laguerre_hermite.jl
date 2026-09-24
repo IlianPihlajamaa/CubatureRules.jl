@@ -36,12 +36,20 @@ const SZEGO_LAGUERRE = SZEGO_1939
 
 """
     laguerre_recurrence(α)
-    hermite_recurrence()
 
-The orthonormal recurrences of the two weights, for the shared Gauss driver.
+The orthonormal three-term recurrence of the Laguerre weight `x^α e^{-x}` on `[0, ∞)`, in
+the form the shared Gauss driver takes. See also [`monic`](@ref) to use it as the auxiliary
+family of a [`MomentWeight`](@ref).
 """
 laguerre_recurrence(α) = Recurrence((k, T) -> T(2k) + T(α) + one(T), (k, T) -> sqrt(T(k) * (T(k) + T(α))),
                                     T -> T(laguerre_mass(α)))
+
+"""
+    hermite_recurrence()
+
+The orthonormal three-term recurrence of the Hermite weight `e^{-x²}` on the real line, in
+the form the shared Gauss driver takes.
+"""
 hermite_recurrence() = Recurrence((k, T) -> zero(T), (k, T) -> sqrt(T(k) / 2), T -> sqrt(T(π)))
 
 recurrence_of(f::GaussLaguerre) = laguerre_recurrence(f.α)

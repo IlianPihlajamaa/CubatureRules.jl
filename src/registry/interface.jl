@@ -75,6 +75,15 @@ function derivation end
 derivation(f::RuleFamily) = derivation(typeof(f))
 
 """
+    degree_for_npoints(f, domain, n) -> Int
+
+The degree whose rule has `n` points. Optional: a family that defines it can be asked for a
+number of points with `rule(f, domain; npoints = n)`; for the others that keyword is an
+error.
+"""
+function degree_for_npoints end
+
+"""
     claimed_degree(f, domain, degree)
 
 The degree actually claimed by the rule built for a request of `degree` (may exceed it,
