@@ -380,9 +380,13 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 **Exit criteria**
 
-- [ ] A Lebedev rule at order 125 refined to 100 digits and verified against spherical
+- [x] A Lebedev rule at order 125 refined to 100 digits and verified against spherical
       harmonics *(125 is the highest order any table we can lawfully reach supplies;
-      the in-house seeds stop at 17, and rules beyond 125 await an MIT-licensed source)*
+      the in-house seeds stop at 17, and rules beyond 125 await an MIT-licensed source.
+      Done from the caller's Lebedev.jl, GPL-3, nothing shipped: 5294 points refined in
+      760 s to a residual of 4.3e-101 with cond(J) 9.0e54, and verified twice — on orbit
+      representatives in 6.4 s, and against all 16 129 harmonics at every node in 56 min —
+      with the two agreeing. See `notes/v0.4-spheres.md`)*
 - [ ] $t$-designs verified as `PolynomialDegree(t)` claims, confirming the §2.2 collapse —
       moved to v0.6 with the work itself. The trapezoid rule on `Sphere{2}()` is already an
       equal-weight rule exact to a degree, so it satisfies the letter of this; it does not
