@@ -101,8 +101,8 @@ end
     embedded(family, domain; degree, T, digits)
 
 The rule of `family` at `degree` together with an embedded coarser rule of the same family,
-sharing nodes. Defined where a family is nested; Gauss–Kronrod carries its Gauss subset by
-construction.
+sharing nodes. Defined where a family is nested: Gauss–Kronrod carries its Gauss subset by
+construction, and each Gauss–Patterson rule contains the level below it.
 """
 function embedded(f::GaussKronrod, dom::Interval; degree::Integer, T = nothing, digits = nothing)
     Tout, bits = resolve_precision(T, digits)
@@ -118,6 +118,17 @@ function embedded(f::GaussKronrod, dom::Interval; degree::Integer, T = nothing, 
     prov = Provenance(family = "GaussJacobi", derivation = Derived(), path = ["Gauss subset of the Kronrod rule"],
                       seed_source = "QuadGK.jl", citations = [QUADGK_JL], symmetry = :reflection)
     coarse = QuadratureRule(xs, ws, Interval(), PolynomialDegree(2n - 1), prov)
+    return EmbeddedRule(fine, coarse)
+end
+
+# Each Gauss–Patterson rule contains the one below it, so the pair is the rule at the level
+# `degree` asks for and the level under it.
+function embedded(f::GaussPatterson, dom::Interval; degree::Integer, T = nothing, digits = nothing)
+    k = patterson_level(degree)
+    k == 0 && throw(ArgumentError("the 1-point Gauss–Patterson rule has no coarser rule inside it; " *
+                                  "ask for degree 2 or more"))
+    fine = rule(f, dom; degree, T, digits)
+    coarse = rule(f, dom; degree = patterson_degree(k - 1), T, digits)
     return EmbeddedRule(fine, coarse)
 end
 

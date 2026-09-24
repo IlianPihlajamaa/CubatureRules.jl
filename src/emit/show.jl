@@ -55,6 +55,7 @@ function Base.show(io::IO, ::MIME"text/plain", c::Certificate)
     println(io, @sprintf("  residual   : %.2e at %d bits", c.residual, c.residual_bits))
     println(io, "  digits     : ", c.digits == typemax(Int) ? "exact" : c.digits, "  (guard ", c.guard_digits, ")")
     print(io, @sprintf("  cond(J)    : %.2e,  iterations: %d", c.cond, c.iterations))
+    c.next_error === nothing || print(io, @sprintf("\n  next degree: missed by %.2e at working precision", c.next_error))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", p::Provenance)

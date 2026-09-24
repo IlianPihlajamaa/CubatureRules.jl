@@ -318,7 +318,7 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] Clenshaw–Curtis and Fejér 1 & 2, closed-form weights / generic DCT *(Clenshaw–Curtis
       delegated; Fejér 1 and 2 implemented here, as upstream lacks them)*
 - [x] Newton–Cotes closed and open, exact `Rational{BigInt}`
-- [ ] Gauss–Patterson nested extension *(deferred to v0.5: only the first extension of a
+- [x] Gauss–Patterson nested extension *(done in v0.5; deferred here because only the first extension of a
       Gauss rule is a Kronrod rule, which QuadGK supplies; iterating it means extending a
       rule that is no longer Gauss, which needs the Stieltjes machinery below)*
 - [x] Tanh-sinh, exp-sinh, sinh-sinh — the `NoClaim` path, with convergence-sweep
@@ -423,8 +423,19 @@ gaining enough breadth for the selector to be genuinely discriminating.
       against Laguerre are exact and the radial Gauss rule comes from the modified
       Chebyshev algorithm, with `⌈(d+2)/4⌉` points. Not closed form, but derived at every
       degree and precision)*
-- [ ] Gauss–Patterson, carried over from v0.3: iterated Kronrod extension on top of the
+- [x] Gauss–Patterson, carried over from v0.3: iterated Kronrod extension on top of the
       Stieltjes polynomials
+      *(`GaussPatterson()`, 1 to 511 points, derived at any precision, with `embedded` pairs.
+      Each level: the Legendre coefficients of Π q from one linear system, the new nodes by
+      bracketed Newton between the old ones, interpolatory weights. No Stieltjes procedure
+      needed. The construction loses 6, 17, 43 and 95 digits at 63, 127, 255 and 511 points,
+      the same for Newton on the nodes directly: each rule misses the next degree by only
+      1e-20, 6e-41, 3e-81 from 127 points on, so its nodes are nearly determined by one
+      equation too many. Precision is raised until two runs agree; 511 points take 20 s in
+      `Float64`. Because a `Float64` rule cannot show a miss of 1e-20, the certificate now
+      records the miss (`next_error`) and verification reports such sharpness as not
+      resolvable instead of failing. 1023 points also compute, with positive weights, in 90 s,
+      and are not claimed)*
 - [ ] Multiple-component discretisation (`mcdis`)
 - [x] Singular weights: $\log(1/x)$, algebraic-logarithmic endpoint singularities
       *(`LogWeight(α; power)`: $x^\alpha \log(1/x)^m$ on $[0,1]$. Its ordinary moments are

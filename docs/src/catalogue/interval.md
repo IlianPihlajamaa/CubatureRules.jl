@@ -63,6 +63,35 @@ Fejér rules have positive weights at every order and do not use the endpoints. 
 is lower than that of a Gauss rule with the same number of points, but the nodes and weights
 are given by simple formulas.
 
+## Gauss–Patterson
+
+```@docs
+GaussPatterson
+```
+
+Each level keeps the nodes of the one below, so the pair gives an error estimate from a single
+set of function values:
+
+```@example interval
+e = embedded(GaussPatterson(), Interval(); degree = 20)
+integrate(x -> 1 / (1 + 25x^2), e; error = true)
+```
+
+Every level is derived here from the one below: the new nodes are the roots of a polynomial
+found from one linear system, bracketed between the old nodes, and the weights are
+interpolatory. The rules become ill-conditioned to compute: the 255-point rule needs about 43
+extra digits of working precision and the 511-point rule about 95. The reason is that each
+rule comes very close to integrating one degree more than it claims. The 127-point rule misses
+degree 192 by only `1e-20`, which is below `Float64` rounding. [`verify`](@ref) reports this
+as sharpness that cannot be resolved at this precision, quoting the miss measured during
+construction. At 40 digits the miss is resolved:
+
+```@example interval
+verify(rule(GaussPatterson(), Interval(); npoints = 127, digits = 40))
+```
+
+In `Float64` the 255-point rule takes about 4 s to build and the 511-point rule about 20 s.
+
 ## Tanh-sinh
 
 ```@docs

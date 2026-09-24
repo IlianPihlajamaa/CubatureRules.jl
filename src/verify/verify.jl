@@ -669,6 +669,17 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         max_tol = maximum(t -> t[3], ex)
         is_exact = all(t -> t[2] <= 1, ex)
         sharp = sh === nothing ? nothing : sh[2] > 100 ? true : sh[2] <= 1 ? false : nothing
+        # Some rules come within rounding of the next degree: a Gauss–Patterson rule misses
+        # degree d + 1 by 1e-20 at 127 points and 6e-41 at 255. Delivered at lower precision,
+        # such a rule looks exact there, which is not the same as being exact. The
+        # construction measured the error at working precision; say so rather than fail.
+        sharp_note = ""
+        cert = r.certificate
+        if sharp === false && cert !== nothing && cert.next_error !== nothing && cert.next_error > 0
+            sharp = nothing
+            sharp_note = @sprintf("not resolvable at this precision: the rule misses degree %d by %.1e, measured at construction",
+                                  d + 1, cert.next_error)
+        end
         # a centrally symmetric rule integrates every odd polynomial exactly, so an even
         # degree claim is understated by construction: exact at d + 1 without testing
         orbits !== nothing && test_sharp && iseven(d) && (sharp = false)
@@ -685,7 +696,8 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
                      exact = is_exact, sharp = sharp,
                      sharp_residual = sh === nothing ? big(0.0) : BigFloat(sh[1]),
                      weights_sum_ok = wsum_ok, interior = interior, positive = positive, symmetric = symmetric,
-                     method = :exact_integration, empirical = false, precision_bits = exact ? 0 : cbits)
+                     method = :exact_integration, empirical = false, precision_bits = exact ? 0 : cbits,
+                     sharp_note = sharp_note)
     end
 end
 
@@ -791,6 +803,7 @@ function Base.show(io::IO, ::MIME"text/plain", v::Verification)
     v.sharp === nothing || println(io, "  sharpness : ", v.sharp ? "not exact at degree $(v.degree + 1) ✓" :
                                    "exact at degree $(v.degree + 1) — claim understated ✗",
                                    @sprintf("  (residual %.2e)", v.sharp_residual))
+    v.sharp === nothing && !isempty(v.sharp_note) && println(io, "  sharpness : ", v.sharp_note)
     println(io, "  structure : Σw = measure ", v.weights_sum_ok ? "✓" : "✗",
             ", interior ", v.interior ? "✓" : "✗", ", positive ", v.positive ? "✓" : "✗",
             v.symmetric === nothing ? "" : ", symmetric " * (v.symmetric ? "✓" : "✗"))

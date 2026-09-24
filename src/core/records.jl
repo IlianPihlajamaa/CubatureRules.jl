@@ -73,6 +73,9 @@ was given?* Not to be confused with [`Verification`](@ref).
 - `guard_digits` — extra digits carried during construction
 - `cond` — estimated condition number of the Newton Jacobian (1 if not applicable)
 - `iterations` — Newton iterations used (0 for closed-form rules)
+- `next_error` — the rule's error at one degree above its claim, measured at working
+  precision; recorded (otherwise `nothing`) by families whose rules come so close to the next
+  degree that a rule delivered at ordinary precision cannot show the difference
 """
 Base.@kwdef struct Certificate
     equations::String
@@ -82,6 +85,7 @@ Base.@kwdef struct Certificate
     guard_digits::Int
     cond::Float64 = 1.0
     iterations::Int = 0
+    next_error::Union{Nothing,BigFloat} = nothing
 end
 
 """
@@ -94,12 +98,13 @@ rule what it claims to be?*
 - `degree` — degree up to which exactness was tested
 - `max_residual`, `tolerance` — largest basis residual and the tolerance it was held to
 - `exact` — exactness passed
-- `sharp` — not exact at `degree + 1` (`nothing` if not tested)
+- `sharp` — not exact at `degree + 1` (`nothing` if not tested, or not resolvable; see `sharp_note`)
 - `sharp_residual` — the degree-`d+1` residual
 - `weights_sum_ok`, `interior`, `positive`, `symmetric` — structural invariants
   (`nothing` where the invariant is not claimed / not applicable)
 - `method` — `:exact_integration` or `:convergence_sweep`
 - `empirical` — whether the result is empirical rather than certified
+- `sharp_note` — why sharpness was left undecided, when it was tested but could not be resolved
 - `precision_bits` — arithmetic precision of the check
 """
 Base.@kwdef struct Verification
@@ -117,6 +122,7 @@ Base.@kwdef struct Verification
     method::Symbol = :exact_integration
     empirical::Bool = false
     precision_bits::Int
+    sharp_note::String = ""
 end
 
 """

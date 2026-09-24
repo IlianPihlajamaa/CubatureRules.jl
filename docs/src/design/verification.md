@@ -64,6 +64,15 @@ degree too high. Sharpness is therefore tested on `p_a p_b` with `a + b = d + 1`
 integral is 1 or 0. For a Gauss rule that is `p_n²`, and its error is exactly 1 for any
 weight and any `n`.
 
+Some rules come closer to the next degree than any choice of test function can fix. The
+127-point Gauss–Patterson rule misses degree 192 by `1e-20`, so in `Float64` it is exact
+there to within rounding. That is not the same as being exact, and the claim of degree 191 is
+correct. A family whose rules behave like this measures the miss at working precision during
+construction and records it in the certificate (`next_error`). When the delivered rule then
+looks exact at `d + 1`, verification leaves sharpness undecided (`sharp = nothing`), says why
+in `sharp_note`, and passes. A rule without that record still fails, as before. At enough
+digits the miss becomes visible and sharpness is tested normally.
+
 ## Structure
 
 - The weights add up to `measure(domain)`.

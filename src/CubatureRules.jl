@@ -50,6 +50,7 @@ include("families/onedim/gaussjacobi.jl")
 include("families/onedim/modified_chebyshev.jl")
 include("families/onedim/newtoncotes.jl")
 include("families/onedim/fejer.jl")
+include("families/onedim/patterson.jl")
 include("families/onedim/tanhsinh.jl")
 include("families/onedim/laguerre_hermite.jl")
 include("families/onedim/christoffel.jl")
@@ -102,7 +103,7 @@ export QuadratureRule, nodes, weights, domain, exactness, provenance, certificat
        npoints, degree, family
 # families and the registry
 export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
-       NewtonCotes, Fejer, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
+       NewtonCotes, Fejer, GaussPatterson, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev
