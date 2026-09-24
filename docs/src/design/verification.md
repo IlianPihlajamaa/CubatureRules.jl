@@ -54,6 +54,16 @@ This is also why families whose rules are automatically exact at the next odd de
 as the centrally symmetric Lebedev rules, only offer odd degrees: an even-degree request is
 answered with the odd rule above it, which is then sharp.
 
+In one dimension, the function tested for sharpness matters. Every function of degree
+`d + 1` has the same error up to its leading coefficient, so the choice only affects how the
+error compares with rounding. The top orthonormal polynomial `p_{d+1}` is a poor choice: for
+an `n`-point Gauss rule its error is the ratio of leading coefficients `k_{2n} / k_n²`, which
+for Laguerre is `(n!)² / (2n)! ≈ 4⁻ⁿ` and drops below the rounding tolerance once `n` exceeds
+about 1.7 times the number of digits. The check then reported a correct rule as exact one
+degree too high. Sharpness is therefore tested on `p_a p_b` with `a + b = d + 1`, whose
+integral is 1 or 0. For a Gauss rule that is `p_n²`, and its error is exactly 1 for any
+weight and any `n`.
+
 ## Structure
 
 - The weights add up to `measure(domain)`.

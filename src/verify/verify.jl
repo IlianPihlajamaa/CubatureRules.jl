@@ -213,6 +213,35 @@ blocks(b::RecurrenceBasis) = [k:k for k in 1:(b.n + 1)]
 exact_integrals(b::RecurrenceBasis{S}) where {S} =
     (v = zeros(S, b.n + 1); v[1] = sqrt(S(b.rec.mass(S))); v)
 
+# Sharpness on an orthonormal basis in one dimension. The test asks whether the rule is exact
+# on one function of degree d + 1; every such function has the same error up to its leading
+# coefficient, so which one is used matters only for how the error compares with rounding.
+# The top basis function p_{d+1} is a poor choice: for an n-point Gauss rule its error is the
+# ratio of leading coefficients k_{2n} / k_n², which for Laguerre is (n!)² / (2n)! ≈ 4⁻ⁿ and
+# falls below the rounding tolerance once n exceeds about 1.7 times the digits — at which point
+# a correct rule was reported as exact one degree too high, and failed. The product
+# p_a p_b with a + b = d + 1 has integral 1 or 0 and, for a Gauss rule, is p_n², whose error
+# is exactly 1 whatever the weight or n.
+struct ProductTop{S,B<:VerificationBasis} <: VerificationBasis
+    inner::B
+    m::Int                              # the degree tested for sharpness, d + 1
+end
+ProductTop{S}(inner::B, m::Integer) where {S,B} = ProductTop{S,B}(inner, Int(m))
+function evaluate!(b::ProductTop{S}, x) where {S}
+    p, dp = evaluate!(b.inner, x)
+    φ, g = copy(p), copy(dp)
+    i, j = b.m ÷ 2 + 1, b.m - b.m ÷ 2 + 1           # 1-based indices of p_a and p_b
+    φ[end] = p[i] * p[j]
+    g[end] = dp[i] * abs(p[j]) + abs(p[i]) * dp[j]
+    return φ, g
+end
+blocks(b::ProductTop) = blocks(b.inner)
+function exact_integrals(b::ProductTop{S}) where {S}
+    v = copy(exact_integrals(b.inner))
+    v[end] = iseven(b.m) ? one(S) : zero(S)          # ∫ p_a p_b = δ_ab
+    return v
+end
+
 # Map a rule to its reference domain in type S: (nodes as Vector{Vector{S}}, weights).
 function reference_nodes(r::QuadratureRule{D,T,<:Simplex}, ::Type{S}) where {D,T,S}
     dom = r.domain
@@ -623,6 +652,11 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
             sh = test_sharp ? res[2] : nothing
         else
             basis, bname = verification_basis(refdom, nmax, S, exact)
+            # in one dimension on an orthonormal basis, test sharpness on p_a p_b rather than
+            # p_{d+1}; see ProductTop
+            if test_sharp && (basis isa RecurrenceBasis || (basis isa JacobiBasis && basis.normalize))
+                basis = ProductTop{S}(basis, d + 1)
+            end
             res = block_residuals(basis, xs, ws, ε, floor_tol)
             ex = res[1:(d + 1)]
             sh = test_sharp ? res[d + 2] : nothing

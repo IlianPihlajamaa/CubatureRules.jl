@@ -120,3 +120,19 @@ end
     @test CR.home_domain(TanhSinh()) == Interval()
     @test CR.home_domain(GaussLegendre()) === nothing
 end
+
+@testset "large Gauss rules on unbounded domains" begin
+    # Newton converged at Laguerre n = 300 but its rounding noise, which scales with the
+    # largest node, sat above a tolerance scaled by max(|x|, 1), so it never stopped
+    r = rule(GaussLaguerre(), LaguerreRay(); npoints = 300, digits = 30)
+    @test npoints(r) == 300 && all(>(0), weights(r))
+
+    # Sharpness used to test p_{2n}, whose Gauss error k_{2n}/k_n² ≈ 4⁻ⁿ for Laguerre fell
+    # below rounding once n passed about 1.7 × digits, so correct rules failed as "exact one
+    # degree too high". It now tests p_n², whose error is exactly 1.
+    for (fam, dom) in ((GaussLaguerre(), LaguerreRay()), (GaussHermite(), HermiteLine()))
+        v = check(rule(fam, dom; npoints = 100, digits = 40))
+        @test passed(v) && v.sharp === true
+        @test abs(v.sharp_residual - 1) < 1e-20
+    end
+end

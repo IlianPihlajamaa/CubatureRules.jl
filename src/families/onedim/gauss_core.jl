@@ -44,6 +44,12 @@ function gauss_from_recurrence(n::Integer, rec::Recurrence, bits::Integer; name:
         μ = BigFloat(rec.mass(BigFloat))
         x = BigFloat.(seed)
         tol = ldexp(BigFloat(1), -(bits - 6))
+        # The rounding noise in q/q' grows with the size of the recurrence coefficients —
+        # roughly the largest node — not with the node being refined. At Laguerre n = 300 it
+        # sat at 160 ε on a node near 0.025, above a tolerance of 64 ε relative to max(|x|, 1),
+        # and Newton, converged, never met its stopping test. The guard bits cover the looser
+        # absolute tolerance this gives the smallest nodes.
+        scale = max(one(BigFloat), BigFloat(maximum(abs, seed)))
         iters = 0
         for i in 1:n
             xi = x[i]
@@ -53,7 +59,7 @@ function gauss_from_recurrence(n::Integer, rec::Recurrence, bits::Integer; name:
                 δ = q / dq
                 xi -= δ
                 iters = max(iters, it)
-                small = abs(δ) <= tol * max(abs(xi), one(xi))
+                small = abs(δ) <= tol * max(abs(xi), scale)
                 small && last_small && break
                 last_small = small
                 it == 100 && throw(RefinementError(name, "Newton on p_$n did not converge at node $i"))
