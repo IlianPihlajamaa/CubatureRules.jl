@@ -1,13 +1,192 @@
 # API
 
-The rule families are documented on the [Rule families](families.md) page, and the machinery
-for measures given by their moments on the [Weights given by moments](moments.md) page.
-
-```@autodocs
-Modules = [CubatureRules]
-Private = false
-Filter = t -> !(t in (XiaoGimbutas, FullySymmetric, GrundmannMöller, ConicalProduct, TensorProduct, NewtonCotes, Fejer, TanhSinh, GaussJacobi, GaussLegendre, GaussLaguerre, GaussHermite, ExpSinh, SinhSinh, SphereProduct, LebedevRule, UpstreamLebedev, BallProduct, ModifiedChebyshev, MomentWeight, OrdinaryMoments, CubatureRules.MonicRecurrence, CubatureRules.monic, CubatureRules.shift, CubatureRules.monomial_recurrence, CubatureRules.wheeler, CubatureRules.MomentBreakdownError))
+```@meta
+CurrentModule = CubatureRules
 ```
 
-Names that are `public` but not exported appear above too. Reach them as
-`CubatureRules.name`, or bring them in explicitly with `using CubatureRules: name`.
+This page documents every exported and public name, grouped by what it is used for. The
+rule families and the domain types are documented with their domain in the
+[Catalogue](catalogue/index.md).
+
+Names that are `public` but not exported can be used as `CubatureRules.name`, or imported
+with `using CubatureRules: name`.
+
+```@docs
+CubatureRules
+```
+
+## Getting a rule
+
+```@docs
+rule
+available
+compare
+families
+```
+
+## Rules
+
+```@docs
+QuadratureRule
+nodes
+weights
+domain
+npoints
+degree
+exactness
+family
+provenance
+certificate
+static
+StaticQuadratureRule
+rule_hash
+```
+
+## Exactness claims
+
+```@docs
+ExactnessClaim
+PolynomialDegree
+SpanOf
+NoClaim
+```
+
+## Integration
+
+```@docs
+integrate
+IntegrationResult
+RuleSequence
+LevelSequence
+EmbeddedRule
+embedded
+```
+
+## Mapping and transformations
+
+```@docs
+map_to
+subdivide
+transform
+duffy
+⊗
+AffineMap
+affine_map
+```
+
+## Domains
+
+The concrete domains are documented in the [Catalogue](catalogue/index.md).
+
+```@docs
+Domain
+measure
+indomain
+isinterior
+isreference
+reference
+vertices
+barycentric
+cartesian
+ExponentialWeight
+GaussianWeight
+MomentInterval
+Polytope
+Wedge
+Pyramid
+```
+
+## Measures given by moments
+
+```@docs
+MonicRecurrence
+monic
+shift
+monomial_recurrence
+wheeler
+MomentBreakdownError
+Recurrence
+jacobi_recurrence
+laguerre_recurrence
+hermite_recurrence
+```
+
+## Verification
+
+```@docs
+check
+verify
+passed
+@test_exact
+verify_convergence
+verification_basis
+Verification
+monomial_moment
+barycentric_moment
+```
+
+## Provenance and citation
+
+```@docs
+Provenance
+Certificate
+Citation
+cite
+license_warnings!
+```
+
+## Controlling construction
+
+```@docs
+CancellationToken
+cancel!
+CancelledError
+benchmark_construction
+```
+
+## Errors
+
+```@docs
+NoRuleError
+RefinementError
+```
+
+## Defining a family
+
+These are the methods a new family implements, and the helpers it uses; see
+[I want to build a family](tutorial/families.md).
+
+```@docs
+RuleFamily
+CombinatorFamily
+candidates
+build
+properties
+degree_range
+derivation
+Derived
+Seeded
+claimed_degree
+degree_for_npoints
+cost_estimate
+supports_type
+describe_family
+selectable
+family_license
+BuildContext
+outtype
+isexact
+finalize_number
+checkcancel
+classify_octahedral
+```
+
+## Seed sources
+
+```@docs
+SeedSource
+TableSeed
+ExplicitSeed
+MultistartSeed
+LowerDegreeSeed
+```

@@ -1,71 +1,42 @@
 # CubatureRules.jl
 
-Quadrature and cubature rules generated on demand, at arbitrary order and arbitrary
-precision.
+CubatureRules.jl constructs quadrature and cubature rules on demand, for any polynomial
+degree and at any precision.
 
-```julia
+```@repl
 using CubatureRules
-
-r = rule(Simplex{2}(); degree = 20)      # construct once — visibly
-integrate(x -> exp(x[1] * x[2]), r)      # apply as often as you like
+r = rule(Simplex{2}(); degree = 20)
+integrate(x -> exp(x[1] * x[2]), r)
 ```
 
-Construction is always a separate, visible step. There is deliberately no
-`integrate(f, domain; degree = 20)`: the package does not cache rules, so that overload
-would quietly rebuild the rule on every call inside a loop. Build the rule once, bind it to
-a variable, and reuse it.
+Most quadrature libraries store tables of rules. This package computes the rule when you
+ask for it, to the precision you ask for, and keeps a record of how it was computed.
 
-## Precision
+- **Any precision.** A rule with 200 digits is requested the same way as one with 16. The
+  nodes and weights are computed at that precision, with extra working digits chosen from
+  the conditioning of the problem.
+- **A record of each rule.** Every rule stores which family built it, what it started from,
+  how it was refined, under which licence its data falls, and why it was chosen. `cite(r)`
+  returns the references as BibTeX.
+- **Verification.** `check(r)` tests a rule against an orthonormal basis at twice its
+  precision: that it is exact to its degree, not exact to the next degree, and that its
+  weights, nodes and symmetry are as stated.
 
-```julia
-rule(Simplex{2}(); degree = 20, digits = 200)        # BigFloat, 200 decimal digits
-rule(Simplex{2}(); degree = 20, T = BigFloat)        # the ambient BigFloat precision
-rule(Simplex{2}(); degree = 9, T = Rational{BigInt}) # exact (Grundmann–Möller)
-rule(Simplex{2}(); degree = 12, T = Double64)        # any AbstractFloat
-rule(Orthotope{3}(); degree = 9)                     # tensor product on a box
-```
+## Contents
 
-## Choosing a rule
+- **[Tutorial](tutorial/first-rule.md)**: short task-based guides, starting with
+  [I just want a rule](tutorial/first-rule.md).
+- **[Architecture & Design](design/pipeline.md)**: how the package works and why.
+- **[Catalogue](catalogue/index.md)**: all domains and the rule families available on each.
+- **[API](api.md)**: reference for all exported and public functions.
 
-```julia
-available(Simplex{2}(); degree = 17)      # ranked candidates, nothing constructed
-compare(Simplex{2}(), 17)                 # side by side, including filtered-out ones
-rule(Simplex{2}(); degree = 17, positive = true, interior = true)
-rule(GrundmannMöller(), Simplex{4}(); degree = 11, T = Rational{BigInt})   # explicit family
-```
+## Scope
 
-## Integrating to a tolerance
+`integrate(f, domain; rtol)` increases the degree of a single rule until the result
+converges. It does not subdivide the domain. For integrands with a sharp peak or a
+singularity inside the domain, [QuadGK.jl](https://github.com/JuliaMath/QuadGK.jl) and
+[HCubature.jl](https://github.com/JuliaMath/HCubature.jl) are better suited.
 
-```julia
-integrate(f, Simplex{2}(); rtol = 1e-12)      # walks a sequence, returns an IntegrationResult
-integrate(f, HalfLine(); rtol = 1e-10)        # ∫₀^∞ f, by exp-sinh levels
-integrate(f, RealLine(); rtol = 1e-10)        # ∫_ℝ f, by sinh-sinh levels
-integrate(f, LaguerreRay(); rtol = 1e-12)     # ∫₀^∞ f(x) x^α e^{-x}, by Gauss–Laguerre degrees
-```
-
-A tolerance needs a *sequence* of rules, so this is the one signature that takes a domain
-rather than a rule. It walks degrees where a family claims one and levels where none does,
-and returns an [`IntegrationResult`](@ref) — never a bare number. It is order-adaptive, not
-space-adaptive: for localised features use QuadGK.jl or HCubature.jl.
-
-## Hot loops and meshes
-
-```julia
-s = static(rule(Simplex{2}(); degree = 6))    # isbits, SVector-backed
-integrate(f, s)                               # allocation-free
-integrate(f, s, triangle)                     # affine map applied on the fly
-integrate(f, s, cells)                        # sum over a vector of simplices
-```
-
-When `integrate` is called from your own function that takes the integrand as an argument,
-annotate it as `f::F ... where {F}`. Julia does not specialise on a function argument
-that is only passed through, and without specialisation the call dispatches dynamically.
-
-## Checking a rule
-
-```julia
-check(r)               # exactness, sharpness, weight sum, interior, positivity, symmetry
-certificate(r)         # how refinement went: residual, cond(J), guard digits
-provenance(r)          # where it came from, and why the selector chose it
-cite(r)                # BibTeX (or style = :apa, :plain)
-```
+Rules that other packages already compute in generic arithmetic are taken from them rather
+than reimplemented: Gauss–Kronrod from QuadGK.jl, and Lobatto, Radau and Clenshaw–Curtis from
+QuadratureRules.jl when it is loaded. See [External providers](design/providers.md).
