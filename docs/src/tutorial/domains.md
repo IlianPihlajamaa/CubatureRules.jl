@@ -43,9 +43,11 @@ The nodes are mapped as they are used, so no new rule is built for each cell. Se
 If you need the mapped rule itself, use [`map_to`](@ref):
 
 ```@repl dom
-mapped = map_to(r, cells[1]);
+mapped = map_to(r, cells[2]);
 domain(mapped), degree(mapped)
 ```
+
+(A triangle with the reference vertices, like `cells[1]`, prints as `Simplex{2}()`.)
 
 ## Subdividing
 

@@ -43,16 +43,22 @@ error.
 
 ## Check the convergence
 
-To see how quickly a family converges on your integrand, build a few rules and compare
-their results with a known value, or with each other:
+To see how quickly a family converges on your integrand, build rules of increasing size and
+compare their results with a known value. Tanh-sinh rules handle endpoint singularities, and
+on `log(1 - x)` each level roughly doubles the number of correct digits:
 
 ```@repl err
-rules = [rule(TanhSinh(m), Interval()) for m in 2:6];
-[integrate(x -> 1 / sqrt(1 - x^2), r) - π for r in rules]
+I = 2log(big(2)) - 2;                  # ∫ log(1 - x) dx over [-1, 1]
+rules = [rule(TanhSinh(m), Interval(); digits = 50) for m in 1:6];
+[Float64(abs(integrate(x -> log(1 - x), r) - I)) for r in rules]
 ```
 
-`CubatureRules.verify_convergence(rules, f, reference)` does the same and checks that the
-error decreases as it should; see [I want to verify a rule](verifying.md).
+After the fourth level the error stops falling: it has reached the rounding level of
+50-digit rules. Without a known value, the differences between consecutive results show the
+same pattern, one level later.
+
+`CubatureRules.verify_convergence(rules, f, reference)` turns such a sequence into a pass or
+fail; see [I want to verify a rule](verifying.md) for what exactly it checks.
 
 ## Adaptive integration
 

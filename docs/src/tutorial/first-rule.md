@@ -14,8 +14,9 @@ less exactly. Apply it to a function with [`integrate`](@ref):
 integrate(x -> exp(x[1] * x[2]), r)
 ```
 
-In more than one dimension the integrand receives the point as an `SVector` of coordinates,
-so `x[1]` and `x[2]` are its coordinates. In one dimension it receives a number.
+In more than one dimension the integrand receives the point as an `SVector` of coordinates in
+the rule's number type, so `x[1]` and `x[2]` are its coordinates. In one dimension it receives a
+number.
 
 ## Build the rule once
 

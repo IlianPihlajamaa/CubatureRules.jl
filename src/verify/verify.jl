@@ -753,34 +753,44 @@ end
 """
     verify_convergence(rules, f, reference; rtol = 0) -> Verification
 
-Empirical check for rules without an exactness claim: the errors `|Q_k f - reference|` over
-the sequence `rules` must converge — decreasing until they reach a floor, and never growing
-substantially after that — and the last must be within `rtol` of the reference if
-`rtol > 0`. The result is flagged `empirical`.
+Empirical check for rules without an exactness claim. It computes the error
+`|Q_k f - reference|` of each rule in `rules` and checks two things:
 
-A plateau is accepted, because one is expected: a rule delivered as explicit nodes cannot
-resolve an endpoint singularity beyond the point where `1 - x` loses its significant digits,
-so tanh-sinh on `1/sqrt(1-x^2)` stalls at about the square root of the working precision.
-What the check rules out is divergence.
+1. The errors never grow by more than half from one rule to the next, except at the floor:
+   four times the smallest error seen, or the rounding error of the last rule's sum,
+   `64 N ε Σ|wᵢ f(xᵢ)|` for `N` points at the rules' precision `ε`.
+2. The last error is at most `rtol · max(|reference|, 1)`. `rtol` defaults to `16 √ε`, the
+   best a rule given as explicit nodes can do on an endpoint singularity: tanh-sinh on
+   `1/sqrt(1-x^2)` stalls there, because `1 - x` loses half its digits at the outermost nodes.
+
+It does not check how fast the errors fall, or that they fall at all once below the target: a
+sequence that starts at its floor passes. What it rules out is divergence and a wrong answer.
+The result is flagged `empirical` and records the errors.
 """
 function verify_convergence(rules::AbstractVector{<:QuadratureRule}, f, reference; rtol = nothing)
-    errs = [abs(integrate(f, r) - reference) for r in rules]
-    # the default target is the square root of the working precision, the best a rule with
-    # explicit nodes can do on an endpoint singularity
-    target = rtol === nothing ? 16 * sqrt(eps(float(real(eltype(first(rules)))))) : rtol
-    # a step up is allowed only towards the floor: the best error seen, or plain roundoff
-    # (a rule can hit an exact zero, which would otherwise make the floor zero)
-    ε = eps(float(real(eltype(first(rules)))))
-    plateau = max(4 * minimum(errs), 64 * ε * max(abs(reference), one(abs(reference))))
-    decreasing = all(k -> errs[k + 1] <= max(errs[k] * 3 // 2, plateau), 1:(length(errs) - 1))
-    final_ok = last(errs) <= target * max(abs(reference), one(abs(reference)))
+    r1 = first(rules)
+    exact = _is_exact_type(eltype(r1))
+    pbits = _rule_precision(r1)
+    # the rules' own precision, not the global BigFloat precision: a 50-digit rule evaluated
+    # at the default 256 bits would otherwise be held to rounding it cannot reach
+    ε = exact ? eps(Float64) : ldexp(big(1.0), -(pbits - 1))
+    wbits = max(2pbits, 128)
+    errs, mass = with_bits(wbits) do
+        vals = [integrate(f, r) for r in rules]
+        big.(abs.(vals .- reference)), sum(abs(big(w) * big(f(x))) for (x, w) in zip(nodes(last(rules)), weights(last(rules))))
+    end
+    scale = max(abs(big(reference)), big(1.0))
+    target = (rtol === nothing ? 16 * sqrt(ε) : big(rtol)) * scale
+    floor = max(4 * minimum(errs), 64 * npoints(last(rules)) * ε * max(mass, big(1.0)))
+    decreasing = all(k -> errs[k + 1] <= max(errs[k] * 3 // 2, floor), 1:(length(errs) - 1))
+    final_ok = last(errs) <= target
     return Verification(basis = "convergence sweep over $(length(rules)) rules", degree = -1,
-                        max_residual = BigFloat(last(errs)),
-                        tolerance = BigFloat(target * max(abs(reference), one(abs(reference)))),
+                        max_residual = last(errs), tolerance = target,
                         exact = decreasing && final_ok, sharp = nothing, sharp_residual = big(0.0),
                         weights_sum_ok = true, interior = all(r -> all(x -> isinterior(x, r.domain), r.nodes), rules),
                         positive = all(r -> all(>(0), r.weights), rules), symmetric = nothing,
-                        method = :convergence_sweep, empirical = true, precision_bits = 0)
+                        method = :convergence_sweep, empirical = true, precision_bits = pbits,
+                        errors = errs, decreasing = decreasing)
 end
 
 """
@@ -804,6 +814,12 @@ function Base.show(io::IO, ::MIME"text/plain", v::Verification)
                                    "exact at degree $(v.degree + 1) — claim understated ✗",
                                    @sprintf("  (residual %.2e)", v.sharp_residual))
     v.sharp === nothing && !isempty(v.sharp_note) && println(io, "  sharpness : ", v.sharp_note)
+    if v.method === :convergence_sweep && !isempty(v.errors)
+        println(io, "  errors    : ", join((@sprintf("%.1e", e) for e in v.errors), ", "))
+        println(io, "  no growth : ", v.decreasing === true ? "✓" : "✗", " (except at the floor)")
+        println(io, "  last error: ", v.max_residual <= v.tolerance ? "✓" : "✗",
+                @sprintf("  (%.1e, tolerance %.1e)", v.max_residual, v.tolerance))
+    end
     println(io, "  structure : Σw = measure ", v.weights_sum_ok ? "✓" : "✗",
             ", interior ", v.interior ? "✓" : "✗", ", positive ", v.positive ? "✓" : "✗",
             v.symmetric === nothing ? "" : ", symmetric " * (v.symmetric ? "✓" : "✗"))

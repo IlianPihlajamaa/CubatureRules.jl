@@ -1,6 +1,28 @@
 using Documenter
 using CubatureRules
 
+# Julia's Markdown splits a table row on every `|`, even inside code, so `e^{-|x|²}` in a
+# cell silently adds columns and the table renders broken without any warning. Refuse to
+# build instead.
+let bad = String[]
+    for (root, _, files) in walkdir(joinpath(@__DIR__, "src")), f in files
+        endswith(f, ".md") || continue
+        lines = readlines(joinpath(root, f))
+        i = 1
+        while i <= length(lines)
+            j = i
+            while j <= length(lines) && startswith(lines[j], "|")
+                j += 1
+            end
+            n = [count(==('|'), l) for l in lines[i:j-1]]
+            isempty(n) || allequal(n) || push!(bad, "$(relpath(joinpath(root, f), @__DIR__)):$i")
+            i = max(j, i + 1)
+        end
+    end
+    isempty(bad) || error("tables whose rows have different numbers of cells (a `|` inside a cell?): " *
+                          join(bad, ", "))
+end
+
 makedocs(;
     sitename = "CubatureRules.jl",
     modules = [CubatureRules],

@@ -36,8 +36,9 @@ to `f`. The built-in weights are:
 |---|---|---|
 | `JacobiWeight(α, β)` | `Interval()` | |
 | `ExponentialWeight(α)`: `x^α e^{-x}` | `HalfLine()` | `LaguerreRay(α)` |
-| `GaussianWeight()`: `e^{-|x|²}` | `RealLine()`, `RealSpace{D}()` | `HermiteLine()`, `GaussianSpace(D)` |
-| `MomentWeight(aux, moments)` | an `Interval` | |
+| `GaussianWeight()`: `e^{-‖x‖²}` | `RealLine()`, `RealSpace{D}()` | `HermiteLine()`, `GaussianSpace(D)` |
+| `RadialExponentialWeight()`: `e^{-‖x‖}` | `RealSpace{D}()` | `ExponentialSpace(D)` |
+| `MomentWeight(aux, moments)`, e.g. `LogWeight(α)` | an `Interval`, or `HalfLine()` | |
 
 The unbounded base domains `HalfLine`, `RealLine` and `RealSpace{D}` have infinite measure;
 they are mostly used as the base of a weighted domain. The double-exponential families

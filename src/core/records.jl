@@ -106,6 +106,8 @@ rule what it claims to be?*
 - `empirical` — whether the result is empirical rather than certified
 - `sharp_note` — why sharpness was left undecided, when it was tested but could not be resolved
 - `precision_bits` — arithmetic precision of the check
+- `errors`, `decreasing` — for a convergence sweep: the error of each rule, and whether they
+  never grew except at the floor (`exact` then also requires the last to meet the tolerance)
 """
 Base.@kwdef struct Verification
     basis::String
@@ -123,6 +125,8 @@ Base.@kwdef struct Verification
     empirical::Bool = false
     precision_bits::Int
     sharp_note::String = ""
+    errors::Vector{BigFloat} = BigFloat[]
+    decreasing::Union{Nothing,Bool} = nothing
 end
 
 """

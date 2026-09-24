@@ -54,15 +54,38 @@ using Test, CubatureRules
 ## Rules without a degree
 
 Families like `TanhSinh` are not exact for any polynomial space, so `check` has nothing to
-test. Instead you can check that they converge on a known integral:
+test. Instead, [`verify_convergence`](@ref CubatureRules.verify_convergence) checks a
+sequence of rules on an integral whose value you know:
+
+```@repl v
+I = 2log(big(2)) - 2;                  # ∫ log(1 - x) dx over [-1, 1]
+seq = [rule(TanhSinh(m), Interval(); digits = 50) for m in 1:6];
+CubatureRules.verify_convergence(seq, x -> log(1 - x), I)
+```
+
+It computes the error of each rule and checks exactly two things:
+
+1. **No growth.** The error never grows by more than half from one rule to the next, except
+   once it has reached the floor: four times the smallest error seen, or the rounding error
+   of the last rule's sum. Above, the last two errors are at that floor.
+2. **Last error.** The last error is at most `rtol` times `max(|I|, 1)`. By default `rtol`
+   is `16√ε` at the rules' precision `ε`, about `1e-24` here.
+
+It does *not* check how fast the errors fall, or that they fall at all once they are below
+the target. It catches divergence and a wrong answer, not slow convergence. For example,
+`1/√(1 - x²)` passes in `Float64` although its error never improves:
 
 ```@repl v
 seq = [rule(TanhSinh(m), Interval()) for m in 2:6];
 CubatureRules.verify_convergence(seq, x -> 1 / sqrt(1 - x^2), Float64(π))
 ```
 
-The result is marked `empirical`, since it is based on observed convergence rather than an
-exact property.
+Here the integrand blows up at the endpoints, where `1 - x` has lost half of its digits, so
+every level stops at about `√ε ≈ 1e-8`. That is the reason for the default `rtol`. Pass a
+smaller `rtol` if you need more.
+
+The result is marked `empirical`, since it is based on observed errors rather than an exact
+property.
 
 ## High-precision rules
 

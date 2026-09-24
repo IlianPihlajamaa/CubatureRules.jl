@@ -236,6 +236,18 @@ end
     gs = [rule(GaussLegendre(), Interval(); npoints = n) for n in (2, 4, 8, 16)]
     @test passed(CR.verify_convergence(gs, exp, exp(1) - exp(-1)))
     @test !passed(CR.verify_convergence(reverse(gs), exp, exp(1) - exp(-1)))   # divergence is caught
+    # 50-digit rules are held to 50-digit rounding, not to the global BigFloat precision:
+    # this sequence converges to 2e-51 and then sits at its floor, and used to fail
+    I = 2log(big(2)) - 2
+    hs = [rule(TanhSinh(m), Interval(); digits = 50) for m in 1:6]
+    vh = CR.verify_convergence(hs, x -> log(1 - x), I)
+    @test passed(vh) && vh.decreasing === true && length(vh.errors) == 6
+    @test vh.precision_bits < precision(BigFloat) && last(vh.errors) < 1e-45
+    @test occursin("errors    : 2.5e-05", sprint(show, MIME"text/plain"(), vh))
+    # a reference wrong in the 30th digit is inside the default 16√ε ≈ 1e-24; a tighter rtol
+    # catches it
+    @test passed(CR.verify_convergence(hs, x -> log(1 - x), I + big(1e-30)))
+    @test !passed(CR.verify_convergence(hs, x -> log(1 - x), I + big(1e-30); rtol = 1e-40))
     # consecutive levels nest, so they give an error estimate for free
     e = EmbeddedRule(rule(TanhSinh(5), Interval()), rule(TanhSinh(4), Interval()))
     res = integrate(sing, e; error = true)
