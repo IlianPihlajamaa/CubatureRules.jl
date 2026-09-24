@@ -22,6 +22,10 @@ license = "MIT"
 retrieved = "2026-09-18"
 citation = "H. Xiao and Z. Gimbutas, Comput. Math. Appl. 59 (2010) 663-676, doi:10.1016/j.camwa.2009.10.027"
 generator = "scripts/generate_triangle_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-09-24: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits (the degree-11 triangle seed was 3 ulp off and was replaced),
+and its defining-equation residual at 256 bits is recorded in the table."""
 
 [[file]]
 path = "tetrahedron_s4_seeds.toml"
@@ -39,6 +43,10 @@ license = "MIT"
 retrieved = "2026-09-19"
 citation = "none (generated in-house)"
 generator = "scripts/generate_tetrahedron_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-09-24: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits (the degree-11 triangle seed was 3 ulp off and was replaced),
+and its defining-equation residual at 256 bits is recorded in the table."""
 
 [[file]]
 path = "lebedev_seeds.toml"
@@ -59,3 +67,7 @@ license = "MIT"
 retrieved = "2026-09-22"
 citation = "V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2"
 generator = "scripts/generate_lebedev_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-09-24: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits (the degree-11 triangle seed was 3 ulp off and was replaced),
+and its defining-equation residual at 256 bits is recorded in the table."""

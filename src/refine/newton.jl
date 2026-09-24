@@ -39,16 +39,18 @@ end
 
 Condition number `σ₁/σ_min` of `J`. Computed from a Float64 copy (cheap, and ample for a
 number whose only uses are choosing guard digits and being reported); if that copy is
-too ill-conditioned for Float64 to resolve, the SVD is redone in 256-bit arithmetic.
+too ill-conditioned for Float64 to resolve, it is estimated in 256-bit arithmetic from a
+pivoted QR, by power and inverse iteration on `R` ([`triangular_cond_mp`](@ref)).
 """
 function estimate_cond(J::AbstractMatrix)
     σ = svdvals(Float64.(J))
     κ = iszero(σ[end]) ? Inf : σ[1] / σ[end]
     if !(κ < 1e12) && !(eltype(J) <: Float64)
-        σb = with_bits(256) do
-            GenericLinearAlgebra.svdvals!(BigFloat.(J))
+        # R of a pivoted QR has the singular values of J; iterating on it costs O(n²) a step,
+        # where a BigFloat SVD cost O(n³) and was most of a large Lebedev build
+        κ = with_bits(256) do
+            triangular_cond_mp(pivoted_qr_mp(J)[1])
         end
-        κ = iszero(σb[end]) ? Inf : Float64(σb[1] / σb[end])
     end
     return κ
 end
@@ -81,18 +83,28 @@ end
 
 function lsq_step(J::AbstractMatrix{S}, r::AbstractVector{S}; rank_rtol) where {S}
     m, n = size(J)
-    F = qr(J, ColumnNorm())
-    R = F.R
+    if S === BigFloat && m == n
+        fast = mixed_precision_step(J, r)
+        fast === nothing || return fast
+    end
+    if S === BigFloat
+        R, τ, perm = pivoted_qr_mp(J)                 # R in the upper triangle
+        qt = b -> apply_qt_mp(R, τ, b)
+    else
+        F = qr(J, ColumnNorm())
+        R, perm = F.R, F.p
+        qt = b -> F.Q' * b
+    end
     k = min(m, n)
     rank = 0
     for i in 1:k
         abs(R[i, i]) > rank_rtol * abs(R[1, 1]) || break
         rank = i
     end
-    c = (F.Q' * r)[1:rank]
+    c = qt(r)[1:rank]
     z = UpperTriangular(R[1:rank, 1:rank]) \ c
     Δ = zeros(S, n)
-    Δ[F.p[1:rank]] .= z
+    Δ[perm[1:rank]] .= z
     # The condition number here is the free one: column pivoting leaves |R_ii| non-increasing,
     # so the ratio of its ends measures the solve that was actually performed. It is a lower
     # bound on σ₁/σ_min, and deliberately so — `estimate_cond` costs a second factorisation in
@@ -110,6 +122,254 @@ function lsq_step(J::AbstractMatrix{S}, r::AbstractVector{S}; rank_rtol) where {
         Float64(abs(R[1, 1]) / abs(R[rank, rank]))
     end
     return Δ, κ, rank
+end
+
+# --- the step in mixed precision ----------------------------------------------------------
+#
+# A column-pivoted QR in BigFloat costs O(n³) allocating operations: at triangle degree 40
+# it was 58% of a build. A Newton step does not need it when the Jacobian is well
+# conditioned. Factor a Float64 copy, solve, and refine the step in BigFloat: each
+# correction costs one matrix-vector product and gains about 16 − log₁₀ κ digits, so the
+# step reaches working precision in a few O(n²) passes. The result solves J Δ = r to working
+# precision, as the QR does.
+#
+# The Float64 factorisation is written out in plain loops, with no BLAS and no SIMD
+# reductions, so its bits are the same on every machine and the refinement stays
+# reproducible, as the pure-Julia QR was chosen to be. Square, full-rank and κ < 1e10 only;
+# anything else (Lebedev at degree 125 has κ ≈ 1e55) takes the BigFloat QR.
+
+"""
+    PivotedQR64
+
+Householder QR with column pivoting of a `Float64` matrix, computed in plain loops (see
+above): `R` in the upper triangle, the Householder vectors below it with an implicit unit
+first entry, their coefficients `τ`, and the column permutation `p`.
+"""
+struct PivotedQR64
+    QR::Matrix{Float64}
+    τ::Vector{Float64}
+    p::Vector{Int}
+end
+
+function pivoted_qr64(A::AbstractMatrix{Float64})
+    m, n = size(A)
+    QR = Matrix{Float64}(A)
+    τ = zeros(min(m, n))
+    p = collect(1:n)
+    for k in 1:min(m, n)
+        # pivot: the remaining column of largest norm
+        best, jbest = -1.0, k
+        for j in k:n
+            s = 0.0
+            for i in k:m
+                s += QR[i, j] * QR[i, j]
+            end
+            s > best && ((best, jbest) = (s, j))
+        end
+        if jbest != k
+            for i in 1:m
+                QR[i, k], QR[i, jbest] = QR[i, jbest], QR[i, k]
+            end
+            p[k], p[jbest] = p[jbest], p[k]
+        end
+        normx = sqrt(best)
+        normx == 0 && continue
+        x1 = QR[k, k]
+        β = x1 >= 0 ? -normx : normx
+        τ[k] = (β - x1) / β
+        scale = 1 / (x1 - β)
+        for i in (k + 1):m
+            QR[i, k] *= scale
+        end
+        QR[k, k] = β
+        for j in (k + 1):n
+            w = QR[k, j]
+            for i in (k + 1):m
+                w += QR[i, k] * QR[i, j]
+            end
+            w *= τ[k]
+            QR[k, j] -= w
+            for i in (k + 1):m
+                QR[i, j] -= w * QR[i, k]
+            end
+        end
+    end
+    return PivotedQR64(QR, τ, p)
+end
+
+"The solution of `A x = b` for square, full-rank `A` from its [`PivotedQR64`](@ref)."
+function solve64(F::PivotedQR64, b::Vector{Float64})
+    QR, τ = F.QR, F.τ
+    n = size(QR, 2)
+    c = copy(b)
+    for k in 1:n                                   # c = Qᵀ b
+        w = c[k]
+        for i in (k + 1):length(c)
+            w += QR[i, k] * c[i]
+        end
+        w *= τ[k]
+        c[k] -= w
+        for i in (k + 1):length(c)
+            c[i] -= w * QR[i, k]
+        end
+    end
+    z = zeros(n)                                   # R z = c
+    for k in n:-1:1
+        s = c[k]
+        for j in (k + 1):n
+            s -= QR[k, j] * z[j]
+        end
+        z[k] = s / QR[k, k]
+    end
+    x = zeros(n)
+    x[F.p] = z
+    return x
+end
+
+"""
+    mixed_precision_step(J, r) -> (Δ, cond, rank) or nothing
+
+The step of [`lsq_step`](@ref) for a square BigFloat system, from a `Float64` factorisation
+and iterative refinement; `nothing` when that does not apply (not finite in `Float64`,
+`cond ≥ 1e10`, or no convergence), and the caller falls back to the BigFloat QR.
+"""
+function mixed_precision_step(J::AbstractMatrix{BigFloat}, r::AbstractVector{BigFloat})
+    n = size(J, 2)
+    J64 = Float64.(J)
+    all(isfinite, J64) || return nothing
+    F = pivoted_qr64(J64)
+    d1, dn = abs(F.QR[1, 1]), abs(F.QR[n, n])
+    (d1 > 0 && dn > 1e-10 * d1) || return nothing
+    κ = d1 / dn
+    prec = precision(BigFloat)
+    # the corrections level off near κ u ‖Δ‖, which is what any backward-stable solve
+    # (the BigFloat QR included) reaches; asking for less would never finish
+    tol = 64 * BigFloat(κ) * ldexp(BigFloat(1), -prec)
+    Δ = zeros(BigFloat, n)
+    res = collect(r)
+    for _ in 1:(2 + ceil(Int, prec * log10(2) / max(16 - log10(κ), 1)))
+        s = maximum(abs, res)
+        iszero(s) && return Δ, κ, n
+        c = solve64(F, Float64.(res ./ s))         # scaled, so a tiny residual cannot underflow
+        δ = BigFloat.(c) .* s
+        Δ .+= δ
+        maximum(abs, δ) <= tol * maximum(abs, Δ) && return Δ, κ, n
+        res = r - J * Δ
+    end
+    return nothing
+end
+
+# --- QR in BigFloat, in place -------------------------------------------------------------
+#
+# For systems too ill-conditioned for the Float64 path (Lebedev reaches κ ≈ 1e55), the step
+# and the condition estimate both need a factorisation in extended precision. The generic
+# column-pivoted QR recomputes every column norm at every step and allocates on every
+# operation, and the condition estimate was a full BigFloat SVD: together 73% of a
+# degree-65 Lebedev build, and O(n³) with a large constant. This is Householder QR with
+# column pivoting written with the in-place MPFR operations of core/mpfr.jl, in fixed loop
+# order, so it is deterministic like the generic one.
+
+"""
+    pivoted_qr_mp(J) -> (QR, τ, p)
+
+Householder QR with column pivoting of a BigFloat matrix, on a copy at the current
+precision: `R` in the upper triangle, the Householder vectors below it (unit first entry
+implicit), their coefficients `τ`, and the column permutation `p`.
+"""
+function pivoted_qr_mp(J::AbstractMatrix)
+    m, n = size(J)
+    prec = precision(BigFloat)
+    # a genuine copy: `BigFloat(x; precision)` returns `x` itself when the precision already
+    # matches, and writing into it in place would overwrite the caller's Jacobian
+    A = [mp_set!(BigFloat(0; precision = prec), BigFloat(x)) for x in J]
+    τ = bigfloats(BigFloat, min(m, n))
+    p = collect(1:n)
+    nrm = bigfloats(BigFloat, n)
+    w, t, β, x1 = bigfloats(BigFloat, 4)
+    for k in 1:min(m, n)
+        best = k
+        for j in k:n
+            mp_set_si!(nrm[j], 0)
+            for i in k:m
+                mp_fma!(nrm[j], A[i, j], A[i, j], nrm[j])
+            end
+            nrm[j] > nrm[best] && (best = j)
+        end
+        if best != k
+            for i in 1:m
+                A[i, k], A[i, best] = A[i, best], A[i, k]
+            end
+            p[k], p[best] = p[best], p[k]
+            nrm[k], nrm[best] = nrm[best], nrm[k]
+        end
+        iszero(nrm[k]) && continue
+        mp_sqrt!(β, nrm[k])
+        mp_set!(x1, A[k, k])
+        signbit(x1) || mp_sub!(β, zero(BigFloat), β)                 # β = −sign(x₁) ‖x‖
+        mp_sub!(t, β, x1); mp_div!(τ[k], t, β)                         # τ = (β − x₁)/β
+        mp_sub!(t, x1, β)
+        for i in (k + 1):m
+            mp_div!(A[i, k], A[i, k], t)                               # v = x / (x₁ − β)
+        end
+        mp_set!(A[k, k], β)
+        for j in (k + 1):n
+            mp_set!(w, A[k, j])
+            for i in (k + 1):m
+                mp_fma!(w, A[i, k], A[i, j], w)
+            end
+            mp_mul!(w, w, τ[k])
+            mp_sub!(A[k, j], A[k, j], w)
+            for i in (k + 1):m
+                mp_mul!(t, w, A[i, k]); mp_sub!(A[i, j], A[i, j], t)
+            end
+        end
+    end
+    return A, τ, p
+end
+
+"`Qᵀ b` for the Householder factors of [`pivoted_qr_mp`](@ref)."
+function apply_qt_mp(A, τ, b::AbstractVector)
+    m = size(A, 1)
+    c = [BigFloat(x) for x in b]
+    for k in eachindex(τ)
+        w = c[k] + sum((A[i, k] * c[i] for i in (k + 1):m); init = zero(BigFloat))
+        w *= τ[k]
+        c[k] -= w
+        for i in (k + 1):m
+            c[i] -= w * A[i, k]
+        end
+    end
+    return c
+end
+
+"""
+    triangular_cond_mp(R; iterations = 12) -> Float64
+
+`σ₁ / σ_min` of the upper-triangular `R`, by power iteration on `RᵀR` for `σ₁` and inverse
+iteration, two triangular solves a step, for `σ_min`. O(n²) a step, where an SVD is O(n³).
+The estimates converge from below, so after a fixed number of steps the result is a lower
+bound, in practice within a small factor, which is what choosing guard digits needs.
+"""
+function triangular_cond_mp(R::AbstractMatrix; iterations::Int = 12)
+    n = size(R, 2)
+    any(i -> iszero(R[i, i]), 1:n) && return Inf
+    U = UpperTriangular(R[1:n, 1:n])
+    start() = [BigFloat(1) + BigFloat(i) / (2n) for i in 1:n]      # fixed, so deterministic
+    x = start()
+    σ1² = zero(BigFloat)
+    for _ in 1:iterations
+        y = U' * (U * x)
+        σ1² = norm(y) / norm(x)
+        x = y / norm(y)
+    end
+    x = start()
+    σn⁻² = zero(BigFloat)
+    for _ in 1:iterations
+        y = U \ (U' \ x)
+        σn⁻² = norm(y) / norm(x)
+        x = y / norm(y)
+    end
+    return Float64(sqrt(σ1² * σn⁻²))
 end
 
 """

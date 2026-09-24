@@ -2,7 +2,8 @@
 
 A seed is a `Float64` approximation of a rule, accurate enough for Newton's method to
 converge from it. Derived families compute their seeds directly; seeded families need a
-strategy to find them.
+strategy to find them. The stored seeds are more than that: they are correctly rounded
+rules, returned as they are for `Float64` requests (see [Float64 requests](#Float64-requests)).
 
 ## Gauss rules
 
@@ -54,6 +55,30 @@ numbers are the package's own and are MIT licensed. `src/data/PROVENANCE.toml` r
 each table was produced.
 
 The scripts in `scripts/` regenerate the tables.
+
+## Float64 requests
+
+A stored seed is not a rough starting point. It is the rule refined to high precision and
+rounded correctly to `Float64`. `scripts/certify_tables.jl` checks this for every entry: it
+refines the stored parameters to 160 bits and compares the correctly rounded result with
+what is stored. Of the 78 entries, 77 matched exactly. The degree-11 triangle was off by 3
+ulp and was replaced. The script also records each entry's residual, evaluated at 256 bits.
+All are below `1.3·10⁻¹⁵`.
+
+So a `Float64` request has nothing left to refine, and the stored rule is returned as it is:
+
+```@repl seeds
+using CubatureRules
+r = rule(Simplex{2}(); degree = 30);
+last(provenance(r).path)
+@elapsed rule(Simplex{2}(); degree = 30)
+```
+
+A `Float32` or `Float16` request rounds the stored rule, and evaluates the residual of the
+rounded rule in `Float64`, which resolves it easily. Any request above 53 bits refines the
+stored rule as before. Other seed sources (`ExplicitSeed`, `MultistartSeed`,
+`LowerDegreeSeed`) are always refined, as is any table entry without a recorded residual.
+The test suite recomputes every recorded residual.
 
 ## Seeds from other packages
 

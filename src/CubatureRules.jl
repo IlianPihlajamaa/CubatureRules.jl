@@ -17,7 +17,6 @@ using Printf
 using Random
 using SHA: sha256
 using StaticArrays
-import GenericLinearAlgebra
 import InteractiveUtils
 import SpecialFunctions
 import TOML
@@ -30,6 +29,7 @@ include("domains/domains.jl")
 include("domains/momentweight.jl")
 include("domains/singular.jl")
 include("domains/moments.jl")
+include("core/mpfr.jl")
 include("domains/orthobasis.jl")
 include("domains/orthobasis3.jl")
 include("domains/unbounded.jl")
@@ -135,5 +135,8 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        CancellationToken, cancel!, CancelledError,
        SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed,
        benchmark_construction
+
+# A family list cached while precompiling carries a world age from another session.
+__init__() = reset_families_cache()
 
 end # module

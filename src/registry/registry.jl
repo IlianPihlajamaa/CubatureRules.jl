@@ -1,9 +1,17 @@
 # The registry and selector (PLAN §2.5). Discovery is reflective; instantiation is explicit.
 #
-# `subtypes` is called inside functions, at run time, on every query. It must never be
-# hoisted into a `const`: that would be evaluated at precompile time and silently omit every
-# family a downstream package defines. The test suite adds a family from a separately
-# precompiled package and asserts that it is found.
+# `subtypes` is called inside functions, at run time. It must never be hoisted into a
+# `const`: that would be evaluated at precompile time and silently omit every family a
+# downstream package defines. The test suite adds a family from a separately precompiled
+# package and asserts that it is found.
+#
+# The walk takes about 50 ms, and `rule` needs it twice, so its result is kept for as long as
+# the world age is unchanged. Defining a type or loading a package advances the world age,
+# so a new family is never missed. The cache is emptied in `__init__`, since a value saved
+# while precompiling would carry a world age from another session.
+
+const FAMILIES_CACHE = Ref{Tuple{UInt,Vector{Any}}}((typemax(UInt), Any[]))
+reset_families_cache() = (FAMILIES_CACHE[] = (typemax(UInt), Any[]); nothing)
 
 """
     families() -> Vector
@@ -13,6 +21,9 @@ by walking `subtypes(RuleFamily)` through abstract layers. Sorted by name, becau
 `subtypes`' order is unspecified.
 """
 function families()
+    world = Base.get_world_counter()
+    cached = FAMILIES_CACHE[]
+    cached[1] == world && return copy(cached[2])
     out = Any[]
     stack = Any[RuleFamily]
     while !isempty(stack)
@@ -21,7 +32,9 @@ function families()
             isabstracttype(S) ? push!(stack, S) : push!(out, S)
         end
     end
-    return sort!(out; by = F -> string(F))
+    sort!(out; by = F -> string(F))
+    FAMILIES_CACHE[] = (world, out)
+    return copy(out)
 end
 
 "Leaf families: every loaded family that is not a combinator (combinator depth is 1)."

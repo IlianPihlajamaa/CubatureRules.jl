@@ -41,6 +41,20 @@ the moment-based family does not use its residual to decide when to stop; see
 The condition number in the certificate is what connects the two: the error in the rule is
 roughly the residual times the condition number.
 
+## Rules returned from a table
+
+A `Float64` request for a seeded family returns the stored rule without refining it (see
+[Seed strategies](seeds.md#Float64-requests)). Its certificate reports no iterations and no
+guard digits, and quotes the residual recorded when the table was checked, at 256 bits.
+That is the residual of the rule you receive, since the stored and delivered parameters are
+the same numbers:
+
+```@repl cert
+certificate(rule(Simplex{2}(); degree = 12))
+```
+
+For `Float32` and `Float16`, the residual of the rounded rule is evaluated in `Float64`.
+
 ## Families without refinement
 
 Some families do not refine anything. A Grundmann–Möller rule, for example, is computed from

@@ -19,6 +19,14 @@ The result is rounded to the output type once, at the end, and returned as an im
 [`QuadratureRule`](@ref) with a [`Provenance`](@ref CubatureRules.Provenance) describing all
 of the above.
 
+There is one shortcut. A seeded family's table holds each rule as the correctly rounded
+`Float64` values of the refined rule, with its residual recorded when the table was
+checked. At 53 bits or fewer there is nothing for steps 2 and 3 to add, so a `Float64`
+request returns the stored rule, and a `Float32` or `Float16` request rounds it. The
+certificate then quotes the recorded residual. See
+[Seed strategies](seeds.md#Float64-requests). Any higher precision goes through all three
+steps.
+
 Verification is separate from this pipeline. The certificate describes how the solver
 converged; [`check`](@ref) tests the finished rule against an independent basis. See
 [Verification](verification.md).
@@ -30,9 +38,9 @@ Families come in two kinds, recorded by `derivation(F)`:
 - **Derived** families compute their rules from a formula or a well-conditioned algorithm:
   Gauss–Jacobi from the three-term recurrence, Grundmann–Möller from a closed formula,
   product rules from their factors. They exist at every degree.
-- **Seeded** families start from stored data and refine it: the minimal symmetric rules on
-  triangles, tetrahedra and spheres. They exist only at the degrees for which a seed is
-  available.
+- **Seeded** families start from stored data and, above `Float64`, refine it: the minimal
+  symmetric rules on triangles, tetrahedra and spheres. They exist only at the degrees for
+  which a seed is available.
 
 When two candidates have the same number of points, the selector prefers the derived one.
 
@@ -51,9 +59,13 @@ It is also why there is no `integrate(f, domain; degree)`.
 The same call gives bitwise identical output on every platform. This follows from three
 choices:
 
-- All arithmetic that determines the result is done in MPFR (`BigFloat`), which is correctly
-  rounded and therefore platform independent.
-- The linear solves in the refinement use a pure Julia QR factorisation rather than LAPACK.
+- All arithmetic that determines the result is done either in MPFR (`BigFloat`), which is
+  correctly rounded, or in plain `Float64` operations in a fixed order. Both are platform
+  independent.
+- The linear solves in the refinement use factorisations written out in Julia rather than
+  LAPACK or BLAS, whose results can differ between machines. A well-conditioned Newton step
+  is solved with a `Float64` QR and refined in `BigFloat`; an ill-conditioned one uses a QR
+  in `BigFloat`.
 - Guard digits are rounded up to a multiple of 8 bits, so that small platform differences in
   the `Float64` condition estimate cannot change the working precision.
 

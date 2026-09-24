@@ -11,6 +11,7 @@ const CR = CubatureRules
     @testset "delegated families" include("test_delegated.jl")
     @testset "moment-defined weights" include("test_moments.jl")
     @testset "Gauss–Patterson" include("test_patterson.jl")
+    @testset "stored tables" include("test_stored_tables.jl")
     @testset "unbounded domains" include("test_unbounded.jl")
     @testset "spheres" include("test_sphere.jl")
     @testset "octahedral orbit algebra" include("test_octahedral.jl")

@@ -60,10 +60,17 @@ end
     bad = fill(0.02, length(e.seed))      # nowhere near a rule
     @test_throws RefinementError rule(XiaoGimbutas(), Simplex{2}(); degree = 10, seed = ExplicitSeed(bad))
     @test_throws ArgumentError rule(XiaoGimbutas(), Simplex{2}(); degree = 10, seed = ExplicitSeed([0.1]))
-    # the shipped seed, passed explicitly, gives the same rule as the table
+    # The shipped seed, passed explicitly, is refined; the table's own Float64 rule is shipped
+    # as stored. The parameters agree exactly (the stored seed is correctly rounded), and the
+    # barycentric coordinate derived from them to within an ulp. Above Float64 both refine,
+    # and agree exactly.
     r = rule(XiaoGimbutas(), Simplex{2}(); degree = 10, seed = ExplicitSeed(e.seed; source = "test"))
-    @test r == rule(XiaoGimbutas(), Simplex{2}(); degree = 10)
+    t = rule(XiaoGimbutas(), Simplex{2}(); degree = 10)
+    @test maximum(maximum(abs.(a .- b)) for (a, b) in zip(nodes(r), nodes(t))) <= eps()
+    @test weights(r) == weights(t)
     @test occursin("test", provenance(r).seed_source)
+    @test rule(XiaoGimbutas(), Simplex{2}(); degree = 10, digits = 30, seed = ExplicitSeed(e.seed)) ==
+          rule(XiaoGimbutas(), Simplex{2}(); degree = 10, digits = 30)
 end
 
 @testset "seeds: orbit structure alone recovers a rule (licence-free route)" begin

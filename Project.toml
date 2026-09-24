@@ -4,7 +4,6 @@ authors = ["Ilian Pihlajamaa"]
 version = "0.1.0-DEV"
 
 [deps]
-GenericLinearAlgebra = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -25,7 +24,6 @@ LebedevExt = "Lebedev"
 QuadratureRulesExt = "QuadratureRules"
 
 [compat]
-GenericLinearAlgebra = "0.3"
 Lebedev = "1"
 InteractiveUtils = "1"
 LinearAlgebra = "1"

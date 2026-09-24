@@ -38,6 +38,11 @@ struct SymmetricSeedEntry
     seed::Vector{Float64}
     status::String
     note::String
+    cond::Float64
+    # the defining-equation residual of the stored seed and the precision it was evaluated
+    # at, recorded by scripts/certify_tables.jl; NaN when the entry has not been checked
+    residual::Float64
+    residual_bits::Int
 end
 
 const TRIANGLE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "triangle_s3_seeds.toml")
@@ -50,7 +55,8 @@ function load_symmetric_seeds(path, N)
     for e in get(t, "rule", Any[])
         s = SymmetricStructure([Int.(m) for m in e["structure"]], N)
         push!(out, SymmetricSeedEntry(e["degree"], e["npoints"], s, Float64.(e["seed"]),
-                                      get(e, "status", "ok"), get(e, "note", "")))
+                                      get(e, "status", "ok"), get(e, "note", ""), Float64(get(e, "cond", NaN)),
+                                      Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0))))
     end
     sort!(out; by = e -> e.degree)
     return out
@@ -162,9 +168,17 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
     n = e.degree
     N = e.structure.N
     D = N - 1
-    basis = invariant_basis(N, n)
     structure, θ64 = e.structure, e.seed
     seed_desc = "stored Float64 table $table (generated in-house by multistart from the orbit structure)"
+    # A table seed is a converged Float64 rule whose residual was checked at high precision
+    # when the table was written. At 53 bits or fewer Newton has nothing to add, so the rule
+    # is shipped as stored, or rounded. This comes before anything else is computed: even
+    # the invariant basis takes seconds at high degree.
+    if seed isa TableSeed && ctx.bits <= 53 && isfinite(e.residual)
+        ctx.verbose >= 1 && @info "shipping the stored Float64 rule for degree $n (no refinement needed at $(ctx.bits) bits)"
+        return ship_symmetric(name, e, ctx; seed_desc, citations, license)
+    end
+    basis = invariant_basis(N, n)
     if seed isa MultistartSeed
         found = multistart(structure, n; nstarts = seed.nstarts, rng_seed = seed.rng_seed, basis,
                            first_only = false, cancel = ctx.cancel)
@@ -205,7 +219,7 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
     rbits = 2ctx.bits + guard
     resid = with_bits(rbits) do
         sys = SymmetricMomentSystem(structure, n, BigFloat, basis)
-        r, _ = sys(BigFloat.(θhat))
+        r, _ = sys(BigFloat.(θhat); jacobian = false)
         maximum(abs, r)
     end
     group = N == 3 ? "S₃" : "S₄"
@@ -220,6 +234,42 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
                               @sprintf("guard: %d bits from measured cond(J) = %.2e", guard, res.cond_max)],
                       seed_source = seed_desc, citations = citations, symmetry = Symbol("S", N),
                       license = license)
+    return QuadratureRule(xs, wt, Simplex{D}(), PolynomialDegree(n), prov, cert)
+end
+
+"""
+    ship_symmetric(name, entry, ctx; seed_desc, citations, license)
+
+The rule of a checked table entry at 53 bits or fewer, without refinement: the stored
+`Float64` parameters, expanded to nodes and weights at 128 bits and rounded once to the
+output type. The certificate quotes the residual recorded for the table. Below `Float64`,
+the residual of the rounded parameters is evaluated in `Float64`, which resolves it easily.
+"""
+function ship_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{T};
+                        seed_desc::String, citations::Vector{Citation}, license::String) where {T}
+    structure, n = e.structure, e.degree
+    N = structure.N
+    D = N - 1
+    λs, ws = with_bits(() -> expand(structure, BigFloat.(e.seed)), 128)
+    xs = [SVector{D,T}(ntuple(j -> finalize_number(ctx, λ[j + 1]), D)) for λ in λs]
+    wt = [finalize_number(ctx, w) for w in ws]
+    if ctx.bits >= 53
+        resid, rbits = e.residual, e.residual_bits
+        how = @sprintf("shipped as stored, without refinement: residual %.1e at %d bits, checked when the table was written",
+                       resid, rbits)
+    else
+        θhat = [finalize_number(ctx, t) for t in e.seed]
+        sys = SymmetricMomentSystem(structure, n, Float64, invariant_basis(N, n))
+        resid, rbits = maximum(abs, sys(Float64.(θhat); jacobian = false)[1]), 53
+        how = "rounded to $T from the stored Float64 rule, without refinement; residual evaluated in Float64"
+    end
+    group = N == 3 ? "S₃" : "S₄"
+    cert = Certificate(equations = "$group-invariant moment system in orbit parameters (orthonormal Dubiner basis, degree $n)",
+                       residual = BigFloat(resid; precision = 64), residual_bits = rbits,
+                       digits = target_digits(ctx), guard_digits = 0, cond = e.cond, iterations = 0)
+    prov = Provenance(family = name, derivation = Seeded(),
+                      path = ["seed: " * seed_desc, "structure: " * string(structure), how],
+                      seed_source = seed_desc, citations = citations, symmetry = Symbol("S", N), license = license)
     return QuadratureRule(xs, wt, Simplex{D}(), PolynomialDegree(n), prov, cert)
 end
 

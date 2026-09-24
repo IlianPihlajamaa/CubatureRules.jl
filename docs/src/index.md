@@ -9,8 +9,11 @@ r = rule(Simplex{2}(); degree = 20)
 integrate(x -> exp(x[1] * x[2]), r)
 ```
 
-Most quadrature libraries store tables of rules. This package computes the rule when you
-ask for it, to the precision you ask for, and keeps a record of how it was computed.
+Most quadrature libraries store fixed tables of rules in `Float64`. This package computes
+rules to the precision you ask for, and keeps a record of how each one was made. It does
+keep tables, of the minimal symmetric rules on triangles, tetrahedra and spheres, but those
+are its own output. They are checked in its test suite, returned as they are when you ask
+for `Float64`, and refined when you ask for more.
 
 - **Any precision.** A rule with 200 digits is requested the same way as one with 16. The
   nodes and weights are computed at that precision, with extra working digits chosen from

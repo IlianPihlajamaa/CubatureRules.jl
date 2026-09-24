@@ -124,6 +124,9 @@ struct OctahedralSeedEntry
     seed::Vector{Float64}
     status::String
     note::String
+    cond::Float64
+    residual::Float64          # as for SymmetricSeedEntry: recorded by scripts/certify_tables.jl
+    residual_bits::Int
 end
 
 const LEBEDEV_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "lebedev_seeds.toml")
@@ -136,7 +139,8 @@ function load_octahedral_seeds(path)
     for e in get(t, "rule", Any[])
         s = OctahedralStructure(Symbol.(e["structure"]))
         push!(out, OctahedralSeedEntry(e["degree"], e["npoints"], s, Float64.(e["seed"]),
-                                       get(e, "status", "ok"), get(e, "note", "")))
+                                       get(e, "status", "ok"), get(e, "note", ""), Float64(get(e, "cond", NaN)),
+                                       Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0))))
     end
     sort!(out; by = e -> e.degree)
     return out
@@ -214,34 +218,50 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
             "an explicit seed for degree $n needs $(nunknowns(structure)) parameters (structure $structure)"))
         θ64, seed_desc = seed.θ, describe(seed)
     end
-    θ, res, guard = refine_octahedral(structure, n, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
-    res.converged || throw(RefinementError("Lebedev",
-        "Gauss–Newton did not converge at degree $n (residual $(Float64(res.residual)) after " *
-        "$(res.iterations) iterations); the seed is not returned unrefined"))
-    wbits = ctx.bits + guard
-    xs, ws = with_bits(() -> expand(structure, θ), wbits)
-    wmin, dmin = octahedral_margins(structure, θ)
-    (wmin > 0 && dmin > 0) || throw(RefinementError("Lebedev",
-        "refined degree-$n rule left the admissible set (min weight $(Float64(wmin)), margin $(Float64(dmin)))"))
+    if seed isa TableSeed && ctx.bits <= 53 && isfinite(e.residual)
+        # as for the simplex tables (see build_symmetric): a checked Float64 rule needs no
+        # refinement at 53 bits or fewer, so ship it as stored, or rounded
+        ctx.verbose >= 1 && @info "shipping the stored Float64 rule for degree $n (no refinement needed at $(ctx.bits) bits)"
+        xs, ws = with_bits(() -> expand(structure, BigFloat.(θ64)), 128)
+        if ctx.bits >= 53
+            resid, rbits = e.residual, e.residual_bits
+            steps = [@sprintf("shipped as stored, without refinement: residual %.1e at %d bits, checked when the table was written",
+                              resid, rbits)]
+        else
+            θhat = [finalize_number(ctx, t) for t in θ64]
+            resid, rbits = maximum(abs, OctahedralMomentSystem(structure, n, Float64)(Float64.(θhat))[1]), 53
+            steps = ["rounded to $T from the stored Float64 rule, without refinement; residual evaluated in Float64"]
+        end
+        guard_digits, cond, iterations = 0, e.cond, 0
+    else
+        θ, res, guard = refine_octahedral(structure, n, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
+        res.converged || throw(RefinementError("Lebedev",
+            "Gauss–Newton did not converge at degree $n (residual $(Float64(res.residual)) after " *
+            "$(res.iterations) iterations); the seed is not returned unrefined"))
+        wbits = ctx.bits + guard
+        xs, ws = with_bits(() -> expand(structure, θ), wbits)
+        wmin, dmin = octahedral_margins(structure, θ)
+        (wmin > 0 && dmin > 0) || throw(RefinementError("Lebedev",
+            "refined degree-$n rule left the admissible set (min weight $(Float64(wmin)), margin $(Float64(dmin)))"))
+        θhat = [finalize_number(ctx, t) for t in θ]
+        rbits = 2ctx.bits + guard
+        resid = with_bits(rbits) do
+            r, _ = OctahedralMomentSystem(structure, n, BigFloat)(BigFloat.(θhat))
+            maximum(abs, r)
+        end
+        steps = ["refine: Gauss–Newton with rank-revealing solve at $(wbits) bits",
+                 @sprintf("guard: %d bits from measured cond(J) = %.2e", guard, res.cond_max)]
+        guard_digits, cond, iterations = floor(Int, guard * log10(2)), res.cond, res.iterations
+    end
     nodes = [SVector{3,T}(ntuple(j -> finalize_number(ctx, x[j]), 3)) for x in xs]
     wt = [finalize_number(ctx, w) for w in ws]
-    θhat = [finalize_number(ctx, t) for t in θ]
-    rbits = 2ctx.bits + guard
-    resid = with_bits(rbits) do
-        sys = OctahedralMomentSystem(structure, n, BigFloat)
-        r, _ = sys(BigFloat.(θhat))
-        maximum(abs, r)
-    end
     cert = Certificate(equations = "O_h-invariant moment system in orbit parameters " *
                                    "(invariants p₄^a p₆^b, 4a + 6b ≤ $n)",
                        residual = BigFloat(resid; precision = 64), residual_bits = rbits,
-                       digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)),
-                       cond = res.cond, iterations = res.iterations)
+                       digits = target_digits(ctx), guard_digits = guard_digits, cond = cond,
+                       iterations = iterations)
     prov = Provenance(family = "Lebedev", derivation = Seeded(),
-                      path = ["seed: " * seed_desc,
-                              "structure: " * string(structure),
-                              "refine: Gauss–Newton with rank-revealing solve at $(wbits) bits",
-                              @sprintf("guard: %d bits from measured cond(J) = %.2e", guard, res.cond_max)],
+                      path = vcat(["seed: " * seed_desc, "structure: " * string(structure)], steps),
                       seed_source = seed_desc, citations = [LEBEDEV_1976], symmetry = :Oh,
                       license = "MIT (seeds generated in-house; no published table was used)")
     return QuadratureRule(nodes, wt, Sphere{3}(), PolynomialDegree(n), prov, cert)

@@ -218,13 +218,29 @@ invariant_exponents(n::Integer) =
 exactly:  `p₄^a = Σ (a choose i,j,k) x^{4i} y^{4j} z^{4k}`, and `p₆^b` shifts every exponent
 by `2b`.
 """
-function invariant_moment(a::Integer, b::Integer)
-    total = zero(BigFloat)
+invariant_moment(a::Integer, b::Integer) = 4 * BigFloat(π) * BigFloat(invariant_moment_over_4π(a, b))
+
+# ∫_{S²} x^{2I} y^{2J} z^{2K} dσ = 4π (2I−1)!! (2J−1)!! (2K−1)!! / (2(I+J+K)+1)!!, so every
+# invariant moment is 4π times a rational number. That number is computed once, exactly,
+# and kept: at degree 65 the BigFloat log-gamma sums it replaces were a third of a build,
+# since every system at every precision recomputed them.
+const INVARIANT_MOMENTS = Dict{Tuple{Int,Int},Rational{BigInt}}()
+const INVARIANT_MOMENTS_LOCK = ReentrantLock()
+
+"`∫_{S²} p₄^a p₆^b dσ / 4π`, exactly."
+function invariant_moment_over_4π(a::Integer, b::Integer)
+    key = (Int(a), Int(b))
+    cached = lock(() -> get(INVARIANT_MOMENTS, key, nothing), INVARIANT_MOMENTS_LOCK)
+    cached === nothing || return cached
+    dfact(m) = m <= 0 ? big(1) : prod(big(m):-2:1)
+    total = zero(Rational{BigInt})
     for i in 0:a, j in 0:(a - i)
         k = a - i - j
-        coeff = BigFloat(factorial(big(a)) ÷ (factorial(big(i)) * factorial(big(j)) * factorial(big(k))))
-        total += coeff * sphere_moment(3, (4i + 2b, 4j + 2b, 4k + 2b))
+        coeff = factorial(big(a)) ÷ (factorial(big(i)) * factorial(big(j)) * factorial(big(k)))
+        I, J, K = 2i + b, 2j + b, 2k + b              # half the exponents 4i + 2b, …
+        total += coeff * dfact(2I - 1) * dfact(2J - 1) * dfact(2K - 1) // dfact(2(I + J + K) + 1)
     end
+    lock(() -> (INVARIANT_MOMENTS[key] = total), INVARIANT_MOMENTS_LOCK)
     return total
 end
 

@@ -33,9 +33,10 @@ Verification: PASSED
 
 ## What it does differently
 
-- **Rules are computed, not looked up.** The minimal symmetric rules on triangles,
-  tetrahedra and spheres are refined by Newton's method to the precision you ask for, with
-  guard digits chosen from the conditioning of the problem.
+- **Rules at any precision.** The minimal symmetric rules on triangles, tetrahedra and
+  spheres are stored as checked `Float64` tables, which the package generated itself. A
+  `Float64` request returns the stored rule immediately. Any higher precision is refined
+  from it by Newton's method, with guard digits chosen from the conditioning of the problem.
 - **Each rule can be checked.** `check(r)` verifies exactness against an orthonormal basis
   at twice the rule's precision, and that the rule is *not* exact one degree higher.
 - **Each rule has a record.** `provenance(r)` shows how it was made and why it was chosen;

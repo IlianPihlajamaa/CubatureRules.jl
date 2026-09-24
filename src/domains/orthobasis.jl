@@ -112,16 +112,44 @@ struct DubinerWorkspace{S}
     J::Vector{S}
     Jb::Vector{S}
     c::Vector{S}
+    # The recurrence coefficients as numbers of type S, for the in-place BigFloat kernel,
+    # which must not convert an integer on every step: L[p+2] = A_p s L[p+1] − B_p t² L[p],
+    # J[q+1] = (C2 + C3 b) J[q] − C4 J[q-1] (column p + 1), J[2] = D0 + D1 b.
+    A::Vector{S}
+    B::Vector{S}
+    C2::Matrix{S}
+    C3::Matrix{S}
+    C4::Matrix{S}
+    D0::Vector{S}
+    D1::Vector{S}
+    tmp::Vector{S}
+end
+
+"Coefficients of the Jacobi `P^(α,0)` recurrence in the kernels: `(a2/a1, a3/a1, a4/a1)`."
+function jacobi_step_coefficients(q::Int, α::Int, ::Type{S}) where {S}
+    a1 = 2q * (q + α) * (2q + α - 2)
+    a2 = (2q + α - 1) * α^2
+    a3 = (2q + α - 2) * (2q + α - 1) * (2q + α)
+    a4 = 2 * (q + α - 1) * (q - 1) * (2q + α)
+    return S(a2) / S(a1), S(a3) / S(a1), S(a4) / S(a1)
 end
 
 function DubinerWorkspace{S}(n::Int; normalize::Bool = true) where {S}
-    c = Vector{S}(undef, dubiner_length(n))
+    c = bigfloats(S, dubiner_length(n))
     for k in 0:n, p in 0:k
         q = k - p
         c[dubiner_index(p, q)] = normalize ? sqrt(S(2 * (2p + 1) * (p + q + 1))) : one(S)
     end
-    z() = Vector{S}(undef, n + 1)
-    return DubinerWorkspace{S}(n, z(), z(), z(), z(), z(), c)
+    z() = bigfloats(S, n + 1)
+    A = [S(2p + 1) / S(p + 1) for p in 0:n]
+    B = [S(p) / S(p + 1) for p in 0:n]
+    C2, C3, C4 = bigfloats(S, n + 1, n + 1), bigfloats(S, n + 1, n + 1), bigfloats(S, n + 1, n + 1)
+    for p in 0:n, q in 2:(n - p)
+        C2[q + 1, p + 1], C3[q + 1, p + 1], C4[q + 1, p + 1] = jacobi_step_coefficients(q, 2p + 1, S)
+    end
+    D0 = [S(2p + 1) / 2 for p in 0:n]
+    D1 = [S(2p + 3) / 2 for p in 0:n]
+    return DubinerWorkspace{S}(n, z(), z(), z(), z(), z(), c, A, B, C2, C3, C4, D0, D1, bigfloats(S, 8))
 end
 
 """
@@ -179,6 +207,83 @@ function _dubiner!(φ, gx, gy, ws::DubinerWorkspace{S}, x, y) where {S}
                 gx[i] = c * 2 * Ls[p + 1] * J[q + 1]
                 gy[i] = c * ((Ls[p + 1] - Lt[p + 1]) * J[q + 1] + 2 * L[p + 1] * Jb[q + 1])
             end
+        end
+    end
+    return φ
+end
+
+"""
+    homog_legendre_mp!(L, Ls, Lt, A, B, s, t, tt, n, grad, u, v)
+
+In place, for BigFloat: the homogenised Legendre `L_p(s, t)`, `p = 0:n`, and its partials,
+with `tt = t²`, the coefficients `A_p = (2p+1)/(p+1)`, `B_p = p/(p+1)` and scratch `u`, `v`.
+Shared by the triangle and tetrahedron kernels.
+"""
+function homog_legendre_mp!(L, Ls, Lt, A, B, s, t, tt, n, grad, u, v)
+    mp_set_si!(L[1], 1); mp_set_si!(Ls[1], 0); mp_set_si!(Lt[1], 0)
+    if n >= 1
+        mp_set!(L[2], s); mp_set_si!(Ls[2], 1); mp_set_si!(Lt[2], 0)
+    end
+    @inbounds for p in 1:(n - 1)
+        a, b = A[p + 1], B[p + 1]
+        mp_mul!(u, s, L[p + 1]); mp_mul!(u, u, a)                  # A s L[p+1]
+        mp_mul!(v, tt, L[p]); mp_mul!(v, v, b)                     # B t² L[p]
+        mp_sub!(L[p + 2], u, v)
+        grad || continue
+        mp_fma!(u, s, Ls[p + 1], L[p + 1]); mp_mul!(u, u, a)       # A (L[p+1] + s Ls[p+1])
+        mp_mul!(v, tt, Ls[p]); mp_mul!(v, v, b)
+        mp_sub!(Ls[p + 2], u, v)
+        mp_mul!(u, s, Lt[p + 1]); mp_mul!(u, u, a)                 # A s Lt[p+1]
+        mp_mul!(v, t, L[p]); mp_twice!(v, v)                       # B (2t L[p] + t² Lt[p])
+        mp_fma!(v, tt, Lt[p], v); mp_mul!(v, v, b)
+        mp_sub!(Lt[p + 2], u, v)
+    end
+    return L
+end
+
+# The same evaluation for BigFloat, allocation-free (see core/mpfr.jl): 8× faster at degree
+# 40, and the results agree with the generic method to the working precision (the
+# coefficients are rounded ratios here, where the generic method divides at every step).
+function _dubiner!(φ::AbstractVector{BigFloat}, gx, gy, ws::DubinerWorkspace{BigFloat}, x::BigFloat, y::BigFloat)
+    n = ws.n
+    grad = gx !== nothing
+    prec = precision(ws.c[1])
+    unshare!(φ, prec)
+    grad && (unshare!(gx, prec); unshare!(gy, prec))
+    L, Ls, Lt, J, Jb = ws.L, ws.Ls, ws.Lt, ws.J, ws.Jb
+    s, t, b, tt, t1, t2, _, f = ws.tmp
+    mp_twice!(s, x); mp_add!(s, s, y); mp_sub_si!(s, s, 1)       # s = 2x + y − 1
+    mp_si_sub!(t, 1, y)                                            # t = 1 − y
+    mp_twice!(b, y); mp_sub_si!(b, b, 1)                           # b = 2y − 1
+    mp_mul!(tt, t, t)
+    homog_legendre_mp!(L, Ls, Lt, ws.A, ws.B, s, t, tt, n, grad, t1, t2)
+    @inbounds for p in 0:n
+        m = n - p
+        mp_set_si!(J[1], 1); mp_set_si!(Jb[1], 0)
+        if m >= 1
+            mp_fma!(J[2], ws.D1[p + 1], b, ws.D0[p + 1])
+            mp_set!(Jb[2], ws.D1[p + 1])
+        end
+        for q in 2:m
+            C2, C3, C4 = ws.C2[q + 1, p + 1], ws.C3[q + 1, p + 1], ws.C4[q + 1, p + 1]
+            mp_fma!(f, C3, b, C2)                                   # f = C2 + C3 b
+            mp_mul!(t2, C4, J[q - 1])
+            mp_fms!(J[q + 1], f, J[q], t2)                          # f J[q] − C4 J[q−1]
+            grad || continue
+            mp_mul!(t1, C3, J[q]); mp_fma!(t1, f, Jb[q], t1)        # f Jb[q] + C3 J[q]
+            mp_mul!(t2, C4, Jb[q - 1])
+            mp_sub!(Jb[q + 1], t1, t2)
+        end
+        for q in 0:m
+            i = dubiner_index(p, q)
+            c = ws.c[i]
+            mp_mul!(t1, c, L[p + 1]); mp_mul!(φ[i], t1, J[q + 1])     # c L J
+            grad || continue
+            mp_mul!(t1, c, Ls[p + 1]); mp_twice!(t1, t1)
+            mp_mul!(gx[i], t1, J[q + 1])                              # 2c Ls J
+            mp_sub!(t1, Ls[p + 1], Lt[p + 1]); mp_mul!(t1, t1, J[q + 1])
+            mp_mul!(t2, L[p + 1], Jb[q + 1]); mp_twice!(t2, t2)
+            mp_add!(t1, t1, t2); mp_mul!(gy[i], c, t1)               # c ((Ls − Lt) J + 2 L Jb)
         end
     end
     return φ

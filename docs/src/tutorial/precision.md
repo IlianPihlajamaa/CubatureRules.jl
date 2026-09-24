@@ -56,11 +56,16 @@ All the work is done in `BigFloat`, and the result is rounded to the output type
 end. Since MPFR rounds correctly, the same call gives bitwise identical results on every
 platform. [Precision and guard digits](../design/precision.md) explains this in more detail.
 
+At `Float64` and below, the minimal symmetric rules on triangles, tetrahedra and spheres
+are not recomputed. The package's tables already hold them, correctly rounded and checked,
+so they are returned or rounded directly. That is why their certificate shows no guard
+digits and no iterations.
+
 ## Cost
 
-Higher precision makes the construction slower, but not by as much as you might expect. The
-refinement uses Newton's method, which roughly doubles the number of correct digits in each
-step:
+At 15 digits the rule below comes straight from the table. Beyond that it is computed, which
+takes longer, but not by as much as you might expect: the refinement uses Newton's method,
+which roughly doubles the number of correct digits in each step.
 
 ```@repl prec
 using Printf

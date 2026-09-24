@@ -70,9 +70,12 @@ For ordinary use on the CPU this is not faster than the rule itself; see
 
 ## Construction time
 
-Rules are always constructed in `BigFloat`, even when you ask for `Float64`, so construction
-is slower than a table lookup. Once built, a `Float64` rule is used with ordinary `Float64`
-arithmetic.
+For the minimal symmetric rules on triangles, tetrahedra and spheres, a `Float64` request
+returns a stored, checked rule and takes milliseconds. Other families construct the rule in
+`BigFloat`, even for `Float64`, so they are slower than a table lookup: typically
+milliseconds in one dimension and up to seconds for large product rules. Above `Float64`,
+every family computes the rule, and the time grows with the degree and the precision. Once
+built, a `Float64` rule is used with ordinary `Float64` arithmetic.
 
 ## Next steps
 

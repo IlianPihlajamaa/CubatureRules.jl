@@ -25,6 +25,10 @@ If the condition number met during the refinement is larger than the one estimat
 seed, the refinement is repeated once with a correspondingly larger guard. Both the
 condition number and the guard are stored in the certificate.
 
+None of this happens for a seeded family at 53 bits or fewer: its stored table already
+holds the correctly rounded `Float64` rule, which is returned without refinement (see
+[Seed strategies](seeds.md#Float64-requests)).
+
 For the Gauss families built on a three-term recurrence, the equations are well conditioned
 and the guard is a function of the number of points only (`24 + 2 log₂(n+1)` bits).
 
@@ -35,11 +39,21 @@ precision until two successive results agree; see [Measures given by moments](mo
 ## Estimating the condition number
 
 `κ` is estimated from a `Float64` copy of the Jacobian, which is cheap. If that estimate is
-above `10¹²`, where `Float64` cannot resolve it, the singular values are recomputed in
-256-bit arithmetic. That fallback is expensive for large systems (a 352 × 352 matrix takes
-longer than the solve itself), so the Gauss–Newton loop computes the accurate estimate only
-at the first and last iterate and uses the free ratio `|R₁₁| / |R_rr|` from the pivoted QR
-factorisation in between.
+above `10¹²`, where `Float64` cannot resolve it, it is recomputed in 256-bit arithmetic: a
+pivoted QR factorisation, then power and inverse iteration on its triangular factor, which
+has the same singular values. The iterations cost O(n²) each, where a full SVD cost O(n³)
+and was most of the time of a large Lebedev build. Even so, the Gauss–Newton loop computes
+the accurate estimate only at the first and last iterate, and uses the free ratio
+`|R₁₁| / |R_rr|` from the factorisation of each step in between.
+
+## The linear solve
+
+Each Gauss–Newton step solves a linear system with the Jacobian. When the system is square
+and `κ < 10¹⁰`, the Jacobian is factored in `Float64` and the step refined in `BigFloat`: each
+correction costs one matrix–vector product and gains about `16 − log₁₀ κ` digits. The
+result matches a `BigFloat` factorisation to working precision, at a fraction of the cost.
+Otherwise, for example for large Lebedev systems with `κ` up to `10⁵⁵`, the step comes from
+a column-pivoted QR in `BigFloat`, which also reveals the rank.
 
 ## Rounding once
 

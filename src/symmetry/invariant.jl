@@ -62,6 +62,22 @@ against the Molien series; a mismatch is an error, not a warning.
 function invariant_basis(N::Integer, n::Integer)
     D = N - 1
     D in (2, 3) || throw(NotYetImplemented("invariant bases for S_$N", "a later release"))
+    # A deterministic Float64 matrix that takes seconds at high degree (3 s for the
+    # tetrahedron at degree 20) and is needed by every refinement at that degree, so it is
+    # kept. This caches an intermediate, not a rule; see "No caching" in the design notes.
+    key = (Int(N), Int(n))
+    cached = lock(() -> get(INVARIANT_BASIS_CACHE, key, nothing), INVARIANT_BASIS_LOCK)
+    cached === nothing || return cached
+    b = compute_invariant_basis(N, n)
+    lock(() -> (INVARIANT_BASIS_CACHE[key] = b), INVARIANT_BASIS_LOCK)
+    return b
+end
+
+const INVARIANT_BASIS_CACHE = Dict{Tuple{Int,Int},InvariantBasis}()
+const INVARIANT_BASIS_LOCK = ReentrantLock()
+
+function compute_invariant_basis(N::Integer, n::Integer)
+    D = N - 1
     # a quadrature rule exact to degree 2n, in Float64, for the Reynolds projector
     X, W, _, _ = conical_work(D, n + 1, 53 + 64)
     xs = [Float64.(x) for x in X]
