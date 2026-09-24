@@ -44,22 +44,6 @@ cell. For large meshes you can use threads:
 integrate(f, r, cells; threaded = true)
 ```
 
-## Passing integrands through your own functions
-
-Julia compiles a function that only passes a function argument on, without calling it, once
-for all functions rather than once per function. If you write such a wrapper and Julia does
-not inline it, each call makes one dynamic dispatch into `integrate`:
-
-```julia
-my_integral(f, r) = integrate(f, r)
-my_integral(f::F, r) where {F} = integrate(f, r)      # specialised on f
-```
-
-Evaluations of `f` inside `integrate` are not affected, so the cost is fixed per call. On
-one machine it was about 50 ns and 176 bytes: 108 ns instead of 57 ns for a 12-point rule,
-and 391 ns instead of 343 ns for a 79-point one. It matters only when a small rule is
-applied many times, for example once per mesh cell. The type parameter removes it.
-
 ## Vectorised integrands
 
 If your integrand is faster when evaluated on many points at once, pass `batch = true`. `f`
