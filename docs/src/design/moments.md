@@ -83,9 +83,32 @@ cannot give a rule accurate to more digits than that.
 If the moments do not come from a positive measure on the interval, the recursion breaks
 down at every precision and the construction fails.
 
+## Exact change of basis
+
+Many weights with an endpoint singularity have ordinary moments that are exact rationals.
+[`LogWeight`](@ref)`(α; power)`, the weight `x^α log(1/x)^m` on `[0, 1]`, is one:
+
+```math
+\int_0^1 x^{j+\alpha} \log(1/x)^m \, dx = \frac{m!}{(j + \alpha + 1)^{m+1}} ,
+```
+
+and a floating-point `α` is itself an exact rational. Fed to Wheeler's algorithm directly,
+ordinary moments are the badly conditioned case above. But the change of basis to modified
+moments against the shifted Legendre polynomials can be done *exactly*, in rational
+arithmetic, before anything is rounded. The only rounding then happens after the change of
+basis, and the problem is well conditioned: at 20 points the measured condition numbers are
+between 1 and about 10⁴, and the rules reproduce all `2n` moments to the requested accuracy.
+
+A moment weight can record the interval its moments were computed on with
+`support = (a, b)`. `LogWeight` does; pairing it with any other interval then throws an
+`ArgumentError` instead of producing a rule for the wrong measure.
+
 ## Helpers
 
+- [`LogWeight`](@ref) gives `x^α log(1/x)^power` on `[0, 1]`, as above.
 - [`OrdinaryMoments`](@ref) builds a `MomentWeight` with the monomials as auxiliary family.
+- `CubatureRules.shifted_legendre_recurrence()` is the monic shifted Legendre family on
+  `[0, 1]` with exact rational coefficients.
 - `CubatureRules.monic(rec)` converts one of the package's orthonormal recurrences
   (`jacobi_recurrence`, `laguerre_recurrence`, `hermite_recurrence`) into monic form.
 - `CubatureRules.shift(aux, lo, hi)` moves a monic family from `[-1, 1]` to `[lo, hi]`.

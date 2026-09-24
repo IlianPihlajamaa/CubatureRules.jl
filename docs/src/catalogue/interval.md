@@ -105,6 +105,7 @@ ClenshawCurtis
 ModifiedChebyshev
 MomentWeight
 OrdinaryMoments
+LogWeight
 ```
 
 For a weight without a classical family, `ModifiedChebyshev` computes the Gauss rule from

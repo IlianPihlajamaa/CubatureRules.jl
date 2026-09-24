@@ -411,7 +411,13 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [ ] Gauss–Patterson, carried over from v0.3: iterated Kronrod extension on top of the
       Stieltjes polynomials
 - [ ] Multiple-component discretisation (`mcdis`)
-- [ ] Singular weights: $\log(1/x)$, algebraic-logarithmic endpoint singularities
+- [x] Singular weights: $\log(1/x)$, algebraic-logarithmic endpoint singularities
+      *(`LogWeight(α; power)`: $x^\alpha \log(1/x)^m$ on $[0,1]$. Its ordinary moments are
+      exact rationals, so the modified moments against shifted Legendre are computed
+      exactly before any rounding and the problem is well conditioned. A moment weight can
+      now declare its `support`, and a pairing with the wrong interval is refused.
+      Singularities at both endpoints, and $(1-x)^\beta$ factors, whose moments involve the
+      digamma function, are not covered)*
 - [ ] Cauchy principal value and Hadamard finite-part rules via analytic modified moments
 - [ ] Oscillatory weights: Filon-type rules as `PolynomialDegree` on an oscillatory
       `WeightedDomain`, complex `T`, with the small-$\omega$ cancellation handled by a

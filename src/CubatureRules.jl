@@ -28,6 +28,7 @@ import Test
 include("core/claims.jl")
 include("domains/domains.jl")
 include("domains/momentweight.jl")
+include("domains/singular.jl")
 include("domains/moments.jl")
 include("domains/orthobasis.jl")
 include("domains/orthobasis3.jl")
@@ -89,7 +90,7 @@ include("benchmark/construction.jl")
 # and geometry packages collide readily over `vertices`, `⊗` and the like, and a name that is
 # rarely typed is not worth a collision.
 export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain, JacobiWeight,
-       MomentWeight, OrdinaryMoments,
+       MomentWeight, OrdinaryMoments, LogWeight,
        HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace,
        Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
@@ -114,7 +115,7 @@ export verify, check, passed, @test_exact, cite
 # Public, but not exported: documented API that most callers never type. `nodes` and
 # `weights` stay exported despite colliding with other quadrature packages — they are what
 # every caller touches, and that collision is inherent rather than clutter.
-public MonicRecurrence, monic, monomial_recurrence, shift, wheeler, MomentInterval, MomentBreakdownError,
+public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recurrence, wheeler, MomentInterval, MomentBreakdownError,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight,vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map,

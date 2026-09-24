@@ -143,3 +143,46 @@ end
     signed = OrdinaryMoments((k, T) -> iseven(k) ? one(T) / (k + 1) : -one(T))
     @test_throws CR.RefinementError rule(WeightedDomain(Interval(0, 1), signed); degree = 11)
 end
+
+@testset "logarithmic weights" begin
+    # ∫₀¹ xʲ⁺ᵅ log(1/x)^m dx = m! / (j + α + 1)^(m+1), exact and independent of the construction
+    exact(j, α, m) = factorial(big(m)) / (big(j) + big(α) + 1)^(m + 1)
+    for (α, m) in ((0, 1), (-1 // 2, 1), (0.3, 1), (0, 2), (2, 3))
+        w = LogWeight(α; power = m)
+        dom = WeightedDomain(Interval(0, 1), w)
+        n, digits = 20, 40
+        r = rule(dom; degree = 2n - 1, digits)
+        @test family(r) == "ModifiedChebyshev" && npoints(r) == n
+        worst = with_bits(4 * digits_to_bits(digits)) do
+            maximum(0:(2n - 1)) do j
+                got = sum(BigFloat(weights(r)[i]) * BigFloat(nodes(r)[i])^j for i in 1:n)
+                abs(got - exact(j, α, m)) / exact(j, α, m)
+            end
+        end
+        @test worst < exp10(-digits + 2)
+        @test all(>(0), weights(r)) && all(x -> 0 < x < 1, nodes(r))
+        # exact modified moments keep the problem well conditioned
+        @test certificate(r).cond < 1e5
+        # the mass is the zeroth moment, at full precision: a Float64 mass failed the
+        # weight-sum check whenever it was not a dyadic rational (α = 0.3, 2/27 for m = 3)
+        @test passed(check(r))
+        @test abs(measure(dom) - exact(0, α, m)) < big(10.0)^-70
+    end
+    @test LogWeight().label == "log(1/x) on [0,1]"
+    @test LogWeight(-1 // 2).label == "x^(-1/2) log(1/x) on [0,1]"
+    @test LogWeight(2; power = 3).label == "x^2 log(1/x)^3 on [0,1]"
+    @test_throws ArgumentError LogWeight(-1)
+    @test_throws ArgumentError LogWeight(0; power = -1)
+
+    # the moments hold on [0, 1] only, and a moment domain is never mapped, so pairing the
+    # weight with another interval is refused rather than answered with a wrong rule
+    @test LogWeight().support == (0, 1)
+    e = try rule(WeightedDomain(Interval(), LogWeight()); degree = 9) catch err; err end
+    @test e isa ArgumentError && occursin("Interval(0, 1)", sprint(showerror, e))
+    # a weight without a declared support is taken at its word, as before
+    @test OrdinaryMoments((k, T) -> one(T) / (k + 1)).support === nothing
+
+    # the exact recurrence is the shifted Legendre one
+    s = CR.shifted_legendre_recurrence()
+    @test all(k -> s.b(k, BigFloat) == SHIFTED_LEGENDRE.b(k, BigFloat), 0:30)
+end

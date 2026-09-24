@@ -272,6 +272,13 @@ function build(f::ModifiedChebyshev, dom::MomentInterval, degree::Int, ctx::Buil
         throw(ArgumentError("modified Chebyshev nodes are irrational; $(T) is not supported"))
     n = mc_points(degree)
     mw = dom.weight
+    # A moment domain is never mapped, so a weight paired with the wrong interval would give
+    # a rule for a measure nobody described. Refuse it when the weight knows its interval.
+    s = mw.support
+    s === nothing || (dom.base.a == s[1] && dom.base.b == s[2]) ||
+        throw(ArgumentError("$(mw.label) is defined on [$(s[1]), $(s[2])], but was paired with " *
+                            "$(dom.base); its moments only hold on its own interval. Use " *
+                            "WeightedDomain(Interval($(s[1]), $(s[2])), weight)."))
     ctx.verbose >= 1 && @info @sprintf("modified Chebyshev: %d points from %d moments of %s, target %d bits",
                                        n, 2n + 2, mw.label, ctx.bits)
     x, w, iters, used, res, cond = modified_chebyshev_work(mw, n, ctx.bits; verbose = ctx.verbose)

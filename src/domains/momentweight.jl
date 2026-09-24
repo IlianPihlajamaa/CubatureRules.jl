@@ -51,7 +51,7 @@ shift(aux::MonicRecurrence, lo, hi) =
                     (k, T) -> ((T(hi) - T(lo)) / 2)^2 * aux.b(k, T))
 
 """
-    MomentWeight(aux, moments; label = "MomentWeight")
+    MomentWeight(aux, moments; label = "MomentWeight", support = nothing)
 
 A measure on an interval described by its **modified moments**
 
@@ -66,12 +66,15 @@ dom = WeightedDomain(Interval(0, 1), MomentWeight(aux, moments))
 r = rule(dom; degree = 40, digits = 50)
 ```
 
-The choice of `aux` is the whole game. Against the monomials ([`OrdinaryMoments`](@ref)) the
-map from moments to rule is the classically ill-conditioned one, losing roughly 1.4 decimal
-digits per node — which is why it is usually dismissed. Against a family orthogonal on the
-same interval it loses essentially nothing. [`ModifiedChebyshev`](@ref) measures the loss
-rather than assuming it, and raises working precision until the rule verifies against the
-moments it came from, so the ill-conditioned case costs time instead of accuracy.
+The moments only describe the measure on that interval, and a domain with a moment weight is
+never mapped. Pass `support = (a, b)` to record the interval, and a pairing with any other
+interval is then refused rather than giving a wrong rule.
+
+The choice of `aux` matters a great deal. Against the monomials ([`OrdinaryMoments`](@ref))
+the map from moments to rule is badly conditioned, losing roughly 1.4 decimal digits per
+node. Against a family orthogonal on the same interval it loses almost nothing.
+[`ModifiedChebyshev`](@ref) measures the loss rather than assuming it, and raises the working
+precision until successive results agree.
 
 `moments` is called at whatever precision that search reaches, so it must be able to deliver
 `mₖ` in `BigFloat` at the ambient precision — a closed form or an exact rational, not a
@@ -82,9 +85,10 @@ struct MomentWeight{A<:MonicRecurrence,M}
     aux::A
     moments::M
     label::String
+    support::Union{Nothing,Tuple{Real,Real}}
 end
-MomentWeight(aux::MonicRecurrence, moments; label::AbstractString = "MomentWeight") =
-    MomentWeight(aux, moments, String(label))
+MomentWeight(aux::MonicRecurrence, moments; label::AbstractString = "MomentWeight", support = nothing) =
+    MomentWeight(aux, moments, String(label), support === nothing ? nothing : (support[1], support[2]))
 
 Base.show(io::IO, w::MomentWeight) = print(io, w.label)
 
@@ -100,8 +104,8 @@ the reason moment-based construction is usually avoided. It is supported because
 sometimes all there is, and because arbitrary precision makes it work: the cost is about 1.4
 extra digits of working precision per node.
 """
-OrdinaryMoments(moments; label::AbstractString = "OrdinaryMoments") =
-    MomentWeight(monomial_recurrence(), moments, String(label))
+OrdinaryMoments(moments; label::AbstractString = "OrdinaryMoments", support = nothing) =
+    MomentWeight(monomial_recurrence(), moments; label, support)
 
 """
     MomentInterval
@@ -118,4 +122,7 @@ isreference(::MomentInterval) = true
 reference(d::MomentInterval) = d
 
 # π₀ = 1, so the zeroth modified moment is the total mass whatever the auxiliary family is.
-measure(d::WeightedDomain{1,T,<:Interval,<:MomentWeight}) where {T} = d.weight.moments(0, float(T))
+# In BigFloat at the ambient precision, like the other measures: the domain's coordinate type
+# is no guide (it is Int for Interval(0, 1)), and a mass rounded to Float64 fails the weight-sum
+# check of every rule more precise than that whose mass is not a dyadic rational.
+measure(d::WeightedDomain{1,<:Any,<:Interval,<:MomentWeight}) = d.weight.moments(0, BigFloat)

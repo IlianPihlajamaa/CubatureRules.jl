@@ -23,14 +23,29 @@ integrate(x -> one(x), r)                                  # π
 The weight is infinite at both endpoints, but the result is exact, because the singularity
 is in the weight and not in the function that is being approximated.
 
+## Logarithmic singularities
+
+[`LogWeight`](@ref)`(α; power)` is the weight `x^α log(1/x)^power` on `[0, 1]`: a logarithmic
+singularity at the origin, combined with an algebraic one when `α ≠ 0`.
+
+```@repl w
+r = rule(WeightedDomain(Interval(0, 1), LogWeight()); degree = 19, digits = 30);
+integrate(x -> one(x), r)            # ∫₀¹ log(1/x) dx = 1
+r = rule(WeightedDomain(Interval(0, 1), LogWeight(-1/2)); degree = 19);
+integrate(x -> cos(x), r)            # ∫₀¹ cos(x) log(1/x) / √x dx
+```
+
+The weight is only defined on `[0, 1]`, and pairing it with another interval is an error. For
+a logarithmic singularity at another point, change variables so that it sits at 0.
+
 ## Other weights: using moments
 
 For a weight the package does not know, you can describe it by its moments: the integrals of
 a set of known polynomials against the weight. From `2n` moments the package computes the
 `n`-point Gauss rule for the weight, using Wheeler's algorithm.
 
-As an example, take `w(x) = log(1/x)` on `[0, 1]`. Its moments against the monic shifted
-Legendre polynomials are known in closed form:
+`LogWeight` is built this way. Written out by hand for `w(x) = log(1/x)`, whose moments
+against the monic shifted Legendre polynomials are known in closed form, it looks like this:
 
 ```@repl w
 import CubatureRules: monic, shift, jacobi_recurrence
@@ -49,6 +64,10 @@ The moment function takes an index `k` and a number type `T`, and must return th
 moment in type `T`. It is called at whatever precision the computation needs, so it should
 compute the moments (for example from a formula or as exact fractions) rather than return
 stored `Float64` values.
+
+Moments only describe the weight on the interval they were computed for, and a domain with a
+moment weight is never mapped to another interval. Pass `support = (0, 1)` to
+`MomentWeight` to record the interval, so that pairing it with any other one is refused.
 
 ## Ordinary moments
 

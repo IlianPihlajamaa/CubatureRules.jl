@@ -98,6 +98,7 @@ Pyramid
 MonicRecurrence
 monic
 shift
+shifted_legendre_recurrence
 monomial_recurrence
 wheeler
 MomentBreakdownError
