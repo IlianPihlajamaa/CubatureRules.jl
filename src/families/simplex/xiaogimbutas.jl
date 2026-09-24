@@ -112,7 +112,8 @@ function refine_symmetric(structure::SymmetricStructure, n::Integer, θ64::Vecto
                                    verbose::Integer = 0)
     sys64 = SymmetricMomentSystem(structure, n, Float64, basis)
     r64, J64 = sys64(θ64)
-    κ0 = lsq_step(J64, r64; rank_rtol = 1e-14)[2]
+    κ0 = seed_cond(lsq_step(J64, r64; rank_rtol = 1e-14)[2],
+                   () -> SymmetricMomentSystem(structure, n, BigFloat, basis)(BigFloat.(θ64))[2])
     guard = guard_bits_from_cond(κ0)
     if verbose >= 1
         @info @sprintf("symmetric refinement to degree %d: %d orbits, %d unknowns, %d equations, seed cond %.2e",
@@ -127,7 +128,7 @@ function refine_symmetric(structure::SymmetricStructure, n::Integer, θ64::Vecto
             θ0 = BigFloat.(θ64)
             gauss_newton(sys, θ0; step_tol = ldexp(BigFloat(1), -(bits + 16)),
                          res_floor = ldexp(BigFloat(1), -(wbits - 12)),
-                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose)
+                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose, initial_cond = κ0)
         end
         needed = guard_bits_from_cond(res.cond_max)
         if needed <= guard || attempt == 2

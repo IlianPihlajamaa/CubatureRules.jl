@@ -113,14 +113,36 @@ function lsq_step(J::AbstractMatrix{S}, r::AbstractVector{S}; rank_rtol) where {
 end
 
 """
-    gauss_newton(F, θ0; step_tol, res_floor, rank_rtol, maxiter = 60, cancel = nothing)
+    seed_cond(κ64, bigjac) -> Float64
+
+The condition number to choose guard digits from at a seed. `κ64` is the estimate from the
+`Float64` Jacobian, which is cheap but saturates near 1e16. When it is too large for `Float64`
+to resolve, `bigjac()` supplies the Jacobian in `BigFloat` and the accurate estimate is taken
+from that.
+
+Choosing the guard from a saturated estimate is not safe, only slow: the refinement notices
+and runs again with more guard. At Lebedev degree 125 the `Float64` estimate was 5.2e16
+against a true 9.0e54, and the first attempt — 45% of the refinement — was thrown away.
+One extended-precision factorisation at the seed is much cheaper than that.
+"""
+function seed_cond(κ64::Real, bigjac)
+    κ64 < 1e12 && return Float64(κ64)
+    return with_bits(256) do
+        estimate_cond(bigjac())
+    end
+end
+
+"""
+    gauss_newton(F, θ0; step_tol, res_floor, rank_rtol, maxiter = 60, cancel = nothing,
+                 verbose = 0, initial_cond = nothing)
 
 Gauss–Newton with backtracking line search and a rank-revealing solve, in the arithmetic of
 `θ0`. `F(θ)` returns `(r, J)`. Converged when the step falls below `step_tol` or the
 residual below `res_floor`. Checks the cancellation token once per iteration.
 """
 function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
-                      maxiter::Int = 60, cancel = nothing, verbose::Integer = 0) where {S}
+                      maxiter::Int = 60, cancel = nothing, verbose::Integer = 0,
+                      initial_cond::Union{Nothing,Real} = nothing) where {S}
     θ = collect(θ0)
     r, J = F(θ)
     nr = norm(r)
@@ -129,8 +151,9 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
     # cheaply in between (see `lsq_step`). It chooses guard digits, so it has to be the real
     # σ₁/σ_min and not the QR lower bound; but the Jacobian of a Gauss–Newton run varies
     # smoothly, so the seed and the solution bracket it, and `refine_octahedral` re-runs with
-    # more guard if the number that comes back asks for it.
-    κ = estimate_cond(J)
+    # more guard if the number that comes back asks for it. A caller that has already
+    # measured it at the seed passes `initial_cond` and saves the factorisation.
+    κ = initial_cond === nothing ? estimate_cond(J) : Float64(initial_cond)
     κmax = κ
     converged = nr <= res_floor
     it = 0
