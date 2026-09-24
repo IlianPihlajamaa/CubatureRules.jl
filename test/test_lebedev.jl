@@ -101,3 +101,36 @@ end
     # a rule on the circle is not in the group's dimension
     @test !CR.check_octahedral_symmetry([CR.SVector(1.0, 0.0)], [1.0], 1e-12)
 end
+
+@testset "verification on orbit representatives" begin
+    # The test set at degree d is the sorted even exponents of one even degree, which must
+    # number exactly the invariants of that degree — 352 at degree 125.
+    b = CR.OctahedralTestSet{BigFloat}(125, true)
+    @test length.(CR.blocks(b)) == [length(CR.invariant_exponents(125)), 363]
+
+    # The orbit check must agree with the general one — all harmonics at every node, and
+    # the all-pairs symmetry check — on every shipped rule.
+    for d in 3:2:last(CR.degree_range(LebedevRule(), Sphere{3}()))
+        r = rule(LebedevRule(), Sphere{3}(); degree = d, digits = 30)
+        fast, full = check(r), check(r; use_symmetry = false)
+        @test occursin("orbit representatives", fast.basis)
+        @test (fast.exact, fast.sharp, fast.symmetric, passed(fast)) ==
+              (full.exact, full.sharp, full.symmetric, passed(full))
+    end
+
+    # And it must fail the rules it should fail.
+    r = rule(LebedevRule(), Sphere{3}(); degree = 11)
+    relabel(q, c) = QuadratureRule(nodes(q), weights(q), domain(q), c, provenance(q))
+    over = check(relabel(r, PolynomialDegree(13)))
+    @test !over.exact && !passed(over)
+    under = check(relabel(r, PolynomialDegree(9)))
+    @test under.exact && under.sharp === false && !passed(under)
+    # an even claim is understated by central symmetry alone
+    @test check(relabel(r, PolynomialDegree(10))).sharp === false
+    # a broken symmetry cannot be grouped into orbits, so the general check takes over
+    w = copy(weights(r)); w[1] *= 1.001
+    asym = check(QuadratureRule(nodes(r), w, domain(r), PolynomialDegree(11), provenance(r)))
+    @test asym.symmetric === false && !passed(asym)
+    @test !occursin("orbit representatives", asym.basis)
+    @test CR.octahedral_orbits([big.(collect(x)) for x in nodes(r)], big.(w), big(1e-12)) === nothing
+end

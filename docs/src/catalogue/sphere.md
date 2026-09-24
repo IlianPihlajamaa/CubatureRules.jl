@@ -105,3 +105,7 @@ Rules on `Sphere{3}` are verified against real spherical harmonics. Monomials ar
 basis on a sphere, because `Σxᵢ² = 1` makes them linearly dependent; the harmonics of degree
 `≤ d` span exactly the polynomials of degree `≤ d` restricted to the sphere. In higher
 dimensions the monomials are used as a spanning set.
+
+Lebedev rules are verified on their orbits instead, which is equivalent for a symmetric rule
+and much faster: at degree 59 (1202 points) the check takes 0.3 s instead of 120 s. See
+[Verification](../design/verification.md#Symmetric-rules-on-the-sphere).

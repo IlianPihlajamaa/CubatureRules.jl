@@ -114,3 +114,14 @@ end
     r2 = rule(Sphere{3}(); degree = 19, copyleft = true)
     @test occursin("GPL-3.0", provenance(r2).license)
 end
+
+@testset "large rules are verified on their orbits" begin
+    # Degree 29 has 302 points, enough for the grouping to be exercised on every orbit
+    # type, and small enough for the general check to finish quickly for comparison.
+    r = rule(UpstreamLebedev(), Sphere{3}(); degree = 29, digits = 30)
+    fast = check(r)
+    full = check(r; use_symmetry = false)
+    @test occursin("orbit representatives", fast.basis)
+    @test passed(fast) && passed(full)
+    @test (fast.exact, fast.sharp, fast.symmetric) == (full.exact, full.sharp, full.symmetric)
+end

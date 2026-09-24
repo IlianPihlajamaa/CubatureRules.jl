@@ -62,6 +62,37 @@ answered with the odd rule above it, which is then sharp.
 - The rule has its claimed symmetry exactly: applying each group element maps the node set
   onto itself, with equal weights.
 
+## Symmetric rules on the sphere
+
+Checked the general way, a Lebedev rule of degree 125 would be tested against 16 129
+spherical harmonics at each of its 5294 nodes, and its symmetry by comparing each of the 48
+images of every node with every node. At 100 digits that takes on the order of an hour and
+a half. For a rule that claims `O_h` symmetry, `check` does two cheaper things instead.
+
+**Symmetry.** Two points of `ℝ³` lie in the same `O_h` orbit exactly when their sorted
+absolute coordinates agree. Sorting the nodes by that key groups them into candidate orbits
+in `O(N log N)`. The rule is invariant when every group has distinct members, as many as the
+orbit of its key, and a single weight.
+
+**Exactness.** For an invariant rule, a polynomial and its group average integrate the same
+way, both under the rule and over the sphere, so only invariant test functions matter. The
+group average of a monomial `xᵅ` is zero when an exponent is odd, and otherwise depends only
+on the exponents up to order. On the sphere, the monomials of one even degree `m` span all
+even polynomials of degree `≤ m`, and odd polynomials integrate to zero on both sides by
+central symmetry. So exactness to degree `d` is checked with the sorted even exponents of the
+largest even degree `≤ d`, and sharpness with those of the next even degree. Each test
+function is evaluated once per orbit, at the orbit's representative, and weighted by the
+orbit's total weight.
+
+At degree 125 this is 352 test functions for exactness (the number of invariants, as it
+must be) and 363 for sharpness, over 132 orbits. The test functions are monomials on the
+delivered nodes, not the invariants `p₄`, `p₆` in orbit parameters that the rule was solved
+from, so the check is independent of the construction. At degree 59 it takes 0.3 s where the
+general check takes 120 s.
+
+If the nodes do not group into complete orbits, the general check is used, and the rule is
+reported as not symmetric. `check(r; use_symmetry = false)` forces the general check.
+
 ## Rules without a claim
 
 A rule with [`NoClaim`](@ref) has nothing to integrate exactly. For such families,

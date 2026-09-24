@@ -21,16 +21,24 @@ Check `rule` against its exactness claim, dispatching on the claim type:
 
 `degree` overrides the degree tested (sharpness is then not tested unless it equals the
 claim); `bits` overrides the arithmetic precision (default twice the rule's).
+
+A rule on `Sphere{3}` that claims octahedral symmetry is checked on its orbits: the nodes are
+grouped into `O_h` orbits (which checks the symmetry), and exactness is tested with
+group-averaged even monomials evaluated once per orbit. This is equivalent to the general
+check for a symmetric rule and much faster for large ones. `use_symmetry = false` forces the
+general check against all spherical harmonics at every node.
 """
 verify(r::QuadratureRule; kw...) = verify(r, r.exactness; kw...)
 
 """
-    check(rule; degree, bits) -> Verification
+    check(rule; degree, bits, use_symmetry = true) -> Verification
 
 Re-run verification on demand, optionally at a user-specified degree and precision. The
-public entry point for rules constructed by hand or loaded from elsewhere.
+public entry point for rules constructed by hand or loaded from elsewhere. See
+[`verify`](@ref) for `use_symmetry`.
 """
-check(r::QuadratureRule; degree = nothing, bits = nothing) = verify(r; degree, bits)
+check(r::QuadratureRule; degree = nothing, bits = nothing, use_symmetry::Bool = true) =
+    verify(r; degree, bits, use_symmetry)
 
 verify(r::QuadratureRule, ::NoClaim; kw...) =
     throw(ArgumentError("a rule with NoClaim has nothing to verify by exact integration; " *
@@ -460,8 +468,131 @@ function block_residuals(basis, xs, ws, ε, floor_tol)
     return out
 end
 
+# --- O_h-symmetric rules on the sphere: verification on orbit representatives ---------------
+#
+# A Lebedev rule of degree 125 has 5294 nodes. Checked the general way, every node is tested
+# against 16129 spherical harmonics, and the symmetry check compares each of the 48 images of
+# each node with every node — about 1.5 hours at 100 digits, measured by extrapolation from
+# degree 59, where 44% of the time went to the symmetry check alone.
+#
+# Two facts make most of that unnecessary, without trusting anything the construction did.
+#
+# Symmetry. Two points of ℝ³ lie in the same O_h orbit exactly when their sorted absolute
+# coordinates agree. Sorting the nodes by that key groups them into candidate orbits in
+# O(N log N); a group is a complete orbit when its members are distinct and as many as the
+# key's orbit size, and the rule is invariant when every group is complete with one weight.
+#
+# Exactness. For an invariant rule, a polynomial and its group average integrate identically
+# both under the rule and over the sphere, so only invariant test functions carry
+# information. Group-averaging a monomial xᵅ gives zero when any exponent is odd and depends
+# only on the multiset of exponents otherwise, so the test set is the even exponents in
+# sorted order. On the sphere, the monomials of one even degree m span all even polynomials
+# of degree ≤ m (multiply by (Σxᵢ²)ʲ = 1), and odd polynomials integrate to zero on both
+# sides by central symmetry, which O_h contains. So exactness to degree d is a check at the
+# single even degree ≤ d, and sharpness one at the next even degree.
+#
+# At degree 125 that is 352 test functions — the count of the invariants, as it must be —
+# plus 363 for sharpness, evaluated once per orbit (132 of them). The test functions are
+# monomials evaluated on the delivered nodes, not the p₄, p₆ invariants in orbit parameters
+# that the solver used, so the check stays independent of the construction.
+
+"""
+    octahedral_orbits(xs, ws, tol) -> Union{Nothing, Tuple}
+
+Group the nodes of a rule on the unit sphere into `O_h` orbits. Returns the orbit
+representatives (sorted absolute coordinates, descending) and each orbit's total weight, or
+`nothing` if some group is not a complete orbit with a single weight — in which case the
+rule is not `O_h`-invariant to tolerance `tol`, or its nodes are too close to tell.
+"""
+function octahedral_orbits(xs, ws, tol)
+    length(first(xs)) == 3 || return nothing
+    wscale = maximum(abs, ws)
+    keys = [sort!(abs.(collect(x)); rev = true) for x in xs]
+    order = sortperm(keys)
+    reps = Vector{eltype(keys)}()
+    totals = similar(ws, 0)
+    i = 1
+    while i <= length(order)
+        k = keys[order[i]]
+        j = i
+        while j < length(order) && maximum(abs, keys[order[j + 1]] .- k) <= tol
+            j += 1
+        end
+        grp = order[i:j]
+        w = ws[grp[1]]
+        all(g -> abs(ws[g] - w) <= tol * wscale, grp) || return nothing
+        length(grp) == _octahedral_orbit_size(k, tol) || return nothing
+        pts = sort([collect(xs[g]) for g in grp])
+        all(m -> maximum(abs, pts[m + 1] .- pts[m]) > tol, 1:(length(pts) - 1)) || return nothing
+        push!(reps, k)
+        push!(totals, w * length(grp))
+        i = j + 1
+    end
+    return reps, totals
+end
+
+"Size of the `O_h` orbit of a point given by its sorted absolute coordinates `k`."
+function _octahedral_orbit_size(k, tol)
+    zeros_ = count(v -> v <= tol, k)
+    same12 = abs(k[1] - k[2]) <= tol
+    same23 = abs(k[2] - k[3]) <= tol
+    perms = same12 && same23 ? 1 : (same12 || same23) ? 3 : 6
+    return perms * 2^(3 - zeros_)
+end
+
+"""
+    OctahedralTestSet{S}(d, sharp)
+
+The group-averaged even monomials used to verify an `O_h`-symmetric rule of degree `d` on
+orbit representatives: all sorted even exponents of the largest even degree `≤ d`, and, for
+sharpness, of the next even degree. Evaluated at a representative `k`, a test function is
+`(1/6) Σ_σ Πᵢ k_{σ(i)}^{αᵢ}`; with each orbit's total weight this gives exactly the rule's
+integral of `xᵅ`.
+"""
+struct OctahedralTestSet{S} <: VerificationBasis
+    exps::Vector{NTuple{3,Int}}
+    blockranges::Vector{UnitRange{Int}}
+    maxdeg::Int
+end
+function OctahedralTestSet{S}(d::Integer, sharp::Bool) where {S}
+    exps = NTuple{3,Int}[]
+    ranges = UnitRange{Int}[]
+    me = iseven(d) ? d : d - 1
+    for m in (sharp && isodd(d) ? (me, d + 1) : (me,))
+        lo = length(exps) + 1
+        h = m ÷ 2
+        for a in h:-1:0, b in min(a, h - a):-1:0
+            c = h - a - b
+            0 <= c <= b && push!(exps, (2a, 2b, 2c))
+        end
+        push!(ranges, lo:length(exps))
+    end
+    return OctahedralTestSet{S}(exps, ranges, maximum(sum, exps))
+end
+function evaluate!(b::OctahedralTestSet{S}, k) where {S}
+    P = [S(k[j])^e for e in 0:b.maxdeg, j in 1:3]          # P[e+1, j] = k_j^e
+    φ = zeros(S, length(b.exps))
+    g = zeros(S, length(b.exps))
+    for (n, α) in enumerate(b.exps), σ in permutations_of(3)
+        t = P[α[1] + 1, σ[1]] * P[α[2] + 1, σ[2]] * P[α[3] + 1, σ[3]]
+        φ[n] += t
+        # |∇xᵅ| summed componentwise: αᵢ xᵅ / xᵢ, written without dividing by a zero coordinate
+        for i in 1:3
+            α[i] == 0 && continue
+            q = S(α[i])
+            for j in 1:3
+                q *= P[(j == i ? α[j] - 1 : α[j]) + 1, σ[j]]
+            end
+            g[n] += q
+        end
+    end
+    return φ ./ 6, g ./ 6
+end
+blocks(b::OctahedralTestSet) = b.blockranges
+exact_integrals(b::OctahedralTestSet{S}) where {S} = S[S(sphere_moment(3, α)) for α in b.exps]
+
 function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bits = nothing,
-                integrals = nothing) where {D}
+                integrals = nothing, use_symmetry::Bool = true) where {D}
     d = degree === nothing ? c.d : Int(degree)
     test_sharp = degree === nothing || d == c.d
     exact = _is_exact_type(eltype(r))
@@ -474,7 +605,18 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         floor_tol = exact ? big(0.0) : ldexp(big(1.0), -(cbits - 16))
         xs, ws = reference_nodes(r, S)
         refdom = reference(r.domain)
-        if refdom isa Simplex && D >= 4
+        # an O_h-symmetric rule on S² is checked on its orbit representatives; if its nodes
+        # do not group into complete orbits, it falls through to the general check below
+        orbits = use_symmetry && !exact && refdom isa Sphere{3} && r.provenance.symmetry === :Oh ?
+                 octahedral_orbits(xs, ws, 64ε) : nothing
+        if orbits !== nothing
+            reps, totals = orbits
+            basis = OctahedralTestSet{S}(d, test_sharp)
+            bname = "O_h-averaged even monomials on $(length(reps)) orbit representatives (exact sphere moments)"
+            res = block_residuals(basis, reps, totals, ε, floor_tol)
+            ex = res[1:1]
+            sh = test_sharp && isodd(d) ? res[2] : nothing
+        elseif refdom isa Simplex && D >= 4
             basis, bname = verification_basis(refdom, test_sharp ? [d, d + 1] : [d], S, exact)
             res = block_residuals(basis, xs, ws, ε, floor_tol)
             ex = res[1:1]
@@ -489,13 +631,18 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         max_tol = maximum(t -> t[3], ex)
         is_exact = all(t -> t[2] <= 1, ex)
         sharp = sh === nothing ? nothing : sh[2] > 100 ? true : sh[2] <= 1 ? false : nothing
+        # a centrally symmetric rule integrates every odd polynomial exactly, so an even
+        # degree claim is understated by construction: exact at d + 1 without testing
+        orbits !== nothing && test_sharp && iseven(d) && (sharp = false)
         # structural invariants
         μ = S(measure(refdom))
         wsum = sum(ws)
         wsum_ok = exact ? wsum == μ : abs(wsum - μ) <= 16ε * sum(abs, ws) + floor_tol
         interior = all(x -> isinterior(x, r.domain), _node_iter(r))
         positive = all(>(0), r.weights)
-        symmetric = check_symmetry(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
+        # the orbit grouping is itself a complete invariance check, done in O(N log N)
+        symmetric = orbits !== nothing ? true :
+                    check_symmetry(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
         Verification(basis = bname, degree = d, max_residual = BigFloat(max_res), tolerance = BigFloat(max_tol),
                      exact = is_exact, sharp = sharp,
                      sharp_residual = sh === nothing ? big(0.0) : BigFloat(sh[1]),
@@ -528,7 +675,8 @@ function check_simplex_symmetry(xs, ws, tol)
     return true
 end
 
-function verify(r::QuadratureRule, c::SpanOf; integrals = nothing, bits = nothing, degree = nothing)
+function verify(r::QuadratureRule, c::SpanOf; integrals = nothing, bits = nothing, degree = nothing,
+                use_symmetry::Bool = true)
     integrals === nothing && throw(ArgumentError("verifying a SpanOf claim needs the exact `integrals` of the basis"))
     length(integrals) == length(c.basis) || throw(DimensionMismatch("one integral per basis function"))
     exact = _is_exact_type(eltype(r))
