@@ -270,7 +270,7 @@ end
 
 # A measure given by its moments is stated on the interval it was integrated over, whatever
 # that interval is, so the rule is already on its own reference and the nodes pass through.
-reference_nodes(r::QuadratureRule{1,T,<:MomentInterval}, ::Type{S}) where {T,S} =
+reference_nodes(r::QuadratureRule{1,T,<:MomentDomain}, ::Type{S}) where {T,S} =
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
 
 """
@@ -432,7 +432,7 @@ end
 blocks(b::MomentBasis) = [k:k for k in eachindex(b.degs)]
 exact_integrals(b::MomentBasis{S}) where {S} = S[S(b.w.moments(k, S)) for k in b.degs]
 
-verification_basis(dom::MomentInterval, n, ::Type{S}, exact) where {S} =
+verification_basis(dom::MomentDomain, n, ::Type{S}, exact) where {S} =
     MomentBasis{S}(_degrees(n), dom.weight),
     "monic auxiliary polynomials of $(dom.weight.label), against the given moments"
 

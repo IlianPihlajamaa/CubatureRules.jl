@@ -86,7 +86,7 @@ barycentric
 cartesian
 ExponentialWeight
 GaussianWeight
-MomentInterval
+MomentDomain
 Polytope
 Wedge
 Pyramid
@@ -99,6 +99,9 @@ MonicRecurrence
 monic
 shift
 shifted_legendre_recurrence
+legendre_monic
+second_kind
+endpoints
 monomial_recurrence
 wheeler
 MomentBreakdownError

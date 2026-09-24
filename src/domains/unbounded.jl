@@ -26,7 +26,9 @@ RealSpace{D}() where {D} = RealSpace{D,Int}()
 const RealLine = RealSpace{1}
 
 isreference(::HalfLine) = true
+endpoints(::HalfLine) = (0, Inf)
 isreference(::RealSpace) = true
+endpoints(::RealSpace{1}) = (-Inf, Inf)
 reference(::HalfLine) = HalfLine()
 reference(::RealSpace{D}) where {D} = RealSpace{D}()
 convert_domain(::Type{S}, ::HalfLine) where {S} = HalfLine{S}()

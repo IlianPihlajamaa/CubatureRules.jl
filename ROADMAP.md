@@ -408,7 +408,12 @@ gaining enough breadth for the selector to be genuinely discriminating.
       found by running twice and doubling until consecutive iterates agree, because the
       residual of the defining equations is *not* a proxy for accuracy here — at n = 40 a
       rule wrong in the sixth decimal still matches all 80 moments to 1e-52
-- [ ] Christoffel modification: multiply or divide the weight by a linear factor
+- [x] Christoffel modification: multiply or divide the weight by a linear factor
+      *(`christoffel(domain, z; power = ±1)` on intervals, Jacobi-weighted intervals and the
+      Laguerre half line, as modified-moment problems against the base weight's own
+      polynomials: two closed-form moments to multiply, functions of the second kind by
+      backward recursion to divide. Moment domains may now have a half-line base. Quadratic
+      factors `(x − x₀)² + y²`, for complex-conjugate poles, are not covered yet)*
 - [ ] Stroud $E_n^r$ in closed form, carried from v0.4: the $e^{-r}$-weighted whole space.
       It belongs with the measures rather than with the spheres, being another radial
       weight, and is much rarer in practice than the Gaussian one

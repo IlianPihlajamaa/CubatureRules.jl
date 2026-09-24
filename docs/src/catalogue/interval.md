@@ -106,6 +106,7 @@ ModifiedChebyshev
 MomentWeight
 OrdinaryMoments
 LogWeight
+CubatureRules.christoffel
 ```
 
 For a weight without a classical family, `ModifiedChebyshev` computes the Gauss rule from

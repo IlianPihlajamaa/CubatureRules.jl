@@ -52,6 +52,7 @@ include("families/onedim/newtoncotes.jl")
 include("families/onedim/fejer.jl")
 include("families/onedim/tanhsinh.jl")
 include("families/onedim/laguerre_hermite.jl")
+include("families/onedim/christoffel.jl")
 include("families/onedim/desinh.jl")
 include("families/onedim/delegated.jl")
 include("families/simplex/conical.jl")
@@ -115,7 +116,8 @@ export verify, check, passed, @test_exact, cite
 # Public, but not exported: documented API that most callers never type. `nodes` and
 # `weights` stay exported despite colliding with other quadrature packages — they are what
 # every caller touches, and that collision is inherent rather than clutter.
-public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recurrence, wheeler, MomentInterval, MomentBreakdownError,
+public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recurrence, legendre_monic,
+       christoffel, second_kind, endpoints, wheeler, MomentDomain, MomentBreakdownError,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight,vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map,

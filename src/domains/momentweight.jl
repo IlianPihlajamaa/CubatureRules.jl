@@ -17,9 +17,13 @@ with coefficients returned in type `T`. This is the form Wheeler's algorithm tak
 form the literature tabulates; [`monic`](@ref) converts the orthonormal
 [`Recurrence`](@ref) used elsewhere in the package.
 """
-struct MonicRecurrence{A,B}
-    a::A
-    b::B
+struct MonicRecurrence
+    # The coefficient functions are stored without specialising on their types. Every weight
+    # brings its own closures, and a type parameter per closure made Wheeler's algorithm, the
+    # Gauss driver and the verifier recompile for each new weight -- about two seconds each
+    # time -- to save one dynamic call per coefficient against BigFloat work that dwarfs it.
+    a::Any
+    b::Any
 end
 
 """
@@ -81,9 +85,9 @@ precision until successive results agree.
 stored `Float64`. A measure known only to `Float64` cannot be rescued by precision, and the
 error message says so.
 """
-struct MomentWeight{A<:MonicRecurrence,M}
-    aux::A
-    moments::M
+struct MomentWeight
+    aux::MonicRecurrence
+    moments::Any                       # unspecialised, for the reason given at MonicRecurrence
     label::String
     support::Union{Nothing,Tuple{Real,Real}}
 end
@@ -108,21 +112,25 @@ OrdinaryMoments(moments; label::AbstractString = "OrdinaryMoments", support = no
     MomentWeight(monomial_recurrence(), moments; label, support)
 
 """
-    MomentInterval
+    MomentDomain
 
-An [`Interval`](@ref) carrying a measure given by its moments; see [`MomentWeight`](@ref).
+A one-dimensional domain — an [`Interval`](@ref), or the [`HalfLine`](@ref) — carrying a
+measure given by its moments; see [`MomentWeight`](@ref).
 """
-const MomentInterval = WeightedDomain{1,<:Any,<:Interval,<:MomentWeight}
+const MomentDomain = WeightedDomain{1,<:Any,<:Domain{1},<:MomentWeight}
 
 # Modified moments are stated for the interval they were computed on, so there is no
 # reference domain to map from and nothing to map: such a domain is its own reference.
 # Without this the selector would build on [-1, 1] and map, silently pairing the moments
 # with the wrong interval.
-isreference(::MomentInterval) = true
-reference(d::MomentInterval) = d
+isreference(::MomentDomain) = true
+reference(d::MomentDomain) = d
 
 # π₀ = 1, so the zeroth modified moment is the total mass whatever the auxiliary family is.
 # In BigFloat at the ambient precision, like the other measures: the domain's coordinate type
 # is no guide (it is Int for Interval(0, 1)), and a mass rounded to Float64 fails the weight-sum
 # check of every rule more precise than that whose mass is not a dyadic rational.
-measure(d::WeightedDomain{1,<:Any,<:Interval,<:MomentWeight}) = d.weight.moments(0, BigFloat)
+measure(d::MomentDomain) = d.weight.moments(0, BigFloat)
+
+"The closed hull of a one-dimensional domain, as `(lo, hi)`; unbounded ends are `±Inf`."
+endpoints(d::Interval) = (d.a, d.b)

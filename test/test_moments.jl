@@ -186,3 +186,77 @@ end
     s = CR.shifted_legendre_recurrence()
     @test all(k -> s.b(k, BigFloat) == SHIFTED_LEGENDRE.b(k, BigFloat), 0:30)
 end
+
+@testset "Christoffel modification" begin
+    christoffel = CR.christoffel
+    # Worst relative error of a rule's moments against a reference computed without the
+    # moment machinery.
+    function worst(r, exact, n)
+        with_bits(600) do
+            maximum(0:(2n - 1)) do j
+                got = sum(BigFloat(weights(r)[i]) * BigFloat(nodes(r)[i])^j for i in 1:n)
+                abs(got - exact(j)) / abs(exact(j))
+            end
+        end
+    end
+    # ... on an interval, from a 200-point Gauss rule of the base weight
+    function by_rule(ref, f)
+        X, W = BigFloat.(nodes(ref)), BigFloat.(weights(ref))
+        return j -> with_bits(600) do
+            sum(W[i] * f(X[i]) * X[i]^j for i in eachindex(X))
+        end
+    end
+    n, digits = 10, 25
+
+    # multiplying Legendre by (1 + x) is Gauss–Jacobi(0, 1), to the last bit
+    r = rule(christoffel(Interval(), -1); degree = 2n - 1, digits)
+    g = rule(GaussJacobi(0, 1), Interval(); degree = 2n - 1, digits)
+    @test maximum(abs, BigFloat.(nodes(r)) .- BigFloat.(nodes(g))) < exp10(-digits + 1)
+
+    legref = rule(GaussLegendre(), Interval(); npoints = 200, digits = 120)
+    i02ref = rule(GaussLegendre(), Interval(0, 2); npoints = 200, digits = 120)
+    jacref = rule(GaussJacobi(0.5, -0.5), Interval(); npoints = 200, digits = 120)
+    for (dom, exact) in (
+            (christoffel(Interval(), -2; power = -1), by_rule(legref, x -> 1 / (x + 2))),
+            (christoffel(Interval(), 3; power = -1), by_rule(legref, x -> 1 / (3 - x))),
+            (christoffel(Interval(0, 2), 3), by_rule(i02ref, x -> 3 - x)),
+            (christoffel(Interval(0, 2), -1 // 2; power = -1), by_rule(i02ref, x -> 1 / (x + big(1) / 2))),
+            (christoffel(WeightedDomain(Interval(), JacobiWeight(0.5, -0.5)), -3 // 2; power = -1),
+             by_rule(jacref, x -> 1 / (x + big(3) / 2))))
+        r = rule(dom; degree = 2n - 1, digits)
+        @test family(r) == "ModifiedChebyshev"
+        @test worst(r, exact, n) < exp10(-digits + 2)
+        @test all(>(0), weights(r)) && passed(check(r))
+        @test certificate(r).cond < 1e3
+    end
+
+    # on the half line, against exact values: ∫ xʲ (x + 2) e⁻ˣ = (j+1)! + 2 j!, and
+    # ∫ xʲ e⁻ˣ / (x + 1) = Σᵢ₌₀^{j-1} (-1)^(j-1-i) i! + (-1)ʲ e E₁(1)
+    E1_1 = with_bits(700) do
+        -BigFloat(Base.MathConstants.eulergamma) - sum((-1)^k / (k * factorial(big(k))) for k in 1:400)
+    end
+    lag_times(j) = factorial(big(j + 1)) + 2 * factorial(big(j))
+    lag_div(j) = with_bits(700) do
+        sum((-1)^(j - 1 - i) * factorial(big(i)) for i in 0:(j - 1); init = big(0)) + (-1)^j * exp(big(1)) * E1_1
+    end
+    for (dom, exact) in ((christoffel(LaguerreRay(), -2), lag_times),
+                         (christoffel(LaguerreRay(), -1; power = -1), lag_div))
+        r = rule(dom; degree = 2n - 1, digits)
+        @test worst(r, exact, n) < exp10(-digits + 2)
+        @test all(>(0), weights(r)) && all(>(0), nodes(r)) && passed(check(r))
+    end
+    @test christoffel(LaguerreRay(), -1; power = -1).weight.label == "e^-x on [0, ∞) / |x + 1|"
+    @test christoffel(Interval(), 3).weight.label == "|x - 3| × 1 on [-1, 1]"
+
+    # refusals: inside the support, an endpoint when dividing, an unsupported power, a domain
+    # whose orthogonal polynomials are not known, and the wrong interval for the result
+    @test_throws ArgumentError christoffel(Interval(), 0)
+    @test_throws ArgumentError christoffel(Interval(), -1; power = -1)
+    @test_throws ArgumentError christoffel(Interval(), 2; power = 2)
+    @test_throws ArgumentError christoffel(HermiteLine(), 5)
+    @test_throws ArgumentError christoffel(LaguerreRay(), 1)
+    @test_throws ArgumentError christoffel(Simplex{2}(), 3)
+    w = christoffel(Interval(), -2; power = -1).weight
+    @test_throws ArgumentError rule(WeightedDomain(Interval(0, 1), w); degree = 5)
+    @test CR.endpoints(HalfLine()) == (0, Inf) && CR.endpoints(Interval(0, 2)) == (0, 2)
+end

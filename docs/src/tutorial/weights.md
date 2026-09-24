@@ -38,6 +38,22 @@ integrate(x -> cos(x), r)            # ∫₀¹ cos(x) log(1/x) / √x dx
 The weight is only defined on `[0, 1]`, and pairing it with another interval is an error. For
 a logarithmic singularity at another point, change variables so that it sits at 0.
 
+## Multiplying or dividing by a linear factor
+
+`CubatureRules.christoffel(domain, z; power)` multiplies the weight of a domain by `|x − z|`
+(`power = 1`) or divides it by `|x − z|` (`power = -1`), for a point `z` outside the domain:
+
+```@repl w
+using CubatureRules: christoffel
+r = rule(christoffel(Interval(), -2; power = -1); degree = 19);   # 1/(x + 2) on [-1, 1]
+integrate(x -> one(x), r)                                         # log 3
+r = rule(christoffel(LaguerreRay(), -1; power = -1); degree = 19); # e^-x/(x + 1) on [0, ∞)
+integrate(x -> one(x), r)                                         # e E₁(1) ≈ 0.596
+```
+
+The domain must be one whose orthogonal polynomials the package knows: an `Interval`, an
+`Interval` with a `JacobiWeight`, or a `LaguerreRay`.
+
 ## Other weights: using moments
 
 For a weight the package does not know, you can describe it by its moments: the integrals of

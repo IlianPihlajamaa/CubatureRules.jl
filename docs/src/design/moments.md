@@ -103,6 +103,33 @@ A moment weight can record the interval its moments were computed on with
 `support = (a, b)`. `LogWeight` does; pairing it with any other interval then throws an
 `ArgumentError` instead of producing a rule for the wrong measure.
 
+## Christoffel modification
+
+`CubatureRules.christoffel(domain, z; power)` gives the Gauss rules of `|x − z| dμ`
+(`power = 1`) or `dμ / |x − z|` (`power = -1`) for a measure `μ` whose monic orthogonal
+polynomials `πₖ` are known (Legendre, Jacobi, Laguerre) and a point `z` outside its support.
+Both are modified-moment problems against the `πₖ` themselves, which is the well-conditioned
+case.
+
+Multiplying needs only two moments. With `s` the sign of `x − z` on the support, and
+`x − z = π₁ + (α₀ − z)`,
+
+```math
+\int \pi_k \, |x - z| \, d\mu = s \bigl( (\alpha_0 - z)\beta_0 \, \delta_{k0} + \beta_0\beta_1 \, \delta_{k1} \bigr).
+```
+
+Dividing gives `∫ πₖ dμ / |x − z| = −s ρₖ(z)`, where `ρₖ(z) = ∫ πₖ(x) dμ(x) / (z − x)` are the
+functions of the second kind. They satisfy the same three-term recurrence as the `πₖ`, with
+`ρ₋₁ = 1`, but as its minimal solution, so forward recursion loses them to rounding. They are
+computed by backward recursion instead, which is a continued fraction, starting deeper until
+the values no longer change. The convergence is geometric on a bounded interval, slower on
+the half line, and slows as `z` approaches the support.
+
+Checked against references that do not use the moments: multiplying Legendre by `1 + x`
+reproduces Gauss–Jacobi(0, 1) to the last bit, and the other cases match integrals computed
+with a 200-point rule of the base weight, or exact values on the half line, to the requested
+precision. The measured condition numbers are between 1 and about 10⁵.
+
 ## Helpers
 
 - [`LogWeight`](@ref) gives `x^α log(1/x)^power` on `[0, 1]`, as above.

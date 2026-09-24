@@ -254,7 +254,7 @@ struct ModifiedChebyshev <: RuleFamily end
 derivation(::Type{ModifiedChebyshev}) = Derived()
 family_name(::ModifiedChebyshev) = "ModifiedChebyshev"
 
-candidates(::Type{ModifiedChebyshev}, dom::MomentInterval, ::PolynomialDegree) = [ModifiedChebyshev()]
+candidates(::Type{ModifiedChebyshev}, dom::MomentDomain, ::PolynomialDegree) = [ModifiedChebyshev()]
 
 mc_points(degree) = max(1, cld(degree + 1, 2))
 npoints(::ModifiedChebyshev, dom, degree::Integer) = mc_points(degree)
@@ -267,7 +267,7 @@ degree_for_npoints(::ModifiedChebyshev, dom, n::Integer) = 2n - 1
 properties(::ModifiedChebyshev, dom, degree) =
     (positive = true, interior = true, symmetry = :none, nested = false)
 
-function build(f::ModifiedChebyshev, dom::MomentInterval, degree::Int, ctx::BuildContext{T}) where {T}
+function build(f::ModifiedChebyshev, dom::MomentDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) &&
         throw(ArgumentError("modified Chebyshev nodes are irrational; $(T) is not supported"))
     n = mc_points(degree)
@@ -275,10 +275,12 @@ function build(f::ModifiedChebyshev, dom::MomentInterval, degree::Int, ctx::Buil
     # A moment domain is never mapped, so a weight paired with the wrong interval would give
     # a rule for a measure nobody described. Refuse it when the weight knows its interval.
     s = mw.support
-    s === nothing || (dom.base.a == s[1] && dom.base.b == s[2]) ||
+    if s !== nothing && endpoints(dom.base) != (s[1], s[2])
+        right = isinf(s[2]) ? "HalfLine()" : "Interval($(s[1]), $(s[2]))"
         throw(ArgumentError("$(mw.label) is defined on [$(s[1]), $(s[2])], but was paired with " *
                             "$(dom.base); its moments only hold on its own interval. Use " *
-                            "WeightedDomain(Interval($(s[1]), $(s[2])), weight)."))
+                            "WeightedDomain($right, weight)."))
+    end
     ctx.verbose >= 1 && @info @sprintf("modified Chebyshev: %d points from %d moments of %s, target %d bits",
                                        n, 2n + 2, mw.label, ctx.bits)
     x, w, iters, used, res, cond = modified_chebyshev_work(mw, n, ctx.bits; verbose = ctx.verbose)
