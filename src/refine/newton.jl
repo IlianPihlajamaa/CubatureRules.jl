@@ -284,14 +284,24 @@ function pivoted_qr_mp(J::AbstractMatrix)
     A = [mp_set!(BigFloat(0; precision = prec), BigFloat(x)) for x in J]
     τ = bigfloats(BigFloat, min(m, n))
     p = collect(1:n)
-    nrm = bigfloats(BigFloat, n)
+    # Squared norms of the trailing columns, updated by subtracting the entry each step moves
+    # into R rather than recomputed (a third of the work). They only choose the pivot; when
+    # cancellation has eaten into one (below 2^-(prec/4) of its last fresh value) it is
+    # recomputed, and the pivot column's norm, which the reflector uses, is always fresh.
+    nrm, fresh = bigfloats(BigFloat, n), bigfloats(BigFloat, n)
     w, t, β, x1 = bigfloats(BigFloat, 4)
+    colnorm!(z, j, k) = (mp_set_si!(z, 0); for i in k:m; mp_fma!(z, A[i, j], A[i, j], z); end; z)
+    for j in 1:n
+        colnorm!(nrm[j], j, 1)
+        mp_set!(fresh[j], nrm[j])
+    end
+    shrink = ldexp(BigFloat(1), -(prec ÷ 4))
     for k in 1:min(m, n)
         best = k
         for j in k:n
-            mp_set_si!(nrm[j], 0)
-            for i in k:m
-                mp_fma!(nrm[j], A[i, j], A[i, j], nrm[j])
+            if nrm[j] <= shrink * fresh[j]
+                colnorm!(nrm[j], j, k)
+                mp_set!(fresh[j], nrm[j])
             end
             nrm[j] > nrm[best] && (best = j)
         end
@@ -301,7 +311,9 @@ function pivoted_qr_mp(J::AbstractMatrix)
             end
             p[k], p[best] = p[best], p[k]
             nrm[k], nrm[best] = nrm[best], nrm[k]
+            fresh[k], fresh[best] = fresh[best], fresh[k]
         end
+        colnorm!(nrm[k], k, k)
         iszero(nrm[k]) && continue
         mp_sqrt!(β, nrm[k])
         mp_set!(x1, A[k, k])
@@ -319,9 +331,11 @@ function pivoted_qr_mp(J::AbstractMatrix)
             end
             mp_mul!(w, w, τ[k])
             mp_sub!(A[k, j], A[k, j], w)
+            mp_sub!(w, zero(BigFloat), w)                              # −w, for one fused op below
             for i in (k + 1):m
-                mp_mul!(t, w, A[i, k]); mp_sub!(A[i, j], A[i, j], t)
+                mp_fma!(A[i, j], w, A[i, k], A[i, j])                  # A[i,j] − w v_i
             end
+            mp_fms!(nrm[j], A[k, j], A[k, j], nrm[j]); mp_sub!(nrm[j], zero(BigFloat), nrm[j])   # ‖·‖² − A[k,j]²
         end
     end
     return A, τ, p

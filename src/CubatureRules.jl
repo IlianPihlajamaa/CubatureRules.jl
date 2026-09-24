@@ -139,4 +139,6 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
 # A family list cached while precompiling carries a world age from another session.
 __init__() = reset_families_cache()
 
+include("precompile.jl")
+
 end # module

@@ -232,16 +232,31 @@ function invariant_moment_over_4π(a::Integer, b::Integer)
     key = (Int(a), Int(b))
     cached = lock(() -> get(INVARIANT_MOMENTS, key, nothing), INVARIANT_MOMENTS_LOCK)
     cached === nothing || return cached
-    dfact(m) = m <= 0 ? big(1) : prod(big(m):-2:1)
-    total = zero(Rational{BigInt})
+    # every term has I + J + K = 2a + 3b, so they share the denominator (2(2a+3b)+1)!! and
+    # the sum stays in integers until one division at the end
+    num = zero(BigInt)
+    fa = factorial(big(a))
     for i in 0:a, j in 0:(a - i)
         k = a - i - j
-        coeff = factorial(big(a)) ÷ (factorial(big(i)) * factorial(big(j)) * factorial(big(k)))
-        I, J, K = 2i + b, 2j + b, 2k + b              # half the exponents 4i + 2b, …
-        total += coeff * dfact(2I - 1) * dfact(2J - 1) * dfact(2K - 1) // dfact(2(I + J + K) + 1)
+        coeff = fa ÷ (factorial(big(i)) * factorial(big(j)) * factorial(big(k)))
+        num += coeff * odd_double_factorial(2i + b) * odd_double_factorial(2j + b) * odd_double_factorial(2k + b)
     end
+    total = num // odd_double_factorial(2a + 3b + 1)
     lock(() -> (INVARIANT_MOMENTS[key] = total), INVARIANT_MOMENTS_LOCK)
     return total
+end
+
+const ODD_DOUBLE_FACTORIALS = BigInt[1]            # (2I − 1)!! at index I + 1, (−1)!! = 1
+
+"`(2I − 1)!!`, from a table that grows as needed."
+function odd_double_factorial(I::Integer)
+    lock(INVARIANT_MOMENTS_LOCK) do
+        t = ODD_DOUBLE_FACTORIALS
+        while length(t) <= I
+            push!(t, t[end] * (2length(t) - 1))
+        end
+        t[I + 1]
+    end
 end
 
 # --- the moment system -------------------------------------------------------------------
