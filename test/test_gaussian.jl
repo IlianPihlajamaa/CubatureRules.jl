@@ -94,3 +94,40 @@ end
     @test passed(check(rl))
     @test npoints(rl) < npoints(rule(GaussianProduct(SphereProduct()), GaussianSpace(3); degree = 5))
 end
+
+@testset "exponential space: Stroud's E_n^r" begin
+    # the domain and its moments: ∫ x^α e^{-|x|} = Γ(|α| + D) × the sphere moment
+    @test measure(ExponentialSpace(3)) ≈ 8π
+    @test measure(ExponentialSpace(2)) ≈ 2π
+    @test iszero(CR.exponential_moment(3, (1, 2, 0)))
+    @test CR.exponential_moment(3, (2, 0, 0)) ≈ factorial(4) * 4π / 3
+
+    # selection: the angular factor is any sphere family, and the radial factor needs only
+    # ⌈(d+2)/4⌉ points, as for the Gaussian weight
+    r = rule(ExponentialSpace(3); degree = 11)
+    @test family(r) == "ExponentialProduct"
+    @test npoints(r) == CR.gaussian_radial_points(11) * npoints(rule(Sphere{3}(); degree = 11))
+    @test passed(check(r))
+    @test passed(check(rule(ExponentialSpace(2); degree = 13, digits = 30)))
+
+    # independent of the sphere moments: ∫_{R^3} |x|^{2j} e^{-|x|} dx = 4π (2j+2)!
+    r = rule(ExponentialSpace(3); degree = 15, digits = 40)
+    for j in 0:7
+        got = CR.with_bits(300) do
+            sum(BigFloat(weights(r)[i]) * sum(abs2, BigFloat.(nodes(r)[i]))^j for i in 1:npoints(r))
+        end
+        want = CR.with_bits(300) do
+            4 * big(π) * factorial(big(2j + 2))
+        end
+        @test abs(got - want) / want < 1e-38
+    end
+
+    # the radial rule in u = r² is exact for even powers up to r^(4n-2) with n points
+    rr, wr, _ = CR.exponential_radial_work(3, 4, 200)
+    for k in 0:2:14
+        got = CR.with_bits(200) do
+            sum(wr[i] * rr[i]^k for i in eachindex(rr))
+        end
+        @test abs(got - factorial(big(k + 2))) / factorial(big(k + 2)) < 1e-50
+    end
+end

@@ -86,6 +86,7 @@ barycentric
 cartesian
 ExponentialWeight
 GaussianWeight
+RadialExponentialWeight
 MomentDomain
 Polytope
 Wedge

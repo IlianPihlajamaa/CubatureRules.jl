@@ -11,7 +11,7 @@ the current version actually supports.
 | [Box](box.md) | `Orthotope{D}` |
 | [Sphere](sphere.md) | `Sphere{D}`: circle, sphere and higher |
 | [Ball](ball.md) | `Ball{D}`, `Disk` |
-| [Unbounded](unbounded.md) | `LaguerreRay`, `HermiteLine`, `GaussianSpace`, `HalfLine`, `RealLine` |
+| [Unbounded](unbounded.md) | `LaguerreRay`, `HermiteLine`, `GaussianSpace`, `ExponentialSpace`, `HalfLine`, `RealLine` |
 
 ## All families at a glance
 
@@ -43,6 +43,7 @@ overview([
     "`LaguerreRay()`" => LaguerreRay(),
     "`HermiteLine()`" => HermiteLine(),
     "`GaussianSpace(3)`" => GaussianSpace(3),
+    "`ExponentialSpace(3)`" => ExponentialSpace(3),
 ])
 ```
 

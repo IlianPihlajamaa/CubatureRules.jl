@@ -416,6 +416,10 @@ verification_basis(dom::GaussianDomain{D}, n, ::Type{S}, exact) where {D,S} =
     MonomialTestSet{D,S}(_degrees(n), α -> gaussian_moment(D, α)),
     "monomials of degree $(join(n, ", ")) (exact Gaussian moments)"
 
+verification_basis(dom::ExponentialDomain{D}, n, ::Type{S}, exact) where {D,S} =
+    MonomialTestSet{D,S}(_degrees(n), α -> exponential_moment(D, α)),
+    "monomials of degree $(join(n, ", ")) (exact e^-|x| moments)"
+
 verification_basis(dom::Sphere{3}, n, ::Type{S}, exact) where {S} =
     HarmonicBasis{S}(n), "real spherical harmonics"
 verification_basis(dom::Sphere{2}, n, ::Type{S}, exact) where {S} =

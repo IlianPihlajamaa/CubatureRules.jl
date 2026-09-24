@@ -72,6 +72,7 @@ include("families/sphere/product.jl")
 include("families/sphere/lebedev.jl")
 include("families/sphere/ballproduct.jl")
 include("families/sphere/gaussianproduct.jl")
+include("families/sphere/exponentialproduct.jl")
 include("composition/tensor.jl")
 
 # selection, application, verification, presentation
@@ -92,7 +93,7 @@ include("benchmark/construction.jl")
 # rarely typed is not worth a collision.
 export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain, JacobiWeight,
        MomentWeight, OrdinaryMoments, LogWeight,
-       HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace,
+       HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace, ExponentialSpace,
        Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
 export measure, indomain, isinterior
@@ -104,7 +105,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        NewtonCotes, Fejer, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
-       LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ModifiedChebyshev
+       LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev
 export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport
@@ -119,7 +120,7 @@ export verify, check, passed, @test_exact, cite
 public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recurrence, legendre_monic,
        christoffel, second_kind, endpoints, wheeler, MomentDomain, MomentBreakdownError,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
-       ExponentialWeight, GaussianWeight,vertices, barycentric, cartesian, isreference,
+       ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map,
        rule_hash,
        Provenance, Certificate, Verification, Citation, Derived, Seeded,

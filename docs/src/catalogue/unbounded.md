@@ -26,13 +26,15 @@ RealSpace
 LaguerreRay
 HermiteLine
 GaussianSpace
+ExponentialSpace
 ```
 
 | Domain | Weight | `measure` |
 |---|---|---|
 | `LaguerreRay(α)` | `x^α e^{-x}` on `[0, ∞)` | `Γ(α + 1)` |
 | `HermiteLine()` | `e^{-x²}` on `ℝ` | `√π` |
-| `GaussianSpace(D)` | `e^{-|x|²}` on `ℝ^D` | `π^{D/2}` |
+| `GaussianSpace(D)` | `e^{-‖x‖²}` on `ℝ^D` | `π^{D/2}` |
+| `ExponentialSpace(D)` | `e^{-‖x‖}` on `ℝ^D` | `(D-1)!` times the area of `S^{D-1}` |
 | `HalfLine()`, `RealLine()` | none | `Inf` |
 
 ## Gauss–Laguerre and Gauss–Hermite
@@ -68,6 +70,27 @@ In polar coordinates the Gaussian weight separates into a radial and an angular 
 `u = r²` the radial factor becomes a generalised Gauss–Laguerre problem with `α = (D - 2)/2`,
 and odd degrees vanish through the angular factor, so only `⌈(d + 2)/4⌉` radial points are
 needed.
+
+## Exponentially weighted space
+
+```@docs
+ExponentialProduct
+```
+
+```@example unb
+family_table(ExponentialSpace(3))
+```
+
+Stroud's `E_n^r`: the weight `e^{-‖x‖}` separates in polar coordinates in the same way as
+the Gaussian one, and odd degrees again vanish through the angular factor. With `u = r²` the
+radial factor becomes `u^{(D-2)/2} e^{-√u}`, which has no classical family. Its ordinary
+moments are the integers `2 (2j + D - 1)!`, so its modified moments against the Laguerre
+polynomials are computed exactly and its Gauss rule comes from
+[`ModifiedChebyshev`](@ref). The radial factor then needs `⌈(d+2)/4⌉` points, half as many
+as Gauss–Laguerre in `r` would.
+
+Checked against `∫_{ℝ³} ‖x‖^{2j} e^{-‖x‖} dx = 4π (2j+2)!`, which depends only on the radial
+factor, to the requested precision.
 
 ## Double-exponential rules
 

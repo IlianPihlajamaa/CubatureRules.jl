@@ -66,8 +66,18 @@ so it reads the same in any dimension.
 struct GaussianWeight end
 (::GaussianWeight)(x) = exp(-sum(abs2, x))
 
+"""
+    RadialExponentialWeight()
+
+The weight `e^{-|x|}` on `R^D`, with mass `|S^{D-1}| (D-1)!`. Radial, like
+[`GaussianWeight`](@ref), but decaying only exponentially in the distance.
+"""
+struct RadialExponentialWeight end
+(::RadialExponentialWeight)(x) = exp(-sqrt(sum(abs2, x)))
+
 Base.show(io::IO, w::ExponentialWeight) = print(io, iszero(w.α) ? "ExponentialWeight()" : "ExponentialWeight($(w.α))")
 Base.show(io::IO, ::GaussianWeight) = print(io, "GaussianWeight()")
+Base.show(io::IO, ::RadialExponentialWeight) = print(io, "RadialExponentialWeight()")
 
 """
     LaguerreRay(α = 0)
@@ -91,15 +101,42 @@ rules. `GaussianSpace(1)` is [`HermiteLine`](@ref).
 """
 GaussianSpace(D::Integer) = WeightedDomain(RealSpace{D}(), GaussianWeight())
 
+"""
+    ExponentialSpace(D)
+
+`R^D` with the weight `e^{-|x|}`: Stroud's `E_n^r`, and the home of the exponential product
+rules.
+"""
+ExponentialSpace(D::Integer) = WeightedDomain(RealSpace{D}(), RadialExponentialWeight())
+
 const LaguerreDomain = WeightedDomain{1,<:Any,<:HalfLine,<:ExponentialWeight}
 const GaussianDomain{D} = WeightedDomain{D,<:Any,<:RealSpace{D},<:GaussianWeight}
 "The one-dimensional Gaussian space, where the Gauss–Hermite rules live."
 const HermiteDomain = GaussianDomain{1}
+const ExponentialDomain{D} = WeightedDomain{D,<:Any,<:RealSpace{D},<:RadialExponentialWeight}
 
 # The measure of a weighted unbounded domain is the weight's mass — finite, and what a
 # rule's weights sum to.
 measure(d::LaguerreDomain) = laguerre_mass(d.weight.α)
 measure(::GaussianDomain{D}) where {D} = big(π)^(D // 2)
+measure(::ExponentialDomain{D}) where {D} = exponential_moment(D, ntuple(_ -> 0, D))
+
+"""
+    exponential_moment(D, α)
+
+`∫_{R^D} x^α e^{-|x|} dx`. In polar coordinates the radial and angular factors separate:
+`Γ(|α| + D)` times the sphere moment `∫_{S^{D-1}} ω^α dσ`, which is zero unless every
+exponent is even.
+"""
+function exponential_moment(D::Integer, α)
+    length(α) == D || throw(ArgumentError("expected $D exponents, got $(length(α))"))
+    any(isodd, α) && return zero(BigFloat)
+    return factorial(big(sum(α) + D - 1)) * sphere_moment(D, α)
+end
+
+monomial_moment(d::ExponentialDomain{D}, α::NTuple{D,<:Integer}) where {D} =
+    isreference(d) ? exponential_moment(D, α) :
+    throw(ArgumentError("moments are defined on the reference space"))
 
 """
     gaussian_moment(D, α)

@@ -414,9 +414,15 @@ gaining enough breadth for the selector to be genuinely discriminating.
       polynomials: two closed-form moments to multiply, functions of the second kind by
       backward recursion to divide. Moment domains may now have a half-line base. Quadratic
       factors `(x − x₀)² + y²`, for complex-conjugate poles, are not covered yet)*
-- [ ] Stroud $E_n^r$ in closed form, carried from v0.4: the $e^{-r}$-weighted whole space.
+- [x] Stroud $E_n^r$, carried from v0.4: the $e^{-r}$-weighted whole space.
       It belongs with the measures rather than with the spheres, being another radial
       weight, and is much rarer in practice than the Gaussian one
+      *(`ExponentialSpace(D)` with `ExponentialProduct(angular)`, built like
+      `GaussianProduct`. In `u = r²` the radial weight `u^{(D-2)/2} e^{-√u}` is not
+      classical; its moments `2(2j+D-1)!` are exact integers, so the modified moments
+      against Laguerre are exact and the radial Gauss rule comes from the modified
+      Chebyshev algorithm, with `⌈(d+2)/4⌉` points. Not closed form, but derived at every
+      degree and precision)*
 - [ ] Gauss–Patterson, carried over from v0.3: iterated Kronrod extension on top of the
       Stieltjes polynomials
 - [ ] Multiple-component discretisation (`mcdis`)
