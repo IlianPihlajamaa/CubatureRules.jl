@@ -77,3 +77,19 @@ end
     @test r.family == "Fejer"
     @test r.converged
 end
+
+@testset "a sequence never walks the same rule twice" begin
+    # GaussKronrod answers both degree 1 and degree 3 with its 3-point rule. Walking it twice
+    # made the successive difference exactly zero, so integrate reported convergence on the
+    # first rule it built: exp on [-1,1] came back 6.5e-5 wrong with an error estimate of 0.0.
+    seq = RuleSequence(GaussKronrod(), Interval())
+    degs = [degree(r) for r in seq]
+    @test allunique(degs)
+    @test issorted(degs)
+
+    exact = exp(1) - exp(-1)
+    res = integrate(x -> exp(x[1]), Interval(); rtol = 1e-10, atol = 1e-14)
+    @test res.converged
+    @test abs(res.value - exact) <= 1e-10 * exact
+    @test res.error_estimate > 0          # a genuine difference, not a rule compared with itself
+end

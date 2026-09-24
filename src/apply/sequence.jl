@@ -20,7 +20,8 @@ end
 ```
 
 The default schedule roughly doubles the degree each step, clipped to what the family
-offers.
+offers. Requested degrees that the family would answer with the same rule are dropped, so
+the sequence never yields one rule twice.
 """
 struct RuleSequence{F<:RuleFamily,D<:Domain}
     family::F
@@ -34,6 +35,15 @@ function RuleSequence(f::RuleFamily, dom::Domain; degrees = nothing, T = nothing
                       maxdegree::Integer = 64)
     Tout, bits = resolve_precision(T, digits)
     ds = degrees === nothing ? default_schedule(f, dom, maxdegree) : collect(Int, degrees)
+    # A family rounds a requested degree up to one it has, so two requests can land on the
+    # same rule — GaussKronrod answers both 1 and 3 with its 3-point rule. Walking that rule
+    # twice makes the successive difference exactly zero, and a tolerance-driven integrate
+    # then reports convergence on the first rule it built: exp on [-1,1] came back 6.5e-5
+    # wrong with an error estimate of 0.0. Keep only requests that reach a new rule.
+    ref = reference_domain(dom)
+    if ref !== nothing
+        ds = unique(d -> claimed_degree(f, ref, d), ds)
+    end
     isempty(ds) && throw(ArgumentError("$(describe_family(f)) offers no degrees on $(dom)"))
     return RuleSequence{typeof(f),typeof(dom)}(f, dom, ds, Tout, bits)
 end
