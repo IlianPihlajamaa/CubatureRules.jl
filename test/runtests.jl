@@ -30,5 +30,6 @@ const CR = CubatureRules
     @testset "reproducibility" include("test_reproducibility.jl")
     @testset "property-based" include("test_properties.jl")
     @testset "downstream family discovery" include("test_downstream.jl")
+    @testset "scripts" include("test_scripts.jl")
     @testset "Aqua" include("test_aqua.jl")
 end

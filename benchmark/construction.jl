@@ -1,6 +1,7 @@
 # Construction-cost regression benchmark (PLAN §4.6), run in CI on every commit.
 #     julia --project benchmark/construction.jl [out.csv]
 using CubatureRules, Printf
+import CubatureRules: benchmark_construction     # public, not exported
 
 out = isempty(ARGS) ? nothing : ARGS[1]
 cases = [
