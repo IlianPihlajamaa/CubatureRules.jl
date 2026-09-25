@@ -7,3 +7,5 @@ Manifest-v*.toml
 *.jl.mem
 .DS_Store
 /literature/
+campaign/
+campaign_*.out
