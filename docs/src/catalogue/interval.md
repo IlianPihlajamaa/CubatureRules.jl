@@ -142,3 +142,27 @@ For a weight without a classical family, `ModifiedChebyshev` computes the Gauss 
 the weight's moments with Wheeler's algorithm. See
 [I want an unusual weight](../tutorial/weights.md) for examples and
 [Measures given by moments](../design/moments.md) for the method and its conditioning.
+
+## Weights given by a function
+
+```@docs
+StieltjesDiscretization
+FunctionWeight
+PointMass
+```
+
+```@example interval
+w = FunctionWeight(x -> exp(-x), 0, 2) + PointMass(1, 1 // 2);
+r = rule(WeightedDomain(Interval(0, 2), w); degree = 15, digits = 40);
+last(provenance(r).path, 4)
+```
+
+Written as function weights, the Legendre, Jacobi, Laguerre and Hermite weights reproduce
+the classical rules to the last digit, and the weight above gives the same 40 digits as
+`ModifiedChebyshev` on its exact moments. Rules on a function weight are verified against
+the weight's moments, computed by a separate discretisation at the verification precision.
+
+The discrete Stieltjes procedure is implemented here. PolyChaos.jl has one, but it computes
+in `Float64` whatever its input. QuadGK builds Gauss rules for a weight function at any
+precision, but evaluates Chebyshev series at every node on every step and was 30 times
+slower on these sizes.

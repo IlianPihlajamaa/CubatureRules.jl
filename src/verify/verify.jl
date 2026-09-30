@@ -301,6 +301,9 @@ end
 # that interval is, so the rule is already on its own reference and the nodes pass through.
 reference_nodes(r::QuadratureRule{1,T,<:MomentDomain}, ::Type{S}) where {T,S} =
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
+# and so is a weight given as a function
+reference_nodes(r::QuadratureRule{1,T,<:FunctionDomain}, ::Type{S}) where {T,S} =
+    ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
 
 """
     verification_basis(domain, degrees, S, exact) -> (basis, description)
@@ -468,6 +471,14 @@ exact_integrals(b::MomentBasis{S}) where {S} = S[S(b.w.moments(k, S)) for k in b
 verification_basis(dom::MomentDomain, n, ::Type{S}, exact) where {S} =
     MomentBasis{S}(_degrees(n), dom.weight),
     "monic auxiliary polynomials of $(dom.weight.label), against the given moments"
+
+# A weight given as a function is verified against its modified moments, each computed by
+# discretising the weight until two resolutions agree at the verification precision. That
+# shares the discretisation with the construction but not the Stieltjes procedure, the
+# recurrence or the Newton iteration.
+verification_basis(dom::FunctionDomain, n, ::Type{S}, exact) where {S} =
+    MomentBasis{S}(_degrees(n), verification_weight(dom.weight)),
+    "monic polynomials on the support, against moments of the weight computed by discretisation"
 
 "Per-degree-block (max residual, max residual/tolerance, max tolerance)."
 function block_residuals(basis, xs, ws, ε, floor_tol)

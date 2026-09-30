@@ -6,7 +6,7 @@ the current version actually supports.
 
 | Page | Domains |
 |---|---|
-| [Interval](interval.md) | `Interval`, Jacobi-weighted intervals, weights given by moments |
+| [Interval](interval.md) | `Interval`, Jacobi-weighted intervals, weights given by moments or by functions |
 | [Simplex](simplex.md) | `Simplex{D}`: triangle, tetrahedron and higher |
 | [Box](box.md) | `Orthotope{D}` |
 | [Sphere](sphere.md) | `Sphere{D}`: circle, sphere and higher |
@@ -57,7 +57,8 @@ Not listed above:
   requested by level rather than degree.
 - `Lobatto`, `Radau` and `ClenshawCurtis`, which appear once QuadratureRules.jl is loaded.
 - `UpstreamLebedev`, which appears once Lebedev.jl is loaded.
-- `ModifiedChebyshev`, which applies to intervals with a [`MomentWeight`](@ref).
+- `ModifiedChebyshev`, which applies to intervals with a [`MomentWeight`](@ref), and
+  `StieltjesDiscretization`, which applies to domains with a [`FunctionWeight`](@ref).
 
 ## Planned domains
 

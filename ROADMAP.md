@@ -447,7 +447,17 @@ gaining enough breadth for the selector to be genuinely discriminating.
       records the miss (`next_error`) and verification reports such sharpness as not
       resolvable instead of failing. 1023 points also compute, with positive weights, in 90 s,
       and are not claimed)*
-- [ ] Multiple-component discretisation (`mcdis`)
+- [x] Multiple-component discretisation (`mcdis`)
+      *(`FunctionWeight` and `StieltjesDiscretization`: a weight given as a function, in pieces
+      on intervals, half lines or the line, each `g(x)` times a classical factor that carries
+      its singularity or decay, plus point masses. Each piece is discretised by the Gauss
+      rule of its factor, the recurrence comes from the discrete Stieltjes procedure, and the
+      points are doubled until two resolutions agree; a singularity left in `g` is detected
+      from the algebraic convergence and reported in about a second. Classical weights
+      reproduce their rules to the last digit, and a new weight agrees with modified Chebyshev
+      on its exact moments to 40 digits. Along the way the Gauss driver's recurrence
+      evaluation became in-place and symmetric weights refine only half their nodes: a
+      1408-point Gauss–Legendre rule at 150 bits went from 31 s to 5 s)*
 - [x] Singular weights: $\log(1/x)$, algebraic-logarithmic endpoint singularities
       *(`LogWeight(α; power)`: $x^\alpha \log(1/x)^m$ on $[0,1]$. Its ordinary moments are
       exact rationals, so the modified moments against shifted Legendre are computed
@@ -483,7 +493,13 @@ gaining enough breadth for the selector to be genuinely discriminating.
       The honest form of the claim is narrower than the slogan and is documented as such —
       a well-chosen auxiliary family is benign in `Float64` to n = 80 and beyond, and what
       precision buys is the case where the family *cannot* be chosen
-- [ ] No reimplementation of Stieltjes or Lanczos; both delegated or contributed upstream
+- [x] ~~No reimplementation of Stieltjes or Lanczos; both delegated or contributed upstream~~
+      *(amended: measured, delegation was not possible. PolyChaos.jl's `stieltjes`, `lanczos`
+      and `mcdiscretization` compute in `Float64` whatever their input (β right to 1e-16 on a
+      256-bit measure), and would add 62 packages and a second to `using`; QuadGK's Lanczos in
+      a Chebyshev basis works at any precision but was 30× slower at 100 coefficients from
+      2000 points. The discrete Stieltjes procedure is written here, in a dozen lines; no
+      Lanczos was needed. Contributing a generic-precision version to PolyChaos remains open)*
 
 ---
 

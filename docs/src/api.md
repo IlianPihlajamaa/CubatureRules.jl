@@ -112,6 +112,16 @@ laguerre_recurrence
 hermite_recurrence
 ```
 
+## Measures given by functions
+
+```@docs
+FunctionDomain
+WeightPiece
+discretize
+discrete_stieltjes
+verification_weight
+```
+
 ## Verification
 
 ```@docs

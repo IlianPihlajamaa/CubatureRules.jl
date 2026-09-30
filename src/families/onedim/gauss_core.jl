@@ -41,6 +41,7 @@ function gauss_from_recurrence(n::Integer, rec::Recurrence, bits::Integer; name:
     return with_bits(bits) do
         a = [rec.a(k, BigFloat) for k in 0:n]
         b = [rec.b(k, BigFloat) for k in 1:n]
+        binv = inv.(b)                    # the recurrence divides by b at every step
         μ = BigFloat(rec.mass(BigFloat))
         x = BigFloat.(seed)
         tol = ldexp(BigFloat(1), -(bits - 6))
@@ -50,12 +51,17 @@ function gauss_from_recurrence(n::Integer, rec::Recurrence, bits::Integer; name:
         # and Newton, converged, never met its stopping test. The guard bits cover the looser
         # absolute tolerance this gives the smallest nodes.
         scale = max(one(BigFloat), BigFloat(maximum(abs, seed)))
+        # A symmetric weight (every a_k zero: Legendre, Gegenbauer, Hermite) has nodes in ±
+        # pairs with equal weights, so only the non-negative half is refined and the rest is
+        # mirrored: half the work, and the symmetry exact rather than true to rounding.
+        symmetric = all(iszero, a)
+        half = symmetric ? ((n ÷ 2 + 1):n) : (1:n)
         iters = 0
-        for i in 1:n
+        for i in half
             xi = x[i]
             last_small = false
             for it in 1:100
-                q, dq, _ = gauss_eval(n, xi, a, b)
+                q, dq, _ = gauss_eval(n, xi, a, b, binv)
                 δ = q / dq
                 xi -= δ
                 iters = max(iters, it)
@@ -67,9 +73,15 @@ function gauss_from_recurrence(n::Integer, rec::Recurrence, bits::Integer; name:
             x[i] = xi
         end
         w = similar(x)
-        for i in 1:n
-            _, _, s = gauss_eval(n, x[i], a, b)
+        for i in half
+            _, _, s = gauss_eval(n, x[i], a, b, binv)
             w[i] = μ / s
+        end
+        if symmetric
+            isodd(n) && (x[(n + 1) ÷ 2] = zero(BigFloat))
+            for i in 1:(n ÷ 2)
+                x[i], w[i] = -x[n + 1 - i], w[n + 1 - i]
+            end
         end
         x, w, iters
     end
@@ -91,14 +103,41 @@ function gauss_eval(n, x, a, b)
     return q1, d1, s
 end
 
+gauss_eval(n, x, a, b, binv) = gauss_eval(n, x, a, b)
+
+# The same for BigFloat, with in-place MPFR operations (see core/mpfr.jl). Newton calls this
+# n times per iteration for an n-point rule, so a Gauss rule costs O(n²) evaluations of the
+# recurrence, and allocating each operation made a 1408-point Gauss–Legendre rule at 150 bits
+# take 31 s, most of the time of discretising a weight given as a function.
+function gauss_eval(n, x::BigFloat, a::AbstractVector{BigFloat}, b::AbstractVector{BigFloat},
+                    binv::AbstractVector{BigFloat})
+    q0, q1, q2, d0, d1, d2, s, t, u = bigfloats(BigFloat, 9)
+    mp_set_si!(q1, 1)
+    mp_set_si!(s, 1)
+    for k in 0:(n - 1)
+        mp_sub!(t, x, a[k + 1])                                    # x − a_k
+        mp_mul!(u, t, q1)
+        k > 0 && (mp_mul!(q2, b[k], q0); mp_sub!(u, u, q2))
+        mp_mul!(q2, u, binv[k + 1])                                # q_{k+1}
+        mp_fma!(u, t, d1, q1)
+        k > 0 && (mp_mul!(d2, b[k], d0); mp_sub!(u, u, d2))
+        mp_mul!(d2, u, binv[k + 1])                                # q'_{k+1}
+        q0, q1, q2 = q1, q2, q0
+        d0, d1, d2 = d1, d2, d0
+        k < n - 1 && mp_fma!(s, q1, q1, s)
+    end
+    return q1, d1, s
+end
+
 "Newton-correction residual `max |q_n(x̂)/q_n'(x̂)|` of the rounded nodes, evaluated at `bits`."
 function gauss_residual(xhat, rec::Recurrence, bits)
     n = length(xhat)
     with_bits(bits) do
         a = [rec.a(k, BigFloat) for k in 0:n]
         b = [rec.b(k, BigFloat) for k in 1:n]
+        binv = inv.(b)
         maximum(xhat) do xi
-            q, dq, _ = gauss_eval(n, BigFloat(xi), a, b)
+            q, dq, _ = gauss_eval(n, BigFloat(xi), a, b, binv)
             abs(q / dq)
         end
     end

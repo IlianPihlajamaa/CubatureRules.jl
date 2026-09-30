@@ -54,6 +54,36 @@ integrate(x -> one(x), r)                                         # e E₁(1) �
 The domain must be one whose orthogonal polynomials the package knows: an `Interval`, an
 `Interval` with a `JacobiWeight`, or a `LaguerreRay`.
 
+## Weights given by a function
+
+If you can evaluate the weight but know nothing else about it, write it as a
+[`FunctionWeight`](@ref). A weight in several pieces, or with point masses, is a sum:
+
+```@repl w
+w = FunctionWeight(x -> exp(-x), 0, 1; β = -1/2) + FunctionWeight(x -> 1 + x^2, 1, 2) + PointMass(2, 1/10);
+r = rule(WeightedDomain(Interval(0, 2), w); degree = 19, digits = 30);
+npoints(r), passed(verify(r))
+```
+
+The first piece is `e^{-x} / √x` on `[0, 1]`: the exponent `β = -1/2` puts the singularity
+`(x − 0)^{-1/2}` in the weight's classical factor, and only the smooth `e^{-x}` is given as a
+function. Each piece is integrated with the Gauss rule of its classical factor, so this
+converges quickly, while a singularity inside the function converges slowly, and the
+construction reports it:
+
+```@repl w
+rule(WeightedDomain(Interval(0, 1), FunctionWeight(sqrt, 0, 1)); degree = 9, digits = 30)
+```
+
+Written with the exponent instead, `FunctionWeight(x -> one(x), 0, 1; β = 1/2)`, the same
+weight is no problem. Split a piece where the function has a kink.
+
+The function is evaluated at `BigFloat` arguments, and must compute in the type of its
+argument: a function that returns `Float64` describes the weight only to `Float64` and is
+refused. Pieces can also lie on a half line, `FunctionWeight(g, a, Inf; β, rate)` for
+`g(x) (x − a)^β e^{−rate (x − a)}`, or on the whole line, `FunctionWeight(g, -Inf, Inf)` for
+`g(x) e^{−x²}`.
+
 ## Other weights: using moments
 
 For a weight the package does not know, you can describe it by its moments: the integrals of
