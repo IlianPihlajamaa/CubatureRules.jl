@@ -161,8 +161,10 @@ families and tooling on top of what lands here.
       conical product needs it
 - [x] `GrundmannMöller` on any $d$, odd degree, exact `Rational{BigInt}`
 - [x] `ConicalProduct{GaussJacobi}` on any $d$ — the always-available fallback
-- [ ] `XiaoGimbutas` on triangles, seeded and refined, across its published degree range
-      *(degrees 1–20 shipped; 21–50 need confirmed minimal point counts)*
+- [x] `XiaoGimbutas` on triangles, seeded and refined, across its published degree range
+      *(degrees 1–50 shipped, all generated in-house and checked by `scripts/verify_tables.jl`.
+      Through degree 26 at the published counts, except degree 25 (one point more); at degrees
+      27–33 and 35–50 with 2 to 11 points fewer than Xiao & Gimbutas (2010), Table 1)*
 
 ### Registry (§2.5)
 
@@ -257,7 +259,7 @@ which governs how much of Tier 3 is reachable at all.
 
 - [x] Orbit types for $S_4$ on the tetrahedron
 - [x] $S_4$-invariant basis, with the same Molien dimension check
-- [ ] Establish the feasibility numbers §6 Tier 3 asks for: free-parameter count at degree
+- [x] Establish the feasibility numbers §6 Tier 3 asks for: free-parameter count at degree
       15, Jacobian density and structure, cost of one refinement at 200 digits
 - [x] Extend the exact-moment machinery to $d = 3$ (already generic — needs tests, not code)
 
@@ -281,16 +283,25 @@ which governs how much of Tier 3 is reachable at all.
 
 - [x] Benchmark the mesh path against a hand-written FEM kernel — this is the acceptance
       test, not a nice-to-have
-- [ ] Check the `BigFloat` $n \sim 500$ risk (§11) with `benchmark_construction`
-- [ ] Profile and fix the generic eigensolver path where a Newton-on-recurrence path exists
+- [x] Check the `BigFloat` $n \sim 500$ risk (§11) with `benchmark_construction`
+      *(the risk was real and was the allocation §11 names; see `notes/v0.5-performance.md`.
+      After in-place MPFR kernels and a mixed-precision solve, the 445-point triangle and
+      441-point tetrahedron rules refine to 200 digits in about 20 s. Measured by timing
+      `rule`, not with `benchmark_construction`)*
+- [x] Profile and fix the generic eigensolver path where a Newton-on-recurrence path exists
+      *(no extended-precision eigensolver is left: Gauss rules use Golub–Welsch only for the
+      Float64 seed and Newton on the recurrence after it, and GenericLinearAlgebra is no
+      longer a dependency)*
 
 **Exit criteria**
 
-- [ ] A degree-15 tetrahedron rule at 100 digits, verified sharp
+- [x] A degree-15 tetrahedron rule at 100 digits, verified sharp
+      *(213 points in 4.7 s, residual 4.6e-101, exact and sharp)*
 - [x] Integration over $10^6$ triangles within a small constant factor of a hand-written
       kernel, with zero allocations
 - [x] Verification basis extended to 3D (Koornwinder–Dubiner on the tetrahedron)
-- [ ] The Tier 3 feasibility numbers written down and published in the docs
+- [x] The Tier 3 feasibility numbers written down and published in the docs
+      *(`docs/src/design/symmetry.md`, "How large the systems are")*
 
 ---
 
@@ -509,7 +520,8 @@ them.
       buys smaller point counts at fixed low degree, not new capability
 - [ ] `Polytope` via Lasserre / Chin–Sukumar divergence-theorem reduction — **Tier 1b**,
       declaring `interior = false` in `properties` so the selector filters it honestly
-- [ ] `transform(r, φ, Jφ)` and `duffy(r)`, both returning `NoClaim` (§2.3)
+- [x] `transform(r, φ, Jφ)` and `duffy(r)`, both returning `NoClaim` (§2.3)
+      *(done ahead of this stage)*
 - [ ] Composite and subdivided rules across all domains
 
 ### Seed generation (§6 Tier 4)
@@ -526,7 +538,8 @@ them.
 
 **Exit criteria**
 
-- [ ] At least one shipped seed table generated in-house and MIT-licensed
+- [x] At least one shipped seed table generated in-house and MIT-licensed
+      *(all three shipped tables are, and `scripts/certify_tables.jl` checks them)*
 - [ ] Polytope rules present, correctly declared as boundary-node rules, and rejected by an
       `interior = true` request
 

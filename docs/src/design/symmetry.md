@@ -85,6 +85,30 @@ the linear solve much better conditioned, but does not reduce the working precis
 because the residual is still formed in the original basis. It was slower overall and was
 not adopted. The measurements are recorded in `notes/v0.4-spheres.md`.
 
+## How large the systems are
+
+For the shipped simplex rules, the orbit parameters and the invariant equations match one
+for one: the systems are square, apart from one surplus unknown at tetrahedron degree 20.
+The Jacobians are dense. Their condition numbers grow slowly, so the guard digits stay
+moderate. The time is for `rule(domain; degree, digits = 200)` from the stored seed.
+
+| Rule | Points | Orbits | Unknowns | Equations | Jacobian density | `cond` | 200 digits |
+|---|---|---|---|---|---|---|---|
+| triangle, degree 20 | 79 | 18 | 44 | 44 | 0.99 | 1.6e2 | 0.4 s |
+| triangle, degree 30 | 169 | 35 | 91 | 91 | 0.99 | 1.6e3 | 2.2 s |
+| triangle, degree 50 | 445 | 86 | 234 | 234 | 1.00 | 1.6e4 | 17.8 s |
+| tetrahedron, degree 10 | 81 | 9 | 23 | 23 | 0.97 | 2.4e3 | 0.7 s |
+| tetrahedron, degree 15 | 213 | 20 | 54 | 54 | 0.99 | 4.2e3 | 4.8 s |
+| tetrahedron, degree 20 | 441 | 39 | 109 | 108 | 0.99 | 1.8e4 | 19.7 s |
+
+The number of unknowns is the number of invariants, which grows asymptotically like the
+number of basis functions divided by the order of the group: `d²/12` on the triangle and
+`d³/144` on the tetrahedron, a sixth and a twenty-fourth of the moment equations a rule
+without symmetry would have to satisfy. That reduction, together with the moderate
+conditioning, is what makes refinement to hundreds of digits affordable. The sphere is different: the Lebedev systems are just as small (352 unknowns at
+degree 125), but their condition number reaches `10⁵⁵` (see above), and that, not size,
+sets their cost.
+
 ## Recovering the structure of a rule
 
 `CubatureRules.classify_octahedral(points, weights)` decomposes a set of points on the
