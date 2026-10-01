@@ -17,13 +17,28 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
         @test CR.npoints(e.structure) == e.npoints
         @test length(e.seed) == CR.nunknowns(e.structure)
     end
+    # Every entry is built and checked in the full sweep (CUBATURERULES_FULL_SWEEP=1); per
+    # commit, everything up to degree 17 and the two ends of the 133-201 range, whose rules
+    # have 6074 to 13680 points.
+    high = filter(e -> e.degree > 17, shipped)
+    full = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1"
+    ends = isempty(high) ? Int[] : [first(high).degree, last(high).degree]
     for e in shipped
+        full || e.degree <= 17 || e.degree in ends || continue
         d = e.degree
         r = rule(LebedevRule(), Sphere{3}(); degree = d)
         v = check(r)
         @test npoints(r) == e.npoints
         @test degree(r) == d
-        @test v.exact && v.sharp === true
+        @test v.exact
+        if d <= 17
+            @test v.sharp === true
+        else
+            # in Float64 these rules cannot show that they miss degree d + 1; the miss measured
+            # at high precision, recorded in the table, says so instead (see next_error)
+            @test v.sharp === nothing && occursin("not resolvable", v.sharp_note)
+        end
+        @test passed(v)
         @test v.positive && v.interior && v.weights_sum_ok
         @test v.symmetric === true                     # the full 48-element group, checked directly
         @test sum(weights(r)) ≈ 4π rtol = 1e-13
@@ -40,6 +55,28 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
             @test occursin("matches", e.note)
         end
     end
+end
+
+@testset "Lebedev degrees 133 to 201" begin
+    high = filter(e -> e.degree > 17, CR.lebedev_entries())
+    @test [e.degree for e in high] == collect(133:2:201)
+    for e in high
+        # square systems: as many unknowns as invariant conditions
+        @test CR.nunknowns(e.structure) == length(CR.invariant_exponents(e.degree))
+        wmin, dmin = CR.octahedral_margins(e.structure, e.seed)
+        @test wmin > 0 && dmin > 0
+        # 0.2-1.5% above the parameter-count estimate (d+1)²/3, which is not a proven bound
+        @test e.npoints <= 1.02 * (e.degree + 1)^2 / 3
+        # certified, and sharp at high precision
+        @test e.residual < 1e-14 && e.residual_bits >= 256
+        @test e.next_error > 0
+    end
+    # nothing is tabulated between degrees 17 and 133, so the degree-133 rule answers there
+    @test CR.lebedev_entry_for(19).degree == 133
+    @test npoints(LebedevRule(), Sphere{3}(), 131) == 6074
+    # the selector takes it only where it has fewer points than the product rule
+    @test family(rule(Sphere{3}(); degree = 41)) == "SphereProduct"
+    @test family(rule(Sphere{3}(); degree = 121)) == "Lebedev"
 end
 
 @testset "Lebedev construction and selection" begin
@@ -109,8 +146,10 @@ end
     @test length.(CR.blocks(b)) == [length(CR.invariant_exponents(125)), 363]
 
     # The orbit check must agree with the general one — all harmonics at every node, and
-    # the all-pairs symmetry check — on every shipped rule.
-    for d in 3:2:last(CR.degree_range(LebedevRule(), Sphere{3}()))
+    # the all-pairs symmetry check — on every shipped rule up to degree 17, refined to 30
+    # digits. Above that the table jumps to degrees 133-201, where refinement takes minutes
+    # per rule and the general check evaluates tens of thousands of harmonics at every node.
+    for d in 3:2:17
         r = rule(LebedevRule(), Sphere{3}(); degree = d, digits = 30)
         fast, full = check(r), check(r; use_symmetry = false)
         @test occursin("orbit representatives", fast.basis)
