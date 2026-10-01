@@ -12,6 +12,13 @@
 # weights — reports the 78-point rule instead. That is not a disagreement about the
 # mathematics, only about what is being asked for.
 #
+# Every odd degree from 133 to 201 comes from a separate continuation campaign run outside this
+# repository (src/data/PROVENANCE.toml; imported by scripts/import_octahedral_rules.jl): each
+# rule is grown from the one below by adding orbits, pruned back to a square system — as many
+# unknowns as invariant conditions — and solved with positive weights. Those point counts are
+# not claimed minimal. Nothing between degrees 17 and 133 is tabulated, so a request in that
+# range is answered by the degree-133 rule, the smallest entry above it.
+#
 # Only odd degrees are tabulated. Every O_h orbit is centrally symmetric, so the odd
 # harmonics integrate to zero whatever the parameters and a rule of degree 2k is
 # automatically of degree 2k+1; an even-degree request is answered by the odd rule above it.
@@ -42,10 +49,18 @@ Octahedrally symmetric, positive-weight rules on `Sphere{3}()`, refined by Gauss
 the `O_h`-invariant moment system to any requested precision. Seeded: available at the
 degrees in the shipped seed table.
 
-The point counts are the smallest the in-house search reached subject to positive weights,
-which is why degree 13 is answered by a 78-point rule rather than the published 74-point one
-— that rule has a negative weight. Minimal rules are not unique, so a shipped rule need not
-coincide node for node with any published table.
+Up to degree 17 the point counts are the smallest the in-house search reached subject to
+positive weights, which is why degree 13 is answered by a 78-point rule rather than the
+published 74-point one — that rule has a negative weight. Minimal rules are not unique, so a
+shipped rule need not coincide node for node with any published table.
+
+Every odd degree from 133 to 201 is also shipped, with 6074 to 13680 points: square systems,
+with as many unknowns as invariant conditions, found by a continuation search and not
+claimed minimal. A request between degrees 19 and 131 is answered by the degree-133 rule;
+`rule(Sphere{3}(); degree)` takes the product rule up to degree 109 and this one from 111,
+where it has fewer points. `Float64` rules at these
+degrees are served as stored; asking for more digits refines them in an invariant system
+whose condition number is 10⁵⁴ to 10⁸¹, which takes minutes per rule.
 
 The type parameter says where the seeds came from. `LebedevRule()` is
 `LebedevRule{InHouseSeeds}()`, the table shipped here; `UpstreamLebedev()` is
@@ -127,6 +142,8 @@ struct OctahedralSeedEntry
     cond::Float64
     residual::Float64          # as for SymmetricSeedEntry: recorded by scripts/certify_tables.jl
     residual_bits::Int
+    method::String             # "multistart" (degrees 3-17) or "continuation" (133-201)
+    next_error::Float64        # the miss at degree + 1, measured at high precision (NaN if not recorded)
 end
 
 const LEBEDEV_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "lebedev_seeds.toml")
@@ -140,7 +157,8 @@ function load_octahedral_seeds(path)
         s = OctahedralStructure(Symbol.(e["structure"]))
         push!(out, OctahedralSeedEntry(e["degree"], e["npoints"], s, Float64.(e["seed"]),
                                        get(e, "status", "ok"), get(e, "note", ""), Float64(get(e, "cond", NaN)),
-                                       Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0))))
+                                       Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0)),
+                                       get(e, "method", "multistart"), Float64(get(e, "next_error", NaN))))
     end
     sort!(out; by = e -> e.degree)
     return out
@@ -204,7 +222,10 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
     n = e.degree
     structure, θ64 = e.structure, e.seed
     seed_desc = "stored Float64 table src/data/lebedev_seeds.toml " *
-                "(generated in-house by multistart from the orbit structure)"
+                (e.method == "continuation" ?
+                 "(from the degree 133-201 continuation search; see src/data/PROVENANCE.toml)" :
+                 "(generated in-house by multistart from the orbit structure)")
+    citations = e.method == "continuation" ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976]
     if seed isa MultistartSeed
         found = multistart_octahedral(structure, n; nstarts = seed.nstarts, rng_seed = seed.rng_seed,
                                       first_only = false, cancel = ctx.cancel)
@@ -259,10 +280,12 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
                                    "(invariants p₄^a p₆^b, 4a + 6b ≤ $n)",
                        residual = BigFloat(resid; precision = 64), residual_bits = rbits,
                        digits = target_digits(ctx), guard_digits = guard_digits, cond = cond,
-                       iterations = iterations)
+                       iterations = iterations,
+                       # at degrees 133-201 a Float64 rule cannot show that it misses degree n+1
+                       next_error = isfinite(e.next_error) ? BigFloat(e.next_error; precision = 64) : nothing)
     prov = Provenance(family = "Lebedev", derivation = Seeded(),
                       path = vcat(["seed: " * seed_desc, "structure: " * string(structure)], steps),
-                      seed_source = seed_desc, citations = [LEBEDEV_1976], symmetry = :Oh,
+                      seed_source = seed_desc, citations = citations, symmetry = :Oh,
                       license = "MIT (seeds generated in-house; no published table was used)")
     return QuadratureRule(nodes, wt, Sphere{3}(), PolynomialDegree(n), prov, cert)
 end

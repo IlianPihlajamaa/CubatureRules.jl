@@ -324,7 +324,10 @@ end
 Refine a `Float64` seed of an `O_h`-symmetric sphere rule to `bits` bits, the same way
 [`refine_symmetric`](@ref) does on a simplex: guard digits from the condition number
 measured at the seed, Gauss–Newton at `bits + guard`, and one re-run if the condition
-number met along the way asks for more.
+number met along the way asks for more. When the condition number is so large that the
+rank-revealing solve would truncate genuine directions at `bits + guard` (above degree 17 in
+the shipped table), the solve runs at a higher target and the extra bits are counted in the
+returned `guard_bits`.
 """
 function refine_octahedral(structure::OctahedralStructure, n::Integer, θ64::Vector{Float64},
                            bits::Integer; cancel = nothing, verbose::Integer = 0)
@@ -338,10 +341,17 @@ function refine_octahedral(structure::OctahedralStructure, n::Integer, θ64::Vec
                        n, length(structure.orbits), nunknowns(structure),
                        length(invariant_exponents(n)), κ0)
     end
+    κ = κ0
     for attempt in 1:2
-        wbits = bits + guard
+        # The rank-revealing solve cuts at 2^-(wbits ÷ 2). In the p₄ᵃp₆ᵇ basis log2(κ) grows
+        # past the target itself at high degree (about 180 at degree 133, 270 at 201), and the
+        # cut would then discard genuine directions: Gauss–Newton stops short of the root or
+        # fails. So the target is raised until the cut sits 32 bits below 1/κ; the result is
+        # returned at that precision and the caller rounds it. No effect while κ is modest.
+        tbits = max(bits, ceil(Int, 2 * (log2(clamp(κ, 1.0, 2.0^1000)) + 32)) - guard)
+        wbits = tbits + guard
         verbose >= 1 && @info @sprintf("  attempt %d at %d bits (%d target + %d guard)",
-                                       attempt, wbits, bits, guard)
+                                       attempt, wbits, tbits, guard)
         res = with_bits(wbits) do
             sys = OctahedralMomentSystem(structure, n, BigFloat)
             gauss_newton(sys, BigFloat.(θ64); step_tol = ldexp(BigFloat(1), -(bits + 16)),
@@ -353,10 +363,11 @@ function refine_octahedral(structure::OctahedralStructure, n::Integer, θ64::Vec
             (verbose >= 1 && needed > guard) &&
                 @warn @sprintf("the conditioning met along the way asks for %d guard bits, not %d; \
                                 returning anyway on the last attempt", needed, guard)
-            return res.θ, res, guard
+            return res.θ, res, wbits - bits          # every bit worked beyond the target
         end
         verbose >= 1 && @info @sprintf("  conditioning asks for %d guard bits, not %d — re-running",
                                        needed, guard)
         guard = needed
+        κ = max(κ, res.cond_max)
     end
 end

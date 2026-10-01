@@ -382,7 +382,13 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [ ] Lebedev seeds above degree 17 *(grow-from-below now exists and reaches degree 17
       from 15 in a second, but degree 19 stalls at a residual near 3e-6 with healthy
       margins from every structure tried, including Lebedev's own — a local minimum, not
-      a rejected rule; see notes/v0.4-spheres.md for what is left to try)*
+      a rejected rule; see notes/v0.4-spheres.md for what is left to try. Every odd degree
+      133–201 is now shipped, from an external continuation campaign
+      (scripts/import_octahedral_rules.jl); 19–131 remain)*
+- [ ] High-degree octahedral refinement *(the p₄ᵃp₆ᵇ system is conditioned near 10⁵⁴–10⁸¹
+      at degrees 133–201; `refine_octahedral` now raises its working precision so the
+      rank-revealing solve keeps every direction, which makes it correct but slow — minutes
+      per rule. An orthogonalized invariant basis would remove most of the cost)*
 - [ ] Spherical $t$-designs — moved to v0.6, below
 - [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with
       Gauss–Laguerre and Gauss–Hermite)*

@@ -50,6 +50,21 @@ where Lebedev's 74-point rule has a negative weight. This package requires posit
 and gives a 78-point rule there; the 74-point structure was searched exhaustively, and every
 solution found has a negative weight.
 
+The table also holds every odd degree from 133 to 201, from 6074 points at degree 133 to
+13680 at degree 201. They come from a continuation search that grows a verified rule into
+the next degree by adding orbits, then removes orbits until the system is square — as many
+unknowns as invariant conditions — and solves it with positive weights. They are not claimed
+minimal; their counts are 0.2% to 1.5% above the parameter-count estimate `(d+1)²/3`.
+Degrees 19 to 131 are not tabulated, so `LebedevRule()` answers them with the degree-133
+rule; the selector (`rule(Sphere{3}(); degree)` without a family) picks the product rule up
+to degree 109 and the 6074-point degree-133 rule from 111, where it has fewer points.
+`Float64` rules are served as stored. More digits cost minutes per rule at these degrees,
+because the invariant system is conditioned near 10⁵⁴–10⁸¹: refining to 160 bits takes
+about 1 minute at degree 133 and 8 at degree 189. In `Float64` these rules come too close
+to the next degree for `check` to resolve sharpness — degree 133 misses degree 134 by
+3e-41, degree 201 misses 202 by 5e-61 — so the miss, measured at high precision, is
+recorded in the table and reported instead.
+
 Reference: V. I. Lebedev and D. N. Laikov, A quadrature formula for the sphere of the 131st
 algebraic order of accuracy, *Doklady Mathematics* 59 (1999) 477–481.
 

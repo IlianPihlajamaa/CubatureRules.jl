@@ -56,22 +56,38 @@ and its defining-equation residual at 256 bits is recorded in the table."""
 path = "lebedev_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for octahedrally symmetric, positive
-sphere rules of odd degree, with the smallest point counts the in-house search reached
-subject to positive weights."""
+sphere rules of odd degree: degrees 3-17 with the smallest point counts the in-house search
+reached subject to positive weights, and every odd degree 133-201 as a square system, with as
+many unknowns as invariant moment conditions."""
 authors = "CubatureRules.jl contributors"
 source = """
-Generated in-house by scripts/generate_lebedev_seeds.jl: for each odd degree, a walk upwards
-in point count with multistart Levenberg-Marquardt on the O_h-invariant moment system at
-each count, the winner refined to 100 digits and rounded to Float64. No numbers were taken
-from any publication. Lebedev's published point counts appear in the generator only to
+Degrees 3-17: generated in-house by scripts/generate_lebedev_seeds.jl: for each odd degree, a
+walk upwards in point count with multistart Levenberg-Marquardt on the O_h-invariant moment
+system at each count, the winner refined to 100 digits and rounded to Float64. No numbers were
+taken from any publication. Lebedev's published point counts appear in the generator only to
 annotate its log, and the counts found agree with them except at degree 13, where the
 published 74-point rule has a negative weight and the search reports a 78-point positive one
-instead."""
+instead.
+
+Degrees 133-201: computed by the package author's continuation search (September 2026, run
+outside this repository). A verified rule at one degree is grown into an underdetermined rule
+at the next by adding orbits; orbits are then removed until the system is square, and it is
+solved with positive weights by Levenberg-Marquardt in symmetry-adapted spherical harmonics.
+Each result was polished to 704 bits in the invariant moment system and checked at 768 bits,
+including every symmetry-distinct Cartesian monomial of degree below its own. The chain starts
+from the published degree-131 rule of Lebedev & Laikov (1999), which seeded the search for the
+degree-133 rule; every rule in the table is a different solution, with its own orbit
+structure, and no published numbers appear in it. The author releases these seeds under the
+MIT licence. scripts/import_octahedral_rules.jl rounded the high-precision orbit parameters to
+Float64."""
 license = "MIT"
-retrieved = "2026-09-22"
-citation = "V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2"
-generator = "scripts/generate_lebedev_seeds.jl"
+retrieved = "2026-09-30"
+citation = """
+V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2;
+V. I. Lebedev and D. N. Laikov, Doklady Mathematics 59 (1999) 477-481 (the degree-131 rule the
+degree 133-201 continuation started from)"""
+generator = "scripts/generate_lebedev_seeds.jl (degrees 3-17); scripts/import_octahedral_rules.jl (degrees 133-201)"
 checked = """
-scripts/certify_tables.jl, 2026-09-24 and 2026-09-30: every seed is the correctly rounded
-Float64 value of the rule refined to 160 bits, and its defining-equation residual at 256 bits
-is recorded in the table."""
+scripts/certify_tables.jl, 2026-09-24 and 2026-09-30 (degrees 3-17) and 2026-10-01 (degrees
+133-201): every seed is the correctly rounded Float64 value of the rule refined to 160 bits,
+and its defining-equation residual at 256 bits is recorded in the table."""
