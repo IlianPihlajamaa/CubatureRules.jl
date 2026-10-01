@@ -71,6 +71,7 @@ makedocs(;
             "Box" => "catalogue/box.md",
             "Sphere" => "catalogue/sphere.md",
             "Ball" => "catalogue/ball.md",
+            "Wedge and pyramid" => "catalogue/wedge_pyramid.md",
             "Unbounded" => "catalogue/unbounded.md",
         ],
         "API" => "api.md",

@@ -14,6 +14,8 @@ Rule families only construct rules on *reference* domains:
 | `Orthotope{D}` | `[-1, 1]^D` |
 | `Sphere{D}` | unit sphere in `ℝ^D`, centred at the origin |
 | `Ball{D}` | unit ball in `ℝ^D`, centred at the origin |
+| `Wedge` | the reference triangle times `[-1, 1]` |
+| `Pyramid` | base `[-1, 1]²` at `z = 0`, apex `(0, 0, 1)` |
 
 `Simplex{2}()`, `Interval()` and so on construct the reference domain. A domain with other
 vertices, endpoints, centre or radius is a mapped domain. `isreference(dom)` tells the two

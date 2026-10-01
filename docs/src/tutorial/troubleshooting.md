@@ -39,7 +39,15 @@ rule(Lobatto(), Interval(); degree = 9)
 After `using QuadratureRules`, `Lobatto`, `Radau` and `ClenshawCurtis` are available and
 appear in [`available`](@ref). See [External providers](../design/providers.md).
 
-## A warning about a licence
+## A warning that a smaller rule exists
+
+```julia
+julia> rule(Sphere{3}(); degree = 29)
+┌ Warning: SphereProduct (450 points) was selected on Sphere{3}() at degree 29;
+│ Lebedev.jl has a 302-point rule there but is not loaded. `using Lebedev` makes it
+│ available, and `copyleft = true` lets `rule` choose it, since its licence is not one this
+│ package can pass on. `CubatureRules.selection_warnings!(false)` silences this.
+```
 
 ```julia
 julia> using Lebedev
@@ -47,14 +55,16 @@ julia> using Lebedev
 julia> rule(Sphere{3}(); degree = 29)
 ┌ Warning: SphereProduct (450 points) was selected on Sphere{3}() at degree 29;
 │ Lebedev (Lebedev.jl, GPL-3) has 302 points but its licence is not one this package
-│ can pass on. Pass `copyleft = true` to use it, or
-│ `CubatureRules.license_warnings!(false)` to silence this.
+│ can pass on. Pass `copyleft = true` to use it.
+│ `CubatureRules.selection_warnings!(false)` silences this.
 ```
 
-This appears when a smaller rule exists but its licence (here GPL-3, from Lebedev.jl) means
-it is not chosen automatically. You get the larger rule. To use the smaller one, pass
-`copyleft = true` or name the family. To turn the warning off, call
-`CubatureRules.license_warnings!(false)`. Each case warns only once.
+These appear when a smaller rule exists that `rule` did not choose: because the package
+that has it is not loaded, or because its licence (here GPL-3, from Lebedev.jl) means it is
+not chosen automatically. You get the larger rule. To use the smaller one, load the
+package and pass `copyleft = true`, or name the family. A rule with negative weights is
+never suggested in place of a positive one. To turn the warnings off, call
+`CubatureRules.selection_warnings!(false)`. Each case warns only once.
 
 ## A rule takes a long time
 

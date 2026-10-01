@@ -11,6 +11,7 @@ the current version actually supports.
 | [Box](box.md) | `Orthotope{D}` |
 | [Sphere](sphere.md) | `Sphere{D}`: circle, sphere and higher |
 | [Ball](ball.md) | `Ball{D}`, `Disk` |
+| [Wedge and pyramid](wedge_pyramid.md) | `Wedge`, `Pyramid` |
 | [Unbounded](unbounded.md) | `LaguerreRay`, `HermiteLine`, `GaussianSpace`, `ExponentialSpace`, `HalfLine`, `RealLine` |
 
 ## All families at a glance
@@ -40,6 +41,8 @@ overview([
     "`Sphere{2}()`" => Sphere{2}(),
     "`Sphere{3}()`" => Sphere{3}(),
     "`Ball{3}()`" => Ball{3}(),
+    "`Wedge()`" => Wedge(),
+    "`Pyramid()`" => Pyramid(),
     "`LaguerreRay()`" => LaguerreRay(),
     "`HermiteLine()`" => HermiteLine(),
     "`GaussianSpace(3)`" => GaussianSpace(3),
@@ -65,5 +68,5 @@ Not listed above:
 
 ## Planned domains
 
-`Polytope`, `Wedge` and `Pyramid` are defined so that requests for them give a clear error
-naming the release in which they are planned.
+`Polytope` is defined so that requests for it give a clear error naming the release in which
+it is planned.

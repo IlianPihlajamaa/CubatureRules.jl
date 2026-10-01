@@ -8,9 +8,10 @@
 """
     ConicalProduct(inner)
 
-Conical product rule on a simplex built from the 1D family `inner` (currently
-[`GaussJacobi`](@ref)). With `m` points per direction it has `m^D` points, all interior,
-all positive, and polynomial degree `2m - 1`.
+Conical product rule on a simplex or a [`Pyramid`](@ref), built from the 1D family `inner`
+(currently [`GaussJacobi`](@ref)): a product rule on a cube carried over by collapsed
+coordinates, with Gauss–Jacobi weights that absorb the Jacobian. With `m` points per
+direction it has `m^D` points, all interior, all positive, and polynomial degree `2m - 1`.
 """
 struct ConicalProduct{F<:RuleFamily} <: CombinatorFamily
     inner::F
@@ -96,4 +97,55 @@ function build(f::ConicalProduct, dom::Simplex{D}, degree::Int, ctx::BuildContex
                       seed_source = "Golub–Welsch (Float64) per direction",
                       citations = [STROUD_1971, GOLUB_WELSCH_1969])
     return QuadratureRule(xs, ws, Simplex{D}(), PolynomialDegree(2m - 1), prov, cert)
+end
+
+# --- the pyramid ---------------------------------------------------------------------------
+#
+#     x = ξ (1 − ζ),  y = η (1 − ζ),  z = ζ,     dx dy dz = (1 − ζ)² dξ dη dζ
+#
+# carries the cube [-1, 1]² × [0, 1] onto the reference pyramid. A monomial xᵃ yᵇ zᶜ becomes
+# ξᵃ ηᵇ (1 − ζ)ᵃ⁺ᵇ ζᶜ: degree a and b in ξ and η, and at most a + b + c in ζ with the weight
+# (1 − ζ)². So Gauss–Legendre in ξ and η and Gauss–Jacobi(2, 0) in ζ, m points each, are
+# exact to total degree 2m − 1.
+
+function candidates(::Type{<:ConicalProduct}, dom::Pyramid, c::PolynomialDegree)
+    isreference(dom) || return ConicalProduct[]
+    return [ConicalProduct(inner) for F in leaf_families() if conical_compatible(F)
+            for inner in candidates(F, Interval(), c)]
+end
+npoints(::ConicalProduct, dom::Pyramid, degree::Integer) = conical_points(degree)^3
+
+function build(f::ConicalProduct, dom::Pyramid, degree::Int, ctx::BuildContext{T}) where {T}
+    f.inner isa GaussJacobi ||
+        throw(ArgumentError("ConicalProduct is implemented over GaussJacobi, got $(describe_family(f.inner))"))
+    isexact(ctx) && throw(ArgumentError("conical product nodes are irrational; $(T) is not supported"))
+    m = conical_points(degree)
+    guard = gj_guard_bits(m) + 8
+    bits = ctx.bits + guard
+    xg, wg, it1 = gauss_jacobi_work(m, 0, 0, bits)
+    xz, wz, it2 = gauss_jacobi_work(m, 2, 0, bits)
+    xs = SVector{3,T}[]
+    ws = T[]
+    with_bits(bits) do
+        ζ = (1 .+ xz) ./ 2
+        ωz = wz ./ 8                                   # ∫₀¹ g (1 − ζ)² dζ = ⅛ ∫ g (1 − u)² du
+        for i in 1:m, j in 1:m, k in 1:m
+            s = 1 - ζ[k]
+            push!(xs, SVector{3,T}(finalize_number(ctx, xg[i] * s), finalize_number(ctx, xg[j] * s),
+                                   finalize_number(ctx, ζ[k])))
+            push!(ws, finalize_number(ctx, wg[i] * wg[j] * ωz[k]))
+        end
+    end
+    res = max(gj_residual(finalize_number.(Ref(ctx), xg), 0, 0, 2ctx.bits + guard),
+              gj_residual(finalize_number.(Ref(ctx), xz), 2, 0, 2ctx.bits + guard))
+    cert = Certificate(equations = "P_$m(ξ) = 0 and P_$m^(2,0)(u) = 0 in the collapsed coordinates (Newton correction)",
+                       residual = BigFloat(res; precision = 64), residual_bits = 2ctx.bits + guard,
+                       digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)),
+                       cond = 1.0, iterations = max(it1, it2))
+    prov = Provenance(family = "ConicalProduct", derivation = Derived(),
+                      path = ["Gauss–Legendre ($m points) in ξ and η, Gauss–Jacobi(2, 0) ($m points) in ζ",
+                              "collapsed onto the pyramid: x = ξ(1 − ζ), y = η(1 − ζ), z = ζ"],
+                      seed_source = "Golub–Welsch (Float64) per direction",
+                      citations = [STROUD_1971, GOLUB_WELSCH_1969])
+    return QuadratureRule(xs, ws, Pyramid(), PolynomialDegree(2m - 1), prov, cert)
 end

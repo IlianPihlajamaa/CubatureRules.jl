@@ -110,4 +110,5 @@ _coordtype(s::Simplex) = eltype(eltype(s.vertices))
 end
 _coordtype(d::Interval) = typeof(d.a)
 _coordtype(d::Orthotope) = eltype(d.lo)
+_coordtype(d::Union{Wedge,Pyramid}) = eltype(eltype(d.vertices))
 

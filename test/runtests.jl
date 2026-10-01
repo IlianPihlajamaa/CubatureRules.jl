@@ -14,6 +14,7 @@ const CR = CubatureRules
     @testset "weights given as functions" include("test_stieltjes.jl")
     @testset "principal values and finite parts" include("test_kernel.jl")
     @testset "oscillatory weights" include("test_oscillatory.jl")
+    @testset "wedges and pyramids" include("test_wedge_pyramid.jl")
     @testset "stored tables" include("test_stored_tables.jl")
     @testset "unbounded domains" include("test_unbounded.jl")
     @testset "spheres" include("test_sphere.jl")

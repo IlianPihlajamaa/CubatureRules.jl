@@ -94,7 +94,7 @@ end
     @test occursin("has negative weights", m3)
     @test occursin("GrundmannMöller degree 1", m3)
     @test_throws NoRuleError rule(Simplex{2}(); degree = 5, family = XiaoGimbutas(), T = Rational{BigInt})
-    @test_throws CR.NotYetImplemented Wedge{3}()
+    @test_throws CR.NotYetImplemented Polytope{3}()
     # a domain with no family at all names itself and says when it is coming
     @test occursin("Polytope", try rule(Polytope{3,Float64}()) catch e; sprint(showerror, e) end)
     @test_throws ArgumentError rule(Simplex{2}(); degree = -1)

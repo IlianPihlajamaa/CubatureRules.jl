@@ -176,6 +176,98 @@ function exact_integrals(b::BoxBasis{D,S}) where {D,S}
     return v
 end
 
+# The reference wedge: the orthonormal Dubiner polynomials of the triangle times orthonormal
+# Legendre polynomials in z, graded by total degree. Orthonormal on the wedge, so only the
+# constant has a nonzero integral.
+struct WedgeBasis{S} <: VerificationBasis
+    tri::DubinerBasis{S}
+    line::JacobiBasis{S,Int}
+    idx::Vector{Tuple{Int,Int}}                 # (Dubiner index, Legendre degree)
+    blockranges::Vector{UnitRange{Int}}
+end
+function WedgeBasis{S}(n::Int) where {S}
+    idx, ranges = Tuple{Int,Int}[], UnitRange{Int}[]
+    for k in 0:n
+        lo = length(idx) + 1
+        for r in 0:k, p in 0:(k - r)
+            push!(idx, (dubiner_index(p, k - r - p), r))
+        end
+        push!(ranges, lo:length(idx))
+    end
+    return WedgeBasis{S}(DubinerBasis{S}(n; normalize = true), JacobiBasis{S,Int}(n, 0, 0, true), idx, ranges)
+end
+function evaluate!(b::WedgeBasis{S}, x) where {S}
+    φt, gt = evaluate!(b.tri, (x[1], x[2]))
+    φl, gl = evaluate!(b.line, (x[3],))
+    return [φt[i] * φl[r + 1] for (i, r) in b.idx], [gt[i] * abs(φl[r + 1]) + abs(φt[i]) * gl[r + 1] for (i, r) in b.idx]
+end
+blocks(b::WedgeBasis) = b.blockranges
+function exact_integrals(b::WedgeBasis{S}) where {S}
+    v = zeros(S, length(b.idx))
+    v[1] = exact_integrals(b.tri)[1] * exact_integrals(b.line)[1]
+    return v
+end
+
+# The reference pyramid: orthonormal Legendre polynomials on its bounding box
+# [-1, 1]² × [0, 1], graded by total degree. They are not orthogonal on the pyramid but are
+# of order one on it, which monomials are not. Their integrals over the pyramid use
+#
+#     ∫_{-s}^{s} P_a = 2 (P_{a+1}(s) − P_{a−1}(s)) / (2a + 1) for even a ≥ 2, 2s for a = 0,
+#
+# zero for odd a, on each slice z = 1 − s, and a Gauss–Legendre rule in z exact for the
+# degree. The conical rules collapse the pyramid onto a cube instead, so the two share
+# nothing but one-dimensional Gauss nodes.
+struct PyramidBasis{S} <: VerificationBasis
+    n::Int
+    axis::JacobiBasis{S,Int}
+    idx::Vector{NTuple{3,Int}}
+    blockranges::Vector{UnitRange{Int}}
+end
+function PyramidBasis{S}(n::Int) where {S}
+    idx, ranges = NTuple{3,Int}[], UnitRange{Int}[]
+    for k in 0:n
+        lo = length(idx) + 1
+        for c in compositions(k, 3)
+            push!(idx, NTuple{3,Int}(c))
+        end
+        push!(ranges, lo:length(idx))
+    end
+    return PyramidBasis{S}(n, JacobiBasis{S,Int}(n, 0, 0, true), idx, ranges)
+end
+function evaluate!(b::PyramidBasis{S}, x) where {S}
+    px, gx = evaluate!(b.axis, (x[1],))
+    py, gy = evaluate!(b.axis, (x[2],))
+    pz, gz = evaluate!(b.axis, (2x[3] - 1,))
+    φ = [px[i + 1] * py[j + 1] * pz[k + 1] for (i, j, k) in b.idx]
+    g = [gx[i + 1] * abs(py[j + 1] * pz[k + 1]) + gy[j + 1] * abs(px[i + 1] * pz[k + 1]) +
+         2gz[k + 1] * abs(px[i + 1] * py[j + 1]) for (i, j, k) in b.idx]
+    return φ, g
+end
+blocks(b::PyramidBasis) = b.blockranges
+function exact_integrals(b::PyramidBasis{S}) where {S}
+    n = b.n
+    M = cld(n + 3, 2)                            # the integrand in z has degree ≤ n + 2
+    t, ω, _ = gauss_jacobi_work(M, 0, 0, precision(S))
+    nrm(a) = sqrt(S(2a + 1) / 2)                 # orthonormal Legendre is nrm(a) P_a
+    F = zeros(S, n + 1, M)                       # F[a + 1, m] = ∫_{-s}^{s} p_a, s = 1 − z_m
+    pz = zeros(S, n + 1, M)
+    for m in 1:M
+        z = (1 + S(t[m])) / 2
+        s = 1 - z
+        P = zeros(S, n + 2)                      # P[a + 1] = P_a(s)
+        P[1] = one(S)
+        n >= 0 && (P[2] = s)
+        for a in 1:n
+            P[a + 2] = ((2a + 1) * s * P[a + 1] - a * P[a]) / (a + 1)
+        end
+        for a in 0:n
+            F[a + 1, m] = a == 0 ? 2s * nrm(0) : isodd(a) ? zero(S) : 2 * (P[a + 2] - P[a]) / (2a + 1) * nrm(a)
+        end
+        pz[:, m] = evaluate!(b.axis, (S(t[m]),))[1]
+    end
+    return [sum(S(ω[m]) / 2 * F[i + 1, m] * F[j + 1, m] * pz[k + 1, m] for m in 1:M) for (i, j, k) in b.idx]
+end
+
 exact_integrals(b::DubinerBasis{S}) where {S} =
     (v = zeros(S, length(b.φ)); v[1] = b.ws.c[1] * S(1 // 2); v)
 function exact_integrals(b::JacobiBasis{S}) where {S}
@@ -266,6 +358,14 @@ function reference_nodes(r::QuadratureRule{D,T,<:Orthotope}, ::Type{S}) where {D
     return xs, [S(w) / scale for w in r.weights]
 end
 
+# A wedge or a pyramid through its affine frame
+function reference_nodes(r::QuadratureRule{3,T,<:Union{Wedge,Pyramid}}, ::Type{S}) where {T,S}
+    A, b = affine_frame(r.domain, S)
+    J = abs(det(A))
+    xs = [Vector{S}(A \ (SVector{3,S}(map(S, x)) - b)) for x in r.nodes]
+    return xs, [S(w) / J for w in r.weights]
+end
+
 # A ball maps to its reference the same way, with the volume Jacobian r^D.
 function reference_nodes(r::QuadratureRule{D,T,<:Ball}, ::Type{S}) where {D,T,S}
     dom = r.domain
@@ -334,6 +434,10 @@ verification_basis(dom::Orthotope{D}, n, ::Type{S}, exact) where {D,S} =
     BoxBasis{D,S}(n; normalize = !exact),
     exact ? "tensor Legendre (unnormalised, exact arithmetic), graded by total degree" :
     "tensor orthonormal Legendre, graded by total degree"
+verification_basis(dom::Wedge, n, ::Type{S}, exact) where {S} = WedgeBasis{S}(n),
+    "orthonormal Dubiner on the triangle × orthonormal Legendre in z, graded by total degree"
+verification_basis(dom::Pyramid, n, ::Type{S}, exact) where {S} = PyramidBasis{S}(n),
+    "orthonormal Legendre on the bounding box, graded by total degree (integrals over the pyramid by slices)"
 verification_basis(dom::LaguerreDomain, n, ::Type{S}, exact) where {S} =
     RecurrenceBasis{S,typeof(laguerre_recurrence(dom.weight.α))}(n, laguerre_recurrence(dom.weight.α)),
     "orthonormal Laguerre($(dom.weight.α))"

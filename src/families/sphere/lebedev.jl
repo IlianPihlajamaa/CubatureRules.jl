@@ -98,6 +98,31 @@ selectable(::LebedevRule{LebedevJLSeeds}) = false
 missing_dependency(::LebedevRule{LebedevJLSeeds}) =
     applicable(upstream_lebedev_table, 1) ? nothing : "Lebedev.jl"
 
+# The orders Lebedev.jl offers and their point counts, so that `rule` can say what loading it
+# would give without loading it. Counts only; no rule is stored here.
+const UPSTREAM_LEBEDEV_POINTS = (3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 => 74, 15 => 86, 17 => 110,
+                                 19 => 146, 21 => 170, 23 => 194, 25 => 230, 27 => 266, 29 => 302, 31 => 350,
+                                 35 => 434, 41 => 590, 47 => 770, 53 => 974, 59 => 1202, 65 => 1454, 71 => 1730,
+                                 77 => 2030, 83 => 2354, 89 => 2702, 95 => 3074, 101 => 3470, 107 => 3890,
+                                 113 => 4334, 119 => 4802, 125 => 5294)
+
+"The smallest order Lebedev.jl offers at or above `degree`, or `nothing`."
+function upstream_lebedev_order(degree)
+    i = findfirst(p -> first(p) >= degree, UPSTREAM_LEBEDEV_POINTS)
+    return i === nothing ? nothing : first(UPSTREAM_LEBEDEV_POINTS[i])
+end
+
+# Once Lebedev.jl is loaded its rules are candidates, and a cheaper one held back by its
+# licence is reported by that check instead. Its rule of degree 13 has 74 points and a
+# negative weight.
+function unloaded_alternatives(dom::Sphere{3}, degree)
+    (isreference(dom) && missing_dependency(UpstreamLebedev()) !== nothing) || return NamedTuple[]
+    order = upstream_lebedev_order(degree)
+    order === nothing && return NamedTuple[]
+    return [(name = describe_family(UpstreamLebedev()), npoints = Dict(UPSTREAM_LEBEDEV_POINTS)[order],
+             positive = order != 13, package = "Lebedev", copyleft = !selectable(UpstreamLebedev()))]
+end
+
 """
     upstream_lebedev_table(degree) -> (order, nodes, weights)
 
@@ -209,6 +234,9 @@ function degree_range(::LebedevRule{InHouseSeeds}, dom::Sphere{3})
 end
 degree_range(::LebedevRule{InHouseSeeds}, dom) = 1:0
 properties(::LebedevRule, dom, degree) = (positive = true, interior = true, symmetry = :Oh, nested = false)
+# Lebedev's own rule of degree 13 has 74 points and a negative weight
+properties(::LebedevRule{LebedevJLSeeds}, dom, degree) =
+    (positive = upstream_lebedev_order(degree) != 13, interior = true, symmetry = :Oh, nested = false)
 cost_estimate(f::LebedevRule{InHouseSeeds}, dom, degree, T) =
     float(npoints(f, dom, degree)) * length(invariant_exponents(claimed_degree(f, dom, degree))) *
     _precision_factor(T)

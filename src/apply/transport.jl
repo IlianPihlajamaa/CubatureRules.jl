@@ -42,6 +42,35 @@ function map_to(r::QuadratureRule{1,T,<:Interval}, dom::Interval) where {T}
     end
 end
 
+function map_to(r::QuadratureRule{3,T,<:Wedge}, dom::Wedge) where {T}
+    return _map_affine_shape(r, dom, T)
+end
+function map_to(r::QuadratureRule{3,T,<:Pyramid}, dom::Pyramid) where {T}
+    return _map_affine_shape(r, dom, T)
+end
+function _map_affine_shape(r, dom, ::Type{T}) where {T}
+    S = promote_type(T, eltype(eltype(dom.vertices)))
+    S <: Integer && (S = Rational{BigInt})
+    return _at_rule_precision(r) do
+        A, b, J = _affine(r.domain, dom, S)
+        xs = [A * SVector{3,S}(x) + b for x in r.nodes]
+        ws = [S(w) * J for w in r.weights]
+        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
+                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
+    end
+end
+
+# The affine map between two wedges, or two pyramids, through their reference frames
+@inline _affine(src::Wedge, dst::Wedge, ::Type{S}) where {S} = _affine_frames(src, dst, S)
+@inline _affine(src::Pyramid, dst::Pyramid, ::Type{S}) where {S} = _affine_frames(src, dst, S)
+function _affine_frames(src, dst, ::Type{S}) where {S}
+    Ad, bd = affine_frame(dst, S)
+    isreference(src) && return Ad, bd, abs(det(Ad))
+    As, bs = affine_frame(src, S)
+    A = Ad / As
+    return A, bd - A * bs, abs(det(A))
+end
+
 map_to(r::QuadratureRule, dom::Domain) =
     throw(ArgumentError("map_to transports a rule affinely between domains of the same kind; " *
                         "cannot map a rule on $(r.domain) onto $(dom)"))

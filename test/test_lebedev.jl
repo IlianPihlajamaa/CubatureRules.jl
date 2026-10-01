@@ -173,3 +173,20 @@ end
     @test !occursin("orbit representatives", asym.basis)
     @test CR.octahedral_orbits([big.(collect(x)) for x in nodes(r)], big.(w), big(1e-12)) === nothing
 end
+
+@testset "a smaller rule in a package that is not loaded is mentioned" begin
+    # Lebedev.jl is loaded only by the interop tests, which run later
+    if CR.missing_dependency(UpstreamLebedev()) !== nothing
+        CR.selection_warnings!(true)
+        @test only(CR.unloaded_alternatives(Sphere{3}(), 20)).npoints == 170
+        @test isempty(CR.unloaded_alternatives(Sphere{3}(), 127))
+        @test_logs (:warn, r"Lebedev.jl has a 302-point rule there but is not loaded") match_mode = :any rule(Sphere{3}(); degree = 29)
+        @test_logs rule(Sphere{3}(); degree = 29)              # once per family and degree
+        # never a negative-weight rule in place of a positive one: Lebedev's 74 points at 13
+        @test_logs rule(Sphere{3}(); degree = 13)
+        CR.selection_warnings!(false)
+        @test_logs rule(Sphere{3}(); degree = 31)
+        CR.selection_warnings!(true)
+        @test CR.license_warnings!(true)                       # the earlier name still works
+    end
+end

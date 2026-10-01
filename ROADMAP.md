@@ -557,7 +557,16 @@ them.
 - [ ] Smolyak sparse grids: combination technique with node deduplication, any 1D family
       *(also closes the v0.3 exit criterion that `available` on a box offer a non-tensor
       candidate)*
-- [ ] `Wedge`, `Pyramid`
+- [x] `Wedge`, `Pyramid`
+      *(affine images of the reference shapes, given by their vertices; a twisted wedge or
+      a non-parallelogram pyramid base is refused, since no rule keeps its degree there.
+      Wedge: `WedgeProduct`, the cheapest triangle family times Gauss–Legendre, so the
+      shipped Xiao–Gimbutas table to degree 53 and the conical product beyond. Pyramid:
+      `ConicalProduct` with Gauss–Jacobi(2, 0) in the collapsed direction, m³ points for
+      degree 2m − 1. Both at every degree and precision, with mesh integration and
+      `map_to`. Verified against an orthonormal Dubiner × Legendre basis on the wedge, and
+      on the pyramid against bounding-box Legendre polynomials integrated slice by slice.
+      Symmetric rules with fewer points are not shipped)*
 - [ ] Stroud $T_n$ in closed form for arbitrary $d$, carried from v0.4. Low priority while
       `ConicalProduct` covers every degree and `GrundmannMöller` is exactly rational: it
       buys smaller point counts at fixed low degree, not new capability

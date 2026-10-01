@@ -89,8 +89,7 @@ GaussianWeight
 RadialExponentialWeight
 MomentDomain
 Polytope
-Wedge
-Pyramid
+affine_frame
 ```
 
 ## Measures given by moments
@@ -162,7 +161,9 @@ Provenance
 Certificate
 Citation
 cite
+selection_warnings!
 license_warnings!
+unloaded_alternatives
 ```
 
 ## Controlling construction

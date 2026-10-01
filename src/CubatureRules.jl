@@ -39,6 +39,7 @@ include("domains/unbounded.jl")
 include("domains/sphere.jl")
 include("domains/harmonics.jl")
 include("domains/ball.jl")
+include("domains/wedge_pyramid.jl")
 include("core/records.jl")
 include("core/rule.jl")
 include("core/precision.jl")
@@ -81,6 +82,7 @@ include("families/sphere/ballproduct.jl")
 include("families/sphere/gaussianproduct.jl")
 include("families/sphere/exponentialproduct.jl")
 include("composition/tensor.jl")
+include("composition/wedge.jl")
 
 # selection, application, verification, presentation
 include("registry/registry.jl")
@@ -113,7 +115,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev,
-       StieltjesDiscretization, SingularGauss, Filon
+       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct
 export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport
@@ -132,12 +134,12 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        OscillatoryWeight, OscillatoryDomain, oscillatory_moments, spherical_bessel_up, spherical_bessel_down,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,
-       monomial_moment, barycentric_moment, AffineMap, affine_map,
+       monomial_moment, barycentric_moment, AffineMap, affine_map, affine_frame,
        rule_hash,
        Provenance, Certificate, Verification, Citation, Derived, Seeded,
        CombinatorFamily, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,
-       license_warnings!, derivation,
+       license_warnings!, selection_warnings!, unloaded_alternatives, derivation,
        # the rest of the family interface: what docs/src/tutorial/families.md tells authors to use
        build, BuildContext, outtype, isexact, finalize_number, checkcancel, claimed_degree,
        degree_for_npoints, supports_type, describe_family, reference, verification_basis,

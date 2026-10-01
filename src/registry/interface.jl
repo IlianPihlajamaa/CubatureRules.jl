@@ -156,7 +156,7 @@ rules seeded from a copyleft-licensed source, for instance. Those are still list
 [`available`](@ref), with their terms in the family name, and can be had by naming the
 family or by passing `copyleft = true`; what they are not is the silent answer to a request
 that said only "degree 19". When one is passed over for being cheaper than the rule actually
-returned, `rule` says so — see [`license_warnings!`](@ref).
+returned, `rule` says so — see [`selection_warnings!`](@ref).
 """
 selectable(::RuleFamily) = true
 

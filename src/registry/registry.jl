@@ -94,38 +94,84 @@ function gather(dom::Domain, degree::Integer, T; all::Bool = false)
 end
 
 """
-    license_warnings!(on)
+    selection_warnings!(on)
 
-Whether [`rule`](@ref) warns when it passes over a cheaper rule because the rule's licence
-cannot be passed on to the caller. On by default: silently handing back a rule twice the
-size of one that was available is worth a word, and the alternative is a puzzle. The message
-names the family, both point counts and the keyword that would take the cheaper one.
+Whether [`rule`](@ref) warns when the rule it returns has more points than one it could have
+taken with other options:
 
-Each distinct case warns once — one message per family and degree passed over — so that a
+- a rule whose licence this package cannot pass on, which `copyleft = true` would allow
+  (see [`selectable`](@ref));
+- a rule from a package that is not loaded, such as Lebedev.jl on the sphere (see
+  [`unloaded_alternatives`](@ref)).
+
+On by default: silently handing back a rule twice the size of one that was available is
+worth a word, and the alternative is a puzzle. The message names both families, both point
+counts and what would make the smaller rule available.
+
+Each distinct case warns once — one message per family and degree — so that a
 tolerance-driven call walking a sequence of degrees does not repeat itself. Switching
 warnings back on clears that memory.
 """
-function license_warnings!(on::Bool)
-    LICENSE_WARNINGS[] = on
-    on && empty!(LICENSE_WARNED)
+function selection_warnings!(on::Bool)
+    SELECTION_WARNINGS[] = on
+    on && empty!(SELECTION_WARNED)
     return on
 end
-const LICENSE_WARNINGS = Ref(true)
-const LICENSE_WARNED = Set{Tuple{String,Int}}()
+const SELECTION_WARNINGS = Ref(true)
+const SELECTION_WARNED = Set{Tuple{Symbol,String,Int}}()
 
-# Warn when the best rule we may hand over is worse than one we may not.
-function _warn_license_skip(dom, degree, T, chosen)
-    LICENSE_WARNINGS[] || return nothing
-    blocked = filter(c -> !selectable(c.family), gather(dom, degree, T; all = true))
-    isempty(blocked) && return nothing
-    best = first(sort(blocked; by = rank_key))
-    best.npoints < chosen.npoints || return nothing
-    (best.name, degree) in LICENSE_WARNED && return nothing
-    push!(LICENSE_WARNED, (best.name, degree))
-    @warn("$(chosen.name) ($(chosen.npoints) points) was selected on $(dom) at degree " *
-          "$(degree); $(best.name) has $(best.npoints) points but its licence is not one " *
-          "this package can pass on. Pass `copyleft = true` to use it, or " *
-          "`CubatureRules.license_warnings!(false)` to silence this.")
+"""
+    license_warnings!(on)
+
+The earlier name of [`selection_warnings!`](@ref), which it calls.
+"""
+license_warnings!(on::Bool) = selection_warnings!(on)
+
+"""
+    unloaded_alternatives(domain, degree) -> Vector{NamedTuple}
+
+Rules that a package which is not loaded would offer on the reference `domain` at `degree`,
+as `(name, npoints, positive, package, copyleft)`, where `copyleft` says whether the rule's licence
+needs `copyleft = true`. Empty unless a family says otherwise; it lets [`rule`](@ref) mention
+a smaller rule without loading the package that has it.
+"""
+unloaded_alternatives(dom, degree) = NamedTuple[]
+
+# warn once per kind, family and degree
+function _first_warning(kind::Symbol, name, degree)
+    (kind, name, degree) in SELECTION_WARNED && return false
+    push!(SELECTION_WARNED, (kind, name, degree))
+    return true
+end
+
+# Warn when the rule handed over is larger than one the caller could have had: one held back
+# by its licence, or one in a package that is not loaded.
+function _warn_suboptimal(dom, degree, T, chosen, copyleft::Bool)
+    SELECTION_WARNINGS[] || return nothing
+    silence = "`CubatureRules.selection_warnings!(false)` silences this."
+    if !copyleft
+        # never suggest giving up positive weights for fewer points
+        blocked = filter(c -> !selectable(c.family) && (c.positive || !chosen.positive), gather(dom, degree, T; all = true))
+        if !isempty(blocked)
+            best = first(sort(blocked; by = rank_key))
+            if best.npoints < chosen.npoints && _first_warning(:licence, best.name, degree)
+                @warn("$(chosen.name) ($(chosen.npoints) points) was selected on $(dom) at degree " *
+                      "$(degree); $(best.name) has $(best.npoints) points but its licence is not one " *
+                      "this package can pass on. Pass `copyleft = true` to use it. " * silence)
+            end
+        end
+    end
+    ref = reference_domain(dom)
+    (ref === nothing || _is_exact_type(T)) && return nothing
+    for alt in unloaded_alternatives(ref, degree)
+        (alt.npoints < chosen.npoints && (alt.positive || !chosen.positive) &&
+         _first_warning(:unloaded, alt.name, degree)) || continue
+        how = "`using $(alt.package)` makes it available" *
+              (alt.copyleft && !copyleft ? ", and `copyleft = true` lets `rule` choose it, since its licence " *
+                                           "is not one this package can pass on" : "")
+        @warn("$(chosen.name) ($(chosen.npoints) points) was selected on $(dom) at degree $(degree); " *
+              "$(alt.package).jl has a $(alt.npoints)-point rule there but is not loaded. " * how * ". " * silence)
+    end
     return nothing
 end
 
@@ -170,8 +216,9 @@ so it obeys the ambient logger.
 
 `copyleft = true` lets the selector also consider families whose rules carry terms this
 package cannot pass on — see [`selectable`](@ref). Without it those are listed by
-[`available`](@ref) but never chosen, and `rule` warns when it passes over a cheaper one
-(see [`license_warnings!`](@ref)).
+[`available`](@ref) but never chosen. `rule` warns when it passes over a cheaper one, and when
+a package that is not loaded, such as Lebedev.jl, would have a smaller rule (see
+[`selection_warnings!`](@ref)).
 
 There is no default degree: `rule(domain)` errors, listing what is available.
 """
@@ -189,7 +236,7 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
     ok = filter(c -> passes(c; positive, interior) && supports_type(c.family, Tout), cands)
     isempty(ok) && throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, positive, interior, cands)))
     chosen = first(ok)
-    copyleft || _warn_license_skip(dom, degree, Tout, chosen)
+    _warn_suboptimal(dom, degree, Tout, chosen, copyleft)
     selection = "selected by rule(): " * join(("$(c.name) ($(c.npoints) points)" for c in ok), " < ") *
                 "; ranked by (npoints, derived before seeded, family name)" *
                 (positive ? "; positive = true" : "") * (interior ? "; interior = true" : "") *
@@ -349,7 +396,7 @@ function no_degree_message(dom::Domain; only = nothing)
 end
 
 _planned(dom) = ""
-_planned(::Union{Polytope,Wedge,Pyramid}) = " That domain is scheduled for a later release."
+_planned(::Polytope) = " That domain is scheduled for a later release."
 
 function unsatisfiable_message(dom, degree, T, positive, interior, cands; only = nothing)
     io = IOBuffer()

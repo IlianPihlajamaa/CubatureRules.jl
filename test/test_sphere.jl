@@ -115,7 +115,6 @@ end
 
 @testset "domains still to come" begin
     @test_throws CR.NotYetImplemented Polytope{3,Float64}()
-    @test_throws CR.NotYetImplemented Pyramid()
     # above S² there are no harmonics here, and none are needed: monomials with exact
     # moments are a spanning test set even though they are not a basis on a sphere
     b, name = CR.verification_basis(Sphere{5}(), 3, BigFloat, false)

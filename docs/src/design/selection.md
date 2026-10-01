@@ -56,8 +56,11 @@ want, such as rules refined from the GPL tables in Lebedev.jl; see
 [Provenance and licensing](provenance.md).
 
 When such a family would have given a rule with fewer points than the one chosen, `rule`
-prints a warning. Each combination of family and degree warns once;
-`CubatureRules.license_warnings!(false)` turns the warnings off.
+prints a warning, and so it does when a package that is not loaded would have: Lebedev.jl
+on the sphere (see [`unloaded_alternatives`](@ref CubatureRules.unloaded_alternatives)). A
+rule with negative weights is never suggested in place of a positive one. Each combination
+of family and degree warns once; `CubatureRules.selection_warnings!(false)` turns the
+warnings off.
 
 ## Explicit families
 
