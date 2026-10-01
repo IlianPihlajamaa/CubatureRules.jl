@@ -9,14 +9,16 @@
 path = "triangle_s3_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully S3-symmetric, positive,
-interior triangle rules of degrees 1-20 at the minimal point counts reported by Xiao &
-Gimbutas (2010)."""
+interior triangle rules of degrees 1-53: to degree 26 at the point counts reported by Xiao &
+Gimbutas (2010) (one point more at degree 25), at degrees 27-33 and 35-50 with fewer points
+than they report, and at 51-53 beyond the degrees they tabulate."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_triangle_seeds.jl: multistart Levenberg-Marquardt on
 the S3-invariant moment system from random interior starts, with only the orbit structure
-fixed, then refined to 100 digits and rounded to Float64. No numerical table was consulted.
-The point counts (a combinatorial fact stated in the paper's prose and tables, not the
+fixed, then refined to 100 digits and rounded to Float64. Above degree 20, node elimination
+from the rule one degree lower (src/refine/elimination.jl); degrees 51-53 by
+scripts/search_campaign.jl (2026-09-25/26). No numerical table was consulted. The point counts (a combinatorial fact stated in the paper's prose and tables, not the
 tabulated nodes or weights) are from Xiao & Gimbutas (2010)."""
 license = "MIT"
 retrieved = "2026-09-18"
@@ -37,8 +39,10 @@ source = """
 Generated in-house by scripts/generate_tetrahedron_seeds.jl: for each degree, a walk upwards
 in point count from a bound below which no fully symmetric rule exists, with multistart
 Levenberg-Marquardt on the S4-invariant moment system at each count; the winning rule is
-refined to 100 digits and rounded to Float64. Neither numbers nor point counts were taken
-from any publication."""
+refined to 100 digits and rounded to Float64; above degree 10, node elimination from the
+rule one degree lower. Degrees 21-22 and the 288-point degree-17 rule were found by
+scripts/search_campaign.jl (2026-09-25). Neither numbers nor point counts were taken from
+any publication."""
 license = "MIT"
 retrieved = "2026-09-19"
 citation = "none (generated in-house)"
@@ -68,6 +72,6 @@ retrieved = "2026-09-22"
 citation = "V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2"
 generator = "scripts/generate_lebedev_seeds.jl"
 checked = """
-scripts/certify_tables.jl, 2026-09-24: every seed is the correctly rounded Float64 value of
-the rule refined to 160 bits (the degree-11 triangle seed was 3 ulp off and was replaced),
-and its defining-equation residual at 256 bits is recorded in the table."""
+scripts/certify_tables.jl, 2026-09-24 and 2026-09-30: every seed is the correctly rounded
+Float64 value of the rule refined to 160 bits, and its defining-equation residual at 256 bits
+is recorded in the table."""

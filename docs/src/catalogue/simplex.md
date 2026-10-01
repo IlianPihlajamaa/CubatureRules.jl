@@ -50,9 +50,11 @@ doi:10.1016/j.camwa.2009.10.027, or fewer.
 The seeds were generated for this package from the orbit structures alone; no published
 numbers were used, and the table is MIT licensed. Above degree 20 they were found by growing
 from the rule one degree lower and eliminating nodes (see [Seed strategies](../design/seeds.md)),
-which found rules with fewer points than the published ones at several degrees, for example
-139 instead of 141 at degree 27. Rules with the minimal number of points are not unique; the
-table contains the one with the largest smallest barycentric coordinate among those found.
+which found rules with fewer points than the published ones at most degrees from 27 on, for
+example 139 instead of 141 at degree 27 and 412 instead of 423 at degree 48. Degrees 51 to
+53 go beyond the published table. These are the smallest counts the searches reached, not
+proven minima. Rules with the minimal number of points are not unique; the table contains
+the one with the largest smallest barycentric coordinate among those found.
 
 ## Fully symmetric tetrahedron rules
 

@@ -2,6 +2,10 @@
 # without refinement (see `build_symmetric` and the Lebedev `build`).
 #
 #     julia --project -t auto scripts/certify_tables.jl [triangle|tetrahedron|lebedev ...]
+#     julia --project -t auto scripts/certify_tables.jl triangle:51,52,53 tetrahedron:17,21,22
+#
+# A table name alone checks every entry; `name:degrees` only those degrees, which is what
+# newly merged entries need.
 #
 # For every entry: refine the stored seed to 160 bits, round the result to Float64, and
 # compare it with the stored seed. A stored seed that is not the correctly rounded value is
@@ -43,7 +47,7 @@ function refine_and_residual(e, N)
     return θr, ulps, Float64(resid)
 end
 
-function certify(name)
+function certify(name, degrees = nothing)
     file, N = TABLES[name]
     path = joinpath(DATA, file)
     header = String[]
@@ -52,7 +56,8 @@ function certify(name)
         push!(header, l)
     end
     entries = TOML.parsefile(path)["rule"]
-    todo = [i for (i, e) in enumerate(entries) if get(e, "status", "ok") == "ok"]
+    todo = [i for (i, e) in enumerate(entries)
+            if get(e, "status", "ok") == "ok" && (degrees === nothing || e["degree"] in degrees)]
     results = Vector{Any}(undef, length(entries))
     Threads.@threads :dynamic for i in todo
         t = @elapsed results[i] = refine_and_residual(entries[i], N)
@@ -78,7 +83,8 @@ function certify(name)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    for name in (isempty(ARGS) ? ["lebedev", "tetrahedron", "triangle"] : ARGS)
-        certify(name)
+    for arg in (isempty(ARGS) ? ["lebedev", "tetrahedron", "triangle"] : ARGS)
+        name, sel = occursin(":", arg) ? split(arg, ":"; limit = 2) : (arg, nothing)
+        certify(String(name), sel === nothing ? nothing : parse.(Int, split(sel, ",")))
     end
 end
