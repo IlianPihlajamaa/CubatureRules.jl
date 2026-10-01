@@ -139,7 +139,8 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        Provenance, Certificate, Verification, Citation, Derived, Seeded,
        CombinatorFamily, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,
-       license_warnings!, selection_warnings!, unloaded_alternatives, derivation,
+       license_warnings!, selection_warnings!, unloaded_alternatives, weight_amplification, POSITIVE_PREFERENCE,
+       derivation,
        # the rest of the family interface: what docs/src/tutorial/families.md tells authors to use
        build, BuildContext, outtype, isexact, finalize_number, checkcancel, claimed_degree,
        degree_for_npoints, supports_type, describe_family, reference, verification_basis,

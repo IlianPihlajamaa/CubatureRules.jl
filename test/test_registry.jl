@@ -100,3 +100,26 @@ end
     @test_throws ArgumentError rule(Simplex{2}(); degree = -1)
     @test_throws ArgumentError rule(Simplex{2}(); npoints = 5)
 end
+
+@testset "positive rules are preferred when they are close in points" begin
+    # Grundmann–Möller has 3876 points at degree 31 on the tetrahedron, the conical product 4096
+    @test CR.weight_amplification(GrundmannMöller(), Simplex{3}(), 31) ≈ 1.3e5 rtol = 0.05
+    exact = rule(GrundmannMöller(), Simplex{3}(); degree = 31, T = Rational{BigInt})
+    @test CR.weight_amplification(GrundmannMöller(), Simplex{3}(), 31) ≈
+          Float64(sum(abs, weights(exact)) / sum(weights(exact))) rtol = 1e-12
+    @test CR.weight_amplification(GrundmannMöller(), Simplex{3}(), 1) == 1
+    @test CR.weight_amplification(XiaoGimbutas(), Simplex{2}(), 10) == 1
+    @test family(rule(Simplex{3}(); degree = 31)) == "ConicalProduct"
+    a = available(Simplex{3}(); degree = 31)
+    @test first(a).family == "ConicalProduct(GaussJacobi)" && first(a).amplification == "1"
+    @test any(r -> r.family == "GrundmannMöller" && r.amplification == "1.3e+05", a)
+    # far apart in points the smaller rule stays, and rule says what it costs
+    CR.selection_warnings!(true)
+    r = @test_logs (:warn, r"not all positive.*Σ\|w\|/Σw = 35.*positive = true") match_mode = :any rule(Simplex{4}(); degree = 9)
+    @test family(r) == "GrundmannMöller"
+    @test family(rule(Simplex{4}(); degree = 9, positive = true)) == "ConicalProduct"
+    @test_logs rule(Simplex{4}(); degree = 9)                     # once per family and degree
+    # exact arithmetic has no positive alternative, so no preference and no warning
+    @test_logs rule(Simplex{3}(); degree = 31, T = Rational{BigInt})
+    @test occursin("positive rule ahead", provenance(rule(Simplex{3}(); degree = 31)).selection)
+end

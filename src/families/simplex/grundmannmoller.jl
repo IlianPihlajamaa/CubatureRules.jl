@@ -37,6 +37,22 @@ degree_range(::GrundmannMöller, dom::Simplex) = 0:typemax(Int)
 properties(::GrundmannMöller, dom, degree) =
     (positive = gm_s(degree) == 0, interior = true, symmetry = Symbol("S", dimension(dom) + 1), nested = false)
 
+# Σ|w|/Σw from the level weights and their multiplicities: it grows quickly with the degree
+# (1.3e5 at degree 31 on the tetrahedron). The selector asks for it on every call, so it is
+# a few Float64 logarithms: Σw is the measure, 2^{2s}/D! before the factor 2^{-2s}, and Σ|w|
+# has no cancellation.
+function weight_amplification(::GrundmannMöller, dom::Simplex{D}, degree) where {D}
+    s = gm_s(degree)
+    s == 0 && return 1.0
+    d = 2s + 1
+    lf(n) = SpecialFunctions.loggamma(n + 1.0)
+    logterm(i) = d * log(d + D - 2i) - lf(i) - lf(d + D - i) + lf(s - i + D) - lf(D) - lf(s - i)
+    l = [logterm(i) for i in 0:s]
+    m = maximum(l)
+    logabs = m + log(sum(exp(li - m) for li in l))
+    return exp(logabs - (2s * log(2.0) - lf(D)))
+end
+
 "All compositions of `total` into `parts` non-negative parts, in lexicographic order."
 function compositions(total::Int, parts::Int)
     parts == 1 && return [[total]]

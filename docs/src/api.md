@@ -164,6 +164,8 @@ cite
 selection_warnings!
 license_warnings!
 unloaded_alternatives
+weight_amplification
+POSITIVE_PREFERENCE
 ```
 
 ## Controlling construction

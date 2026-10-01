@@ -55,16 +55,40 @@ struct Candidate
     interior::Bool
     symmetry::Symbol
     cost::Float64
+    amplification::Union{Nothing,Float64}      # Σ|w|/Σw where known without building
 end
 
 function Candidate(f::RuleFamily, dom, degree::Integer, T)
     p = properties(f, dom, degree)
     return Candidate(f, describe_family(f), npoints(f, dom, degree), claimed_degree(f, dom, degree),
-                     derivation(f), p.positive, p.interior, p.symmetry, cost_estimate(f, dom, degree, T))
+                     derivation(f), p.positive, p.interior, p.symmetry, cost_estimate(f, dom, degree, T),
+                     weight_amplification(f, dom, degree))
 end
 
 "Documented total order: node count, then derived before seeded, then family name."
 rank_key(c::Candidate) = (c.npoints, c.derivation isa Derived ? 0 : 1, c.name)
+
+"""
+    POSITIVE_PREFERENCE
+
+A rule with positive weights is ranked ahead of a smaller one with negative weights when it
+needs at most this factor more points: 1.25.
+
+Ranked by points alone, a rule with negative weights can win by a few points and lose many
+digits to cancellation. Grundmann–Möller at degree 31 on the tetrahedron has 3876 points
+against the conical product's 4096, and amplifies rounding errors by `Σ|w|/Σw = 1.3e5`:
+`exp` integrated with error 7e-11 instead of 2e-15.
+"""
+const POSITIVE_PREFERENCE = 1.25
+
+# The ranked candidates, with the first positive one moved to the front when the smallest is
+# not positive and the positive one is within POSITIVE_PREFERENCE of it in points.
+function prefer_positive(cands::Vector{Candidate})
+    (isempty(cands) || first(cands).positive) && return cands
+    i = findfirst(c -> c.positive, cands)
+    (i === nothing || cands[i].npoints > POSITIVE_PREFERENCE * first(cands).npoints) && return cands
+    return vcat(cands[i], cands[1:(i - 1)], cands[(i + 1):end])
+end
 
 function reference_domain(dom::Domain)
     applicable(reference, dom) || return nothing
@@ -103,6 +127,10 @@ taken with other options:
   (see [`selectable`](@ref));
 - a rule from a package that is not loaded, such as Lebedev.jl on the sphere (see
   [`unloaded_alternatives`](@ref)).
+
+It also warns when the rule it returns has negative weights while a larger positive one was
+available (more than [`POSITIVE_PREFERENCE`](@ref) times its points, or it would have been
+chosen), giving the returned rule's `Σ|w|/Σw` and the alternative's point count.
 
 On by default: silently handing back a rule twice the size of one that was available is
 worth a word, and the alternative is a puzzle. The message names both families, both point
@@ -144,14 +172,31 @@ function _first_warning(kind::Symbol, name, degree)
     return true
 end
 
+# Warn when the rule handed over has negative weights although a positive rule was among the
+# candidates, more than POSITIVE_PREFERENCE larger: the caller may prefer the digits.
+function _warn_negative_weights(dom, degree, chosen, ok, r)
+    (SELECTION_WARNINGS[] && !chosen.positive) || return nothing
+    i = findfirst(c -> c.positive, ok)
+    i === nothing && return nothing
+    w = weights(r)
+    eltype(w) <: Real || return nothing
+    amp = Float64(sum(abs, w) / abs(sum(w)))
+    _first_warning(:negative, chosen.name, degree) || return nothing
+    @warn("$(chosen.name) ($(chosen.npoints) points) was selected on $(dom) at degree $(degree); its weights " *
+          "are not all positive, and rounding errors in the integrand can be amplified by Σ|w|/Σw = " *
+          @sprintf("%.2g", amp) * ". $(ok[i].name) has a positive rule with $(ok[i].npoints) points: pass " *
+          "`positive = true` to take it. `CubatureRules.selection_warnings!(false)` silences this.")
+    return nothing
+end
+
 # Warn when the rule handed over is larger than one the caller could have had: one held back
 # by its licence, or one in a package that is not loaded.
-function _warn_suboptimal(dom, degree, T, chosen, copyleft::Bool)
+function _warn_suboptimal(dom, degree, T, chosen, copyleft::Bool, allc)
     SELECTION_WARNINGS[] || return nothing
     silence = "`CubatureRules.selection_warnings!(false)` silences this."
     if !copyleft
         # never suggest giving up positive weights for fewer points
-        blocked = filter(c -> !selectable(c.family) && (c.positive || !chosen.positive), gather(dom, degree, T; all = true))
+        blocked = filter(c -> !selectable(c.family) && (c.positive || !chosen.positive), allc)
         if !isempty(blocked)
             best = first(sort(blocked; by = rank_key))
             if best.npoints < chosen.npoints && _first_warning(:licence, best.name, degree)
@@ -198,8 +243,11 @@ Base.showerror(io::IO, e::NoRuleError) = print(io, e.msg)
 Construct a quadrature rule of at least polynomial degree `degree` on `domain`.
 
 Without `family`, every loaded family is asked for candidates, which are ranked by node
-count, then derived-before-seeded, then name; the first one satisfying the filters is
-built, and the choice is recorded in `provenance(rule).selection`.
+count, then derived-before-seeded, then name, with a positive rule moved ahead of a smaller
+one with negative weights when it needs at most 25% more points; the first one satisfying
+the filters is built, and the choice is recorded in `provenance(rule).selection`. When a
+rule with negative weights is chosen while a larger positive one was available, `rule` warns
+(see [`selection_warnings!`](@ref)).
 
 Precision: `digits = 200` gives `BigFloat` at 200 decimal digits; `T = BigFloat` uses the
 ambient BigFloat precision at the time of the call; any other `T` its own precision.
@@ -232,16 +280,19 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
     degree === nothing && throw(NoRuleError(no_degree_message(dom)))
     degree >= 0 || throw(ArgumentError("degree must be non-negative"))
     Tout, bits = resolve_precision(T, digits)
-    cands = gather(dom, degree, Tout; all = copyleft)
-    ok = filter(c -> passes(c; positive, interior) && supports_type(c.family, Tout), cands)
+    allc = gather(dom, degree, Tout; all = true)              # once: also what the warnings look at
+    cands = copyleft ? allc : filter(c -> selectable(c.family), allc)
+    ok = prefer_positive(filter(c -> passes(c; positive, interior) && supports_type(c.family, Tout), cands))
     isempty(ok) && throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, positive, interior, cands)))
     chosen = first(ok)
-    _warn_suboptimal(dom, degree, Tout, chosen, copyleft)
+    _warn_suboptimal(dom, degree, Tout, chosen, copyleft, allc)
     selection = "selected by rule(): " * join(("$(c.name) ($(c.npoints) points)" for c in ok), " < ") *
-                "; ranked by (npoints, derived before seeded, family name)" *
+                "; ranked by (npoints, derived before seeded, family name), a positive rule ahead of a " *
+                "smaller one with negative weights if within $(POSITIVE_PREFERENCE)× its points" *
                 (positive ? "; positive = true" : "") * (interior ? "; interior = true" : "") *
                 (copyleft ? "; copyleft = true" : "")
     r = _build(chosen.family, dom, degree, Tout, bits, cancel, seed, verbosity(verbose))
+    _warn_negative_weights(dom, degree, chosen, ok, r)
     r = QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, with_selection(r.provenance, selection), r.certificate)
     return isreference(dom) ? r : map_to(r, dom)
 end
@@ -474,6 +525,7 @@ end
 _cell(x::Bool) = x ? "yes" : "no"
 _cell(x::DerivationClass) = x isa Derived ? "derived" : "seeded"
 _cell(x::UnitRange) = _range_string(x)
+_amplification_cell(a) = a === nothing ? "?" : a == 1 ? "1" : @sprintf("%.2g", a)
 _cell(x) = string(x)
 
 """
@@ -481,7 +533,10 @@ _cell(x) = string(x)
 
 Without `degree`: every loaded family applicable to `domain`, with its degree range.
 With `degree`: the candidates that satisfy the request, ranked exactly as [`rule`](@ref)
-would rank them — nothing is constructed.
+would rank them — nothing is constructed. The `amplification` column is `Σ|w|/Σw`, the
+factor by which a rule can amplify rounding errors in the integrand: 1 for positive weights,
+and `?` where it is not known without building the rule (see
+[`weight_amplification`](@ref)).
 """
 function available(dom::Domain; degree = nothing, positive::Bool = false, interior::Bool = false, T = Float64)
     ref = reference_domain(dom)
@@ -497,10 +552,11 @@ function available(dom::Domain; degree = nothing, positive::Bool = false, interi
     end
     # `available` lists everything, including families `rule` will not take on its own;
     # their licence shows in the family name.
-    cands = filter(c -> passes(c; positive, interior) && supports_type(c.family, T),
-                   gather(dom, degree, T; all = true))
+    cands = prefer_positive(filter(c -> passes(c; positive, interior) && supports_type(c.family, T),
+                                   gather(dom, degree, T; all = true)))
     rows = NamedTuple[(family = c.name, npoints = c.npoints, degree = c.degree, derivation = c.derivation,
-                       positive = c.positive, interior = c.interior, symmetry = c.symmetry) for c in cands]
+                       positive = c.positive, amplification = _amplification_cell(c.amplification),
+                       interior = c.interior, symmetry = c.symmetry) for c in cands]
     return CandidateTable("Candidates on $(dom) for degree ≥ $(degree), ranked:", rows)
 end
 

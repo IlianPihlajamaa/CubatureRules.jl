@@ -58,6 +58,17 @@ constructing it.
 function properties end
 
 """
+    weight_amplification(f, domain, degree) -> Float64 or nothing
+
+`Σ|wᵢ| / |Σwᵢ|` for the rule of `f` at `degree`, without constructing it: the factor by
+which the rule can amplify rounding errors in the integrand, and so roughly `10^-k` of
+accuracy lost for a value of `10^k`. Exactly 1 for a rule with positive weights. `nothing`
+when it is not known without building the rule, which is the default for any family whose
+weights are not all positive.
+"""
+weight_amplification(f::RuleFamily, dom, degree) = properties(f, dom, degree).positive ? 1.0 : nothing
+
+"""
     degree_range(f, domain) -> UnitRange{Int}
 
 Degrees for which `f` can construct a rule on `domain`. Unbounded ranges end at

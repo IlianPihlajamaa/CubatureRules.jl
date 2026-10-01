@@ -39,11 +39,23 @@ Candidates are sorted by
 The third key only exists to make the order deterministic. Filters are applied after
 sorting: `positive = true` and `interior = true` remove candidates without those properties,
 and candidates that cannot produce the requested output type (`supports_type`) are removed.
-`rule` builds the first remaining candidate.
+Then, if the first remaining candidate has negative weights and a positive one needs at most
+25% more points ([`POSITIVE_PREFERENCE`](@ref CubatureRules.POSITIVE_PREFERENCE)), the
+positive one moves to the front. `rule` builds the first candidate.
 
 The number of points is the main criterion because it is what determines the cost of using
 the rule. The construction cost is reported by `compare` but not used for ranking, since a
 rule is usually built once and applied many times.
+
+Points alone would hand out rules that lose digits. Grundmann–Möller at degree 31 on the
+tetrahedron has 3876 points against the conical product's 4096, but its weights alternate
+in sign and amplify rounding errors in the integrand by `Σ|w|/Σw = 1.3e5`: `exp`
+integrated to 7e-11 instead of 8e-16. `available` shows that factor in its `amplification`
+column, from [`weight_amplification`](@ref CubatureRules.weight_amplification), without
+building anything. When a rule with negative weights is still chosen because the positive
+alternative is much larger — Grundmann–Möller in four dimensions, where the conical product
+needs five times the points — `rule` says so and names the alternative; `positive = true`
+takes it.
 
 The ranking is recorded in `provenance(r).selection`.
 
