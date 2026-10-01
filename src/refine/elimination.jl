@@ -78,12 +78,32 @@ function elimination_moves(s::SymmetricStructure, θ::Vector{Float64})
     return moves
 end
 
+"""
+    predicted_margin(s, θ0, n, basis) -> Float64
+
+How promising an elimination move is, before refitting it: take one minimum-norm
+Gauss–Newton step from the move's starting parameters and return the smaller of the
+relative minimum weight (against the largest) and the minimum barycentric coordinate at
+the result. One Jacobian, on orbit representatives, and one least-squares solve.
+"""
+function predicted_margin(s::SymmetricStructure, θ0::Vector{Float64}, n::Integer, basis::InvariantBasis)
+    r, J = SymmetricMomentSystem(s, n, Float64, basis; representatives = true)(θ0)
+    δ = J \ r                                 # QR: least squares, minimum norm when underdetermined
+    θ = θ0 - δ
+    all(isfinite, θ) || return -Inf
+    wmin, λmin = rule_margins(s, θ)
+    wmax = maximum(abs(θ0[off + 1]) for off in param_offsets(s))
+    return min(wmin / wmax, λmin)
+end
+
 "Fit `(s, θ0)` onto the degree-`n` moment variety; the canonical parameters if valid, else `nothing`."
 function fit_symmetric(s::SymmetricStructure, θ0::Vector{Float64}, n::Integer, basis::InvariantBasis;
                        tol::Float64 = 1e-13, maxiter::Int = 400)
+    # the search on one point per orbit, the acceptance on every node (see SymmetricMomentSystem)
+    fast = SymmetricMomentSystem(s, n, Float64, basis; representatives = true)
     sys = SymmetricMomentSystem(s, n, Float64, basis)
     inside(θ) = rule_margins(s, θ)[2] > -0.05
-    θ, nr = levenberg_marquardt(sys, θ0; maxiter, tol, accept = inside)
+    θ, nr = levenberg_marquardt(fast, θ0; maxiter, tol, accept = inside)
     nr <= 1e-10 || return nothing
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
@@ -100,18 +120,45 @@ Greedy node elimination on a valid degree-`n` rule: try the moves of
 whose refit is valid, and repeat until no move succeeds. With `rng`, moves removing the
 same number of points are tried in random order, so that repeated chains explore different
 local minima.
+
+Three options for searches that run many chains, measured against the defaults on the same
+chains (triangle degrees 30 and 40, tetrahedron degree 14, two chains each):
+
+- `min_excess`: a move is tried only if it leaves at least `m + min_excess` unknowns for the
+  `m` invariant equations (default `-2`). No shipped rule is overdetermined and no move to
+  fewer unknowns than equations ever succeeded, so `min_excess = 0` changed no result and
+  saved a third of the time at triangle degree 40.
+- `max_failures`: a step gives up after that many failed refits, rather than refitting every
+  candidate. Much faster, but at triangle degree 40 a cap of 40 ended chains 25 and 6
+  points above the uncapped ones: late moves do succeed.
+- `order = :predicted`: moves removing the same number of points are tried in order of
+  [`predicted_margin`](@ref), best first, with a small jitter from `rng`. The successful
+  move usually ranks first, and at tetrahedron degree 14 this found the 179-point rule where
+  random order stopped at 183; but at triangle degree 40 the greedy path ended 3 points
+  higher than random order. A different search, not a faster one.
 """
 function eliminate(s::SymmetricStructure, θ::Vector{Float64}, n::Integer;
                    basis::InvariantBasis = invariant_basis(s.N, n), log = nothing, cancel = nothing,
-                   rng = nothing)
+                   rng = nothing, min_excess::Integer = -2, max_failures::Integer = typemax(Int),
+                   order::Symbol = :random)
+    order in (:random, :predicted) || throw(ArgumentError("order must be :random or :predicted"))
     m = size(basis.Q, 2)
     while true
         checkcancel(cancel)
-        moves = filter(mv -> nunknowns(mv.structure) >= m - 2, elimination_moves(s, θ))
-        rng === nothing || sort!(moves; by = mv -> (-mv.removed, rand(rng)))
+        moves = filter(mv -> nunknowns(mv.structure) >= m + min_excess, elimination_moves(s, θ))
+        if order === :predicted
+            score = [predicted_margin(mv.structure, mv.θ0, n, basis) for mv in moves]
+            jitter = rng === nothing ? zeros(length(moves)) : 0.02 .* randn(rng, length(moves))
+            perm = sortperm(eachindex(moves); by = i -> (-moves[i].removed, -score[i] + jitter[i]))
+            moves = moves[perm]
+        elseif rng !== nothing
+            sort!(moves; by = mv -> (-mv.removed, rand(rng)))
+        end
         accepted = nothing
         batch = max(Threads.nthreads(), 1)
+        failures = 0
         for lo in 1:batch:length(moves)
+            failures >= max_failures && break
             idx = lo:min(lo + batch - 1, length(moves))
             results = Vector{Any}(nothing, length(idx))
             Threads.@threads :static for j in eachindex(idx)
@@ -123,6 +170,7 @@ function eliminate(s::SymmetricStructure, θ::Vector{Float64}, n::Integer;
                 accepted = (moves[idx[k]], results[k])
                 break
             end
+            failures += length(idx)
         end
         accepted === nothing && return s, θ
         mv, θn = accepted
@@ -189,18 +237,20 @@ end
 Run `chains` independent grow → eliminate chains from the lower-degree rule `(s, θ)`,
 each with its own random placement of the added orbits and its own move order, and keep
 the rule with the fewest points (ties: the largest minimum barycentric coordinate).
-Deterministic for a given `rng_seed`.
+Deterministic for a given `rng_seed`. `min_excess`, `max_failures` and `order` are passed to
+[`eliminate`](@ref).
 """
 function grow_and_eliminate(s::SymmetricStructure, θ::Vector{Float64}, n::Integer; chains::Int = 16,
                             basis::InvariantBasis = invariant_basis(s.N, n), rng_seed::Integer = 0xe11,
-                            cancel = nothing)
+                            cancel = nothing, min_excess::Integer = -2, max_failures::Integer = typemax(Int),
+                            order::Symbol = :random)
     best = nothing
     counts = Int[]
     for c in 1:chains
         checkcancel(cancel)
         g = grow(s, θ, n; basis, ntries = 16, rng_seed = rng_seed + 1000c)
         g === nothing && continue
-        se, θe = eliminate(g[1], g[2], n; basis, rng = start_rng(rng_seed, c), cancel)
+        se, θe = eliminate(g[1], g[2], n; basis, rng = start_rng(rng_seed, c), cancel, min_excess, max_failures, order)
         push!(counts, npoints(se))
         key = (npoints(se), -rule_margins(se, θe)[2])
         if best === nothing || key < best[3]

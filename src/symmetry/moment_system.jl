@@ -6,11 +6,18 @@
 # Reduced system Qᵀ r with Q the invariant basis — as many equations as the Molien count.
 
 """
-    SymmetricMomentSystem(structure, n, S, basis = invariant_basis(structure.N, n))
+    SymmetricMomentSystem(structure, n, S, basis = invariant_basis(structure.N, n);
+                          representatives = false)
 
 The `S_N`-invariant moment system for exactness to degree `n` of a fully symmetric rule on
 the reference `(N-1)`-simplex with the given orbit structure, evaluated in number type `S`.
 Callable: `sys(θ) -> (r, J)`, or `sys(θ; jacobian = false)` for the residual alone.
+
+With `representatives = true` each orbit is evaluated at one of its points, scaled by the
+orbit size: the invariants are constant on an orbit, so the projected system is the same,
+at a sixth (triangle) to a twenty-fourth (tetrahedron) of the evaluations per orbit. But `Q`
+is invariant only to Float64 rounding (a relative 1e-13 at degree 60), so this is for the
+`Float64` searches; a rule they accept is checked on every node.
 """
 struct SymmetricMomentSystem{S,D,B<:SimplexBasis{D,S}}
     structure::SymmetricStructure
@@ -22,17 +29,28 @@ struct SymmetricMomentSystem{S,D,B<:SimplexBasis{D,S}}
     m::Int
     basis::B
     mass::S
+    representatives::Bool
+    # Scratch reused across calls: the full residual and Jacobian before projection (only
+    # for isbits types — the BigFloat path needs distinct numbers, see `bigfloats`), and the
+    # distinct barycentric values of one orbit. A system is used by one fit at a time.
+    rbuf::Vector{S}
+    Jbuf::Matrix{S}
+    vals::Vector{S}
 end
 
 function SymmetricMomentSystem(structure::SymmetricStructure, n::Integer, ::Type{S},
-                               basis::InvariantBasis = invariant_basis(structure.N, n)) where {S}
+                               basis::InvariantBasis = invariant_basis(structure.N, n);
+                               representatives::Bool = false) where {S}
     basis.n == n || throw(ArgumentError("invariant basis degree mismatch"))
     basis.N == structure.N || throw(ArgumentError("invariant basis is for S_$(basis.N), structure for S_$(structure.N)"))
     D = structure.N - 1
     b = SimplexBasis{D,S}(Int(n))
     mass = D == 2 ? dubiner_mass(S) : simplex_basis_mass(b)
+    L, p = basis_length(b), nunknowns(structure)
+    rbuf, Jbuf = isbitstype(S) ? (zeros(S, L), zeros(S, L, p)) : (S[], zeros(S, 0, 0))
     return SymmetricMomentSystem{S,D,typeof(b)}(structure, Int(n), invariant_blocks(basis, b, S),
-                                                size(basis.Q, 2), b, mass)
+                                                size(basis.Q, 2), b, mass, representatives,
+                                                rbuf, Jbuf, Vector{S}(undef, structure.N))
 end
 
 "The diagonal blocks of `basis.Q`, by degree, in type `S`; checks that nothing lies outside them."
@@ -117,24 +135,37 @@ end
 function full_residual(sys::SymmetricMomentSystem{S,D}, θ::AbstractVector; jacobian::Bool = true) where {S,D}
     L = basis_length(sys.basis)
     p = n_unknowns(sys)
-    r = bigfloats(S, L)              # distinct entries: the BigFloat path adds in place
-    J = jacobian ? bigfloats(S, L, p) : zeros(S, 0, 0)
+    if isbitstype(S)                 # reuse the buffers; nothing returned aliases them
+        r = fill!(sys.rbuf, zero(S))
+        J = jacobian ? fill!(sys.Jbuf, zero(S)) : zeros(S, 0, 0)
+    else
+        r = bigfloats(S, L)          # distinct entries: the BigFloat path adds in place
+        J = jacobian ? bigfloats(S, L, p) : zeros(S, 0, 0)
+    end
     x = Vector{S}(undef, D)
     d = Vector{S}(undef, D)
+    vals = sys.vals
     for (o, off) in zip(sys.structure.orbits, param_offsets(sys.structure))
-        w = S(θ[off + 1])
+        # one point standing for the whole orbit, or every point (see the docstring)
+        scale = sys.representatives ? orbit_size(o) : 1
+        w = S(θ[off + 1]) * scale
         nv = ncoords(o)
-        v = S[θ[off + 1 + i] for i in 1:nv]
-        vals = pattern_values(o, v)
         rr = length(o.mult)
-        for lab in o.labels
+        # the orbit's distinct values, as `pattern_values` computes them, without allocating
+        s = zero(S)
+        for i in 1:nv
+            vals[i] = S(θ[off + 1 + i])
+            s += o.mult[i] * vals[i]
+        end
+        vals[rr] = (one(S) - s) / o.mult[rr]
+        for lab in (sys.representatives ? view(o.labels, 1:1) : o.labels)
             for j in 1:D
                 x[j] = vals[lab[j + 1]]
             end
             φ, G = evaluate!(sys.basis, x; gradient = jacobian)
             add_scaled!(r, w, φ, L)
             jacobian || continue
-            add_column!(J, off + 1, φ, L)
+            scale == 1 ? add_column!(J, off + 1, φ, L) : add_scaled!(view(J, :, off + 1), S(scale), φ, L)
             for i in 1:nv
                 # ∂(value with label l)/∂vᵢ: 1 if l == i, −mᵢ/m_r if l is the last value
                 for j in 1:D
@@ -158,10 +189,23 @@ end
 # ---------------------------------------------------------------------------------------
 # Validity and canonical form of a parameter vector.
 
-"Smallest weight and smallest barycentric coordinate over all nodes."
-function rule_margins(structure::SymmetricStructure, θ::AbstractVector)
-    λs, ws = expand(structure, θ)
-    return minimum(ws), minimum(minimum, λs)
+"""
+Smallest weight and smallest barycentric coordinate over all nodes: the minima over the
+orbits' weights and distinct values, which are exactly the numbers the expanded nodes hold.
+"""
+function rule_margins(structure::SymmetricStructure, θ::AbstractVector{S}) where {S}
+    wmin, λmin = typemax(S), typemax(S)
+    for (o, off) in zip(structure.orbits, param_offsets(structure))
+        wmin = min(wmin, θ[off + 1])
+        s = zero(S)
+        for i in 1:ncoords(o)
+            v = θ[off + 1 + i]
+            λmin = min(λmin, v)
+            s += o.mult[i] * v
+        end
+        λmin = min(λmin, (one(S) - s) / o.mult[end])
+    end
+    return wmin, λmin
 end
 
 """
