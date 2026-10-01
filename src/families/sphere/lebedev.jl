@@ -286,6 +286,6 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
     prov = Provenance(family = "Lebedev", derivation = Seeded(),
                       path = vcat(["seed: " * seed_desc, "structure: " * string(structure)], steps),
                       seed_source = seed_desc, citations = citations, symmetry = :Oh,
-                      license = "MIT (seeds generated in-house; no published table was used)")
+                      license = "MIT (seeds generated in-house; no published tables are redistributed)")
     return QuadratureRule(nodes, wt, Sphere{3}(), PolynomialDegree(n), prov, cert)
 end
