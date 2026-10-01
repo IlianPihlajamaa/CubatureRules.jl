@@ -41,8 +41,10 @@ end
 "Grow the degree-(n−1) entry to degree n with `CHAINS` chains; a refined entry, or nothing."
 function attempt(prev, n, N, seed, log)
     basis = CR.invariant_basis(N, n)
+    # min_excess = 0: no move to fewer unknowns than equations has ever succeeded, and skipping
+    # them changes no chain (see `eliminate`)
     t = @elapsed r = CR.grow_and_eliminate(structure_of(prev, N), Float64.(prev["seed"]), n;
-                                           basis, chains = CHAINS, rng_seed = seed)
+                                           basis, chains = CHAINS, rng_seed = seed, min_excess = 0)
     if r === nothing
         logline(log, @sprintf("degree %2d: no chain succeeded (seed %#x, %.0f s)", n, seed, t))
         return nothing
