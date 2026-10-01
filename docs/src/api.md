@@ -122,6 +122,16 @@ discrete_stieltjes
 verification_weight
 ```
 
+## Oscillatory weights
+
+```@docs
+OscillatoryWeight
+OscillatoryDomain
+oscillatory_moments
+spherical_bessel_up
+spherical_bessel_down
+```
+
 ## Principal values and finite parts
 
 ```@docs

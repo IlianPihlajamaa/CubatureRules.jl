@@ -40,6 +40,7 @@ to `f`. The built-in weights are:
 | `RadialExponentialWeight()`: `e^{-‖x‖}` | `RealSpace{D}()` | `ExponentialSpace(D)` |
 | `MomentWeight(aux, moments)`, e.g. `LogWeight(α)` | an `Interval`, or `HalfLine()` | |
 | `FunctionWeight(g, a, b; α, β)`, sums of them and `PointMass`es | an `Interval`, `HalfLine()` or `RealLine()` | |
+| `Oscillatory(ω)`, `Oscillatory(ω, cos)`, `Oscillatory(ω, sin)` | an `Interval` | |
 | `PrincipalValue(t; α, β)`, `FinitePart(t; α, β)` | an `Interval` | |
 
 The unbounded base domains `HalfLine`, `RealLine` and `RealSpace{D}` have infinite measure;
@@ -56,6 +57,14 @@ A [`MomentWeight`](@ref) describes a measure through its moments against a known
 polynomials. Those moments are only valid on the interval they were computed for, so a
 `WeightedDomain(Interval(a, b), MomentWeight(...))` is treated as its own reference domain
 and is never mapped. See [Measures given by moments](moments.md).
+
+## Oscillatory weights
+
+[`Oscillatory`](@ref)`(ω)` is the weight `e^{iωx}`, and its rules have real nodes and
+complex weights: a `QuadratureRule{1,Float64}` carries `ComplexF64` weights, and
+`integrate` returns a complex number. `e^{iωx}` on `[a, b]` is not `e^{iωx}` on `[-1, 1]`
+after a change of variable, so these domains are their own reference as well, and
+`measure(dom)` is the complex integral of the weight.
 
 ## Singular kernels
 

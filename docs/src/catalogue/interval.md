@@ -167,6 +167,50 @@ in `Float64` whatever its input. QuadGK builds Gauss rules for a weight function
 precision, but evaluates Chebyshev series at every node on every step and was 30 times
 slower on these sizes.
 
+## Oscillatory weights
+
+```@docs
+Filon
+Oscillatory
+```
+
+For `∫ f(x) e^{iωx} dx` with large `ω`, a rule for the weight `e^{iωx}` needs only enough
+points for `f`, not for the oscillation. Here `∫₀¹ eˣ e^{1000ix} dx` with 11 points:
+
+```@example interval
+r = rule(WeightedDomain(Interval(0, 1), Oscillatory(1000)); degree = 10, digits = 30);
+z = 1 + 1000im;
+npoints(r), integrate(exp, r), (exp(big(z)) - 1) / z
+```
+
+The rules are interpolatory on the Gauss–Lobatto points. With the end points among the
+nodes, the error at a fixed number of points falls like `ω⁻²` (A. Iserles and S. P. Nørsett,
+*Proc. R. Soc. A* 461 (2005) 1383–1399, doi:10.1098/rspa.2004.1401):
+
+```@example interval
+for ω in (10, 100, 1000, 10^4)
+    r = rule(WeightedDomain(Interval(0, 1), Oscillatory(ω)); degree = 8, digits = 30)
+    z = 1 + ω * im
+    println("ω = ", lpad(ω, 5), ":  error ", abs(integrate(exp, r) - (exp(big(z)) - 1) / z))
+end
+```
+
+The weights come from the Legendre moments of the weight, `∫ P_k(x) e^{iκx} dx = 2iᵏ j_k(κ)`
+on `[-1, 1]`, with `j_k` the spherical Bessel functions. Interpolation on the Lobatto points
+needs no linear solve: the Lobatto rule integrates `P_j P_k` exactly except for `j = k = N`,
+so the interpolant's Legendre coefficients are discrete inner products. Nothing cancels as
+`ω → 0`, unlike the classical closed-form Filon weights, which are differences of large
+terms there. The `j_k` are computed upwards from the closed forms of `j₀` and `j₁`, at a
+precision raised by the digits that recurrence loses above `k ≈ κ`. Verification computes
+them downwards by Miller's algorithm, so the two share only `sin` and `cos`.
+
+For `e^{iωx}` the weights are complex and the nodes real; `Oscillatory(ω, cos)` and
+`Oscillatory(ω, sin)` give real rules. On an interval centred at 0, `cos` and `sin` have a
+parity that the symmetric rule shares, and the rule is then exact one degree higher. As
+`ω → 0` the rule tends to the Gauss–Lobatto rule, and misses degree `N + 1` by an amount
+too small for a low-precision rule to show; the certificate records the miss, as for
+Gauss–Patterson.
+
 ## Principal values and finite parts
 
 ```@docs

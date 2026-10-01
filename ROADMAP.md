@@ -478,9 +478,18 @@ gaining enough breadth for the selector to be genuinely discriminating.
       integrals of eˣ agree with 90-digit tanh-sinh to 1e-38 at 40 digits, including
       integer and nearly integer exponents and t within 1e-20 of an end. Weights other
       than Jacobi are not covered)*
-- [ ] Oscillatory weights: Filon-type rules as `PolynomialDegree` on an oscillatory
+- [x] Oscillatory weights: Filon-type rules as `PolynomialDegree` on an oscillatory
       `WeightedDomain`, complex `T`, with the small-$\omega$ cancellation handled by a
       series branch or extra guard digits
+      *(`Oscillatory(ω)`, `Oscillatory(ω, cos)`, `Oscillatory(ω, sin)` on any finite
+      interval, rules from `Filon`: interpolatory on the Gauss–Lobatto points, so the error
+      falls like ω⁻² at fixed N (measured: ω² × error constant at 2e-10 from ω = 10³ to
+      10⁵). Complex weights on real nodes, a `QuadratureRule{1,T}` with `Complex{T}`
+      weights, rather than complex `T`. The small-ω cancellation does not arise: the
+      weights come from Legendre moments 2iᵏ j_k(κ) through the discrete orthogonality on
+      the Lobatto points, not from the closed-form Filon weights. The j_k are computed
+      upwards at a precision raised by the recurrence's loss, and verified downwards by
+      Miller's algorithm; the two agree to 1e-67 from κ = 1e-30 to 1.2e5)*
 
 **Removed in this stage**
 

@@ -84,6 +84,21 @@ refused. Pieces can also lie on a half line, `FunctionWeight(g, a, Inf; β, rate
 `g(x) (x − a)^β e^{−rate (x − a)}`, or on the whole line, `FunctionWeight(g, -Inf, Inf)` for
 `g(x) e^{−x²}`.
 
+## Oscillatory integrands
+
+For `∫ f(x) e^{iωx} dx` with large `ω`, put the oscillation in the weight with
+[`Oscillatory`](@ref). The rule then needs only enough points for `f`:
+
+```@repl w
+r = rule(WeightedDomain(Interval(0, 1), Oscillatory(1000)); degree = 10, digits = 30);
+npoints(r)
+integrate(exp, r)                     # ∫₀¹ eˣ e^{1000ix} dx
+(exp(big(1 + 1000im)) - 1) / (1 + 1000im)
+```
+
+The weights are complex. `Oscillatory(ω, cos)` and `Oscillatory(ω, sin)` give real rules
+for `cos(ωx)` and `sin(ωx)`. The nodes include both ends of the interval.
+
 ## Principal values and finite parts
 
 A Cauchy principal value `⨍ f(x) w(x) / (x − t) dx` is not an integral against a weight,

@@ -46,7 +46,7 @@ verify(r::QuadratureRule, ::NoClaim; kw...) =
 
 _is_exact_type(::Type{T}) where {T} = T <: Rational || T <: Integer
 _rule_precision(r::QuadratureRule) = _is_exact_type(eltype(r)) ? 0 :
-                                     eltype(r) === BigFloat ? precision(first(r.weights)) : bits_of(eltype(r))
+                                     eltype(r) === BigFloat ? precision(real(first(r.weights))) : bits_of(eltype(r))
 
 # Pointwise basis evaluation on reference domains: returns (φ, |∇φ|₁) vectors for degree
 # ≤ n, the exact integrals of the basis, and the index ranges of each degree block.
@@ -306,6 +306,13 @@ reference_nodes(r::QuadratureRule{1,T,<:FunctionDomain}, ::Type{S}) where {T,S} 
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
 reference_nodes(r::QuadratureRule{1,T,<:KernelDomain}, ::Type{S}) where {T,S} =
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
+# and an oscillatory weight, whose weights may be complex
+reference_nodes(r::QuadratureRule{1,T,<:OscillatoryDomain}, ::Type{S}) where {T,S} =
+    ([[S(x)] for x in r.nodes], [lift(S, w) for w in r.weights])
+
+"A real or complex number in the verification type `S`, or `Complex{S}`."
+lift(::Type{S}, z::Complex) where {S} = Complex{S}(z)
+lift(::Type{S}, x) where {S} = S(x)
 
 """
     verification_basis(domain, degrees, S, exact) -> (basis, description)
@@ -482,19 +489,18 @@ verification_basis(dom::FunctionDomain, n, ::Type{S}, exact) where {S} =
     MomentBasis{S}(_degrees(n), verification_weight(dom.weight)),
     "monic polynomials on the support, against moments of the weight computed by discretisation"
 
-# A principal value or finite part is verified against the kernel applied to the monic Jacobi
-# polynomials of the interval, each computed by Gauss–Jacobi quadrature of a divided
-# difference (see `kernel_moments`). Only the Hilbert transform of the weight is shared with
-# the construction, which uses a recurrence instead.
-struct KernelBasis{S} <: VerificationBasis
+# The orthogonal polynomials of a Jacobi weight on an interval c ± h, scaled to q₀ = 1 so
+# that they stay of order one at every degree (monic ones on [0, 1] fall below any absolute
+# tolerance by degree 100), with their integrals against whatever the domain carries.
+struct IntervalMomentBasis{S,M} <: VerificationBasis
     degs::Vector{Int}
     a::Vector{S}                  # orthonormal recurrence on [-1, 1]; b[j + 1] = b_j
     b::Vector{S}
     c::S                          # the interval is c ± h
     h::S
-    moments::Vector{S}
+    moments::Vector{M}            # S, or Complex{S} for a complex weight
 end
-function evaluate!(B::KernelBasis{S}, xv) where {S}
+function evaluate!(B::IntervalMomentBasis{S}, xv) where {S}
     x = (S(xv[1]) - B.c) / B.h
     N = maximum(B.degs) + 1
     p, dp = zeros(S, N), zeros(S, N)
@@ -506,19 +512,39 @@ function evaluate!(B::KernelBasis{S}, xv) where {S}
     end
     return S[p[j + 1] for j in B.degs], S[abs(dp[j + 1]) / B.h for j in B.degs]
 end
-blocks(B::KernelBasis) = [j:j for j in eachindex(B.degs)]
-exact_integrals(B::KernelBasis{S}) where {S} = S[B.moments[j + 1] for j in B.degs]
+blocks(B::IntervalMomentBasis) = [j:j for j in eachindex(B.degs)]
+exact_integrals(B::IntervalMomentBasis{S,M}) where {S,M} = M[B.moments[j + 1] for j in B.degs]
 
+# A principal value or finite part is verified against the kernel applied to these
+# polynomials, each computed by Gauss–Jacobi quadrature of a divided difference (see
+# `kernel_moments`). Only the Hilbert transform of the weight is shared with the
+# construction, which uses a recurrence instead.
 function verification_basis(dom::KernelDomain, n, ::Type{S}, exact) where {S}
     degs = collect(_degrees(n))
     K = maximum(degs)
     k = dom.weight
     rec = jacobi_recurrence(k.α, k.β)
     lo, hi = S(dom.base.a), S(dom.base.b)
-    basis = KernelBasis{S}(degs, S[rec.a(j, S) for j in 0:K], S[j == 0 ? zero(S) : rec.b(j, S) for j in 0:(K + 1)],
+    basis = IntervalMomentBasis{S,S}(degs, S[rec.a(j, S) for j in 0:K], S[j == 0 ? zero(S) : rec.b(j, S) for j in 0:(K + 1)],
                            (hi + lo) / 2, (hi - lo) / 2, S.(kernel_moments(dom, K)))
     return basis, "orthogonal Jacobi polynomials on the interval, against the kernel's integrals of them " *
                   "(Gauss–Jacobi quadrature of divided differences)"
+end
+
+# An oscillatory weight is verified against its Legendre moments, with the spherical Bessel
+# functions computed downwards by Miller's algorithm (`oscillatory_moments`), where the
+# construction computes them upwards. q_k = √(2k + 1) P_k in the orthonormal scaling.
+function verification_basis(dom::OscillatoryDomain, n, ::Type{S}, exact) where {S}
+    degs = collect(_degrees(n))
+    K = maximum(degs)
+    rec = jacobi_recurrence(0, 0)
+    lo, hi = S(dom.base.a), S(dom.base.b)
+    m = [sqrt(S(2k + 1)) * lift(S, mk) for (k, mk) in zip(0:K, oscillatory_moments(dom, K))]
+    basis = IntervalMomentBasis{S,eltype(m)}(degs, S[rec.a(j, S) for j in 0:K],
+                                             S[j == 0 ? zero(S) : rec.b(j, S) for j in 0:(K + 1)],
+                                             (hi + lo) / 2, (hi - lo) / 2, m)
+    return basis, "orthogonal Legendre polynomials on the interval, against the weight's moments " *
+                  "(spherical Bessel functions by Miller's algorithm)"
 end
 
 "Per-degree-block (max residual, max residual/tolerance, max tolerance)."
@@ -526,7 +552,7 @@ function block_residuals(basis, xs, ws, ε, floor_tol)
     I = exact_integrals(basis)
     L = length(I)
     Σ = zeros(eltype(ws), L)
-    scale = zeros(eltype(ws), L)
+    scale = zeros(real(eltype(ws)), L)
     for (x, w) in zip(xs, ws)
         φ, g = evaluate!(basis, x)
         # a node near zero still carries an absolute rounding error of order ε (it is a
@@ -736,11 +762,11 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         # degree claim is understated by construction: exact at d + 1 without testing
         orbits !== nothing && test_sharp && iseven(d) && (sharp = false)
         # structural invariants
-        μ = S(measure(refdom))
+        μ = lift(S, measure(refdom))
         wsum = sum(ws)
         wsum_ok = exact ? wsum == μ : abs(wsum - μ) <= 16ε * sum(abs, ws) + floor_tol
         interior = all(x -> isinterior(x, r.domain), _node_iter(r))
-        positive = all(>(0), r.weights)
+        positive = eltype(r.weights) <: Real && all(>(0), r.weights)
         # the orbit grouping is itself a complete invariance check, done in O(N log N)
         symmetric = orbits !== nothing ? true :
                     check_symmetry(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)

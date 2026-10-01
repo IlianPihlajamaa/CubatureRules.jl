@@ -46,6 +46,14 @@ function QuadratureRule(nodes::AbstractVector{T}, weights::AbstractVector{T}, do
         nodes, weights, domain, claim, prov, cert)
 end
 
+# Real nodes with complex weights: the rules for an oscillatory weight e^{iωx}. The type
+# parameter T stays the real node type, which is what a caller asks for with `T = Float64`.
+function QuadratureRule(nodes::AbstractVector{T}, weights::AbstractVector{Complex{T}}, domain::Domain{1},
+                        claim::ExactnessClaim, prov::Provenance, cert = nothing) where {T<:Real}
+    return QuadratureRule{1,T,typeof(domain),typeof(claim),typeof(nodes),typeof(weights)}(
+        nodes, weights, domain, claim, prov, cert)
+end
+
 """
     nodes(r)
 
@@ -141,7 +149,7 @@ job (PLAN §5 item 9).
 function rule_hash(r::QuadratureRule)
     io = IOBuffer()
     print(io, family(r), '|', r.domain, '|', describe(r.exactness), '|', eltype(r))
-    eltype(r) === BigFloat && print(io, '|', precision(first(r.weights)))
+    eltype(r) === BigFloat && print(io, '|', precision(real(first(r.weights))))
     for i in eachindex(r.weights)
         print(io, '|')
         for c in node_vector(r, i)

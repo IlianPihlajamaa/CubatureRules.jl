@@ -58,7 +58,8 @@ Not listed above:
 - `Lobatto`, `Radau` and `ClenshawCurtis`, which appear once QuadratureRules.jl is loaded.
 - `UpstreamLebedev`, which appears once Lebedev.jl is loaded.
 - `ModifiedChebyshev`, which applies to intervals with a [`MomentWeight`](@ref);
-  `StieltjesDiscretization`, which applies to domains with a [`FunctionWeight`](@ref); and
+  `StieltjesDiscretization`, which applies to domains with a [`FunctionWeight`](@ref);
+  `Filon`, which applies to intervals with an [`Oscillatory`](@ref) weight; and
   `SingularGauss`, which applies to intervals with a [`PrincipalValue`](@ref) or
   [`FinitePart`](@ref) kernel.
 

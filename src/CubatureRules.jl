@@ -29,6 +29,7 @@ include("domains/domains.jl")
 include("domains/momentweight.jl")
 include("domains/functionweight.jl")
 include("domains/kernel.jl")
+include("domains/oscillatory.jl")
 include("domains/singular.jl")
 include("domains/moments.jl")
 include("core/mpfr.jl")
@@ -52,6 +53,7 @@ include("families/onedim/gaussjacobi.jl")
 include("families/onedim/modified_chebyshev.jl")
 include("families/onedim/stieltjes.jl")
 include("families/onedim/singular_gauss.jl")
+include("families/onedim/filon.jl")
 include("families/onedim/newtoncotes.jl")
 include("families/onedim/fejer.jl")
 include("families/onedim/patterson.jl")
@@ -97,7 +99,7 @@ include("benchmark/construction.jl")
 # and geometry packages collide readily over `vertices`, `⊗` and the like, and a name that is
 # rarely typed is not worth a collision.
 export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain, JacobiWeight,
-       MomentWeight, OrdinaryMoments, LogWeight, FunctionWeight, PointMass, PrincipalValue, FinitePart,
+       MomentWeight, OrdinaryMoments, LogWeight, FunctionWeight, PointMass, PrincipalValue, FinitePart, Oscillatory,
        HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace, ExponentialSpace,
        Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
@@ -111,7 +113,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev,
-       StieltjesDiscretization, SingularGauss
+       StieltjesDiscretization, SingularGauss, Filon
 export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport
@@ -127,6 +129,7 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        christoffel, second_kind, endpoints, wheeler, MomentDomain, MomentBreakdownError,
        FunctionDomain, WeightPiece, discretize, discrete_stieltjes, verification_weight,
        SingularKernel, KernelDomain, jacobi_hilbert, kernel_moments,
+       OscillatoryWeight, OscillatoryDomain, oscillatory_moments, spherical_bessel_up, spherical_bessel_down,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map,

@@ -5,7 +5,7 @@
 #     transform(r, φ, Jφ)   general φ            → NoClaim, unless the caller asserts one
 #     duffy(r)              radial grading       → NoClaim
 
-_rule_bits(r::QuadratureRule{D,BigFloat}) where {D} = precision(first(r.weights))
+_rule_bits(r::QuadratureRule{D,BigFloat}) where {D} = precision(real(first(r.weights)))
 _rule_bits(r::QuadratureRule) = 256
 
 "Run `f` at the precision of the rule's BigFloats (so no conversion reads ambient precision)."
