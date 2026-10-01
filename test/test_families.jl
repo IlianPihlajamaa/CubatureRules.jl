@@ -99,8 +99,12 @@ end
     for d in sweep_degrees(XiaoGimbutas(), Simplex{2}(), dmax)
         r = rule(XiaoGimbutas(), Simplex{2}(); degree = d)
         e = CR.xg_entry_for(d)
-        @test npoints(r) <= counts[e.degree] + 3
-        @test npoints(r) == counts[e.degree] || !isempty(e.note)
+        if e.degree <= length(counts)
+            @test npoints(r) <= counts[e.degree] + 3
+            @test npoints(r) == counts[e.degree] || !isempty(e.note)
+        else
+            @test !isempty(e.note)                  # beyond the published table, and says so
+        end
         v = check(r)
         @test v.exact
         @test v.positive && v.interior && v.symmetric === true
