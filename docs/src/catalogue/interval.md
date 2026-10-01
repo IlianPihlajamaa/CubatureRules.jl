@@ -166,3 +166,61 @@ The discrete Stieltjes procedure is implemented here. PolyChaos.jl has one, but 
 in `Float64` whatever its input. QuadGK builds Gauss rules for a weight function at any
 precision, but evaluates Chebyshev series at every node on every step and was 30 times
 slower on these sizes.
+
+## Principal values and finite parts
+
+```@docs
+SingularGauss
+PrincipalValue
+FinitePart
+```
+
+The Cauchy principal value `⨍ f(x) w(x) / (x − t) dx` and the Hadamard finite part
+`⨎ f(x) w(x) / (x − t)² dx`, with a Jacobi weight `w`, are linear functionals of `f`, and
+a rule can be exact for them on polynomials like any other. Here the finite part of
+`√(1 − x²) / (x − 1/3)²`, which is `−π`:
+
+```@example interval
+dom = WeightedDomain(Interval(-1, 1), FinitePart(1 // 3; α = 1 // 2, β = 1 // 2));
+r = rule(dom; degree = 20, digits = 30);
+npoints(r), degree(r), integrate(x -> one(x), r)
+```
+
+```@example interval
+last(provenance(r).path, 3)
+```
+
+Everything is computed from the Hilbert transform of the weight, `ρ₀(t) = ⨍ w / (x − t)`,
+and its derivative `σ₀(t)`. For a Jacobi weight these have a closed form in a
+hypergeometric series (W. Gautschi and J. Wimp, *BIT* 27 (1987) 203–215), with a
+logarithmic series for integer exponents. They are evaluated at two precisions, with
+more guard bits until the two agree, because an exponent close to an integer makes two
+large terms cancel. The integrals `ρ_k(t)` and `σ_k(t)` of the orthogonal polynomials
+follow from the three-term recurrence.
+
+The principal-value rule is D. B. Hunter's, *Numer. Math.* 19 (1972) 419–424,
+doi:10.1007/BF01404924: the `n` Gauss–Jacobi nodes and `t`, exact to degree `2n`. The
+finite-part rule also has `n` nodes and `t` and is exact to degree `2n`. Writing a
+polynomial as `a + b(x − t) + (x − t)² p(x)`, the last term is integrated exactly when the
+`n` nodes are those of a rule for `w` exact to degree `2n − 2`. With `q_k` the orthogonal
+polynomials of `w`, those nodes are the zeros of `q_n − c q_{n−1}`, and requiring the term
+`b(x − t)` to come out right fixes `c = ρ_n(t)/ρ_{n−1}(t)`. The published Gauss-type
+finite-part rules either need `f'(t)` or are exact only to degree `n − 1`. These zeros are
+real but can leave the interval, which happens for about half of all `n`: when
+`t = cos θ`, the bad values of `n` come in runs of length about `π / (2θ)`. The
+construction then tries larger `n`, up to twice the minimum `n₀`. If none of those works,
+it uses the interpolatory rule on `2n₀` Gauss nodes and `t`. That rule is exact to the
+requested degree and has no more points than the largest finite-part rule tried.
+
+The weights are signed, and `Σ|wᵢ|` grows as `t` approaches a node, so the construction
+takes one more point when `t` lies within an eighth of a gap of a node. A rule that comes
+out exact beyond its construction's degree, as a rule centred in a symmetric weight
+does on every odd polynomial, claims the higher degree.
+
+These rules are verified against the functional applied to the orthogonal polynomials of
+the interval. Those integrals are computed by a Gauss–Jacobi rule applied to divided
+differences, without the recurrence the construction uses, so the two share only `ρ₀` and
+`σ₀`. The tests check those two against classical closed forms, and the rules' integrals
+of `eˣ` against tanh-sinh at 90 digits on the subtracted integrand. At 40 digits, both
+rules agree to within `10⁻³⁸`, for non-integer, integer and nearly integer exponents, and
+for `t` within `10⁻²⁰` of an end.

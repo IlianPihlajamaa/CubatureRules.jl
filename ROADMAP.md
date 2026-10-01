@@ -465,7 +465,19 @@ gaining enough breadth for the selector to be genuinely discriminating.
       now declare its `support`, and a pairing with the wrong interval is refused.
       Singularities at both endpoints, and $(1-x)^\beta$ factors, whose moments involve the
       digamma function, are not covered)*
-- [ ] Cauchy principal value and Hadamard finite-part rules via analytic modified moments
+- [x] Cauchy principal value and Hadamard finite-part rules via analytic modified moments
+      *(`PrincipalValue(t; α, β)` and `FinitePart(t; α, β)` on any finite interval, rules
+      from `SingularGauss`. The integrals ρ_k(t), σ_k(t) of the orthogonal polynomials come
+      from the recurrence, started from the Hilbert transform of the Jacobi weight: a
+      hypergeometric series (Gautschi–Wimp), a logarithmic one for integer exponents, both
+      checked at two precisions. Principal value: Hunter's rule, n Gauss nodes and t,
+      degree 2n. Finite part: n nodes and t, also degree 2n and without f'(t), at the zeros
+      of ρ_{n−1}(t) q_n − ρ_n(t) q_{n−1}. Where those leave the interval, a larger n is
+      tried, and past 2n₀ the interpolatory rule on 2n₀ Gauss nodes and t. Verified
+      against integrals computed by Gauss–Jacobi quadrature of divided differences;
+      integrals of eˣ agree with 90-digit tanh-sinh to 1e-38 at 40 digits, including
+      integer and nearly integer exponents and t within 1e-20 of an end. Weights other
+      than Jacobi are not covered)*
 - [ ] Oscillatory weights: Filon-type rules as `PolynomialDegree` on an oscillatory
       `WeightedDomain`, complex `T`, with the small-$\omega$ cancellation handled by a
       series branch or extra guard digits

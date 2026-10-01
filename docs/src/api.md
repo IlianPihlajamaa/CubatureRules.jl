@@ -122,6 +122,15 @@ discrete_stieltjes
 verification_weight
 ```
 
+## Principal values and finite parts
+
+```@docs
+SingularKernel
+KernelDomain
+jacobi_hilbert
+kernel_moments
+```
+
 ## Verification
 
 ```@docs

@@ -301,8 +301,10 @@ end
 # that interval is, so the rule is already on its own reference and the nodes pass through.
 reference_nodes(r::QuadratureRule{1,T,<:MomentDomain}, ::Type{S}) where {T,S} =
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
-# and so is a weight given as a function
+# and so is a weight given as a function, and a singular kernel
 reference_nodes(r::QuadratureRule{1,T,<:FunctionDomain}, ::Type{S}) where {T,S} =
+    ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
+reference_nodes(r::QuadratureRule{1,T,<:KernelDomain}, ::Type{S}) where {T,S} =
     ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
 
 """
@@ -479,6 +481,45 @@ verification_basis(dom::MomentDomain, n, ::Type{S}, exact) where {S} =
 verification_basis(dom::FunctionDomain, n, ::Type{S}, exact) where {S} =
     MomentBasis{S}(_degrees(n), verification_weight(dom.weight)),
     "monic polynomials on the support, against moments of the weight computed by discretisation"
+
+# A principal value or finite part is verified against the kernel applied to the monic Jacobi
+# polynomials of the interval, each computed by Gauss–Jacobi quadrature of a divided
+# difference (see `kernel_moments`). Only the Hilbert transform of the weight is shared with
+# the construction, which uses a recurrence instead.
+struct KernelBasis{S} <: VerificationBasis
+    degs::Vector{Int}
+    a::Vector{S}                  # orthonormal recurrence on [-1, 1]; b[j + 1] = b_j
+    b::Vector{S}
+    c::S                          # the interval is c ± h
+    h::S
+    moments::Vector{S}
+end
+function evaluate!(B::KernelBasis{S}, xv) where {S}
+    x = (S(xv[1]) - B.c) / B.h
+    N = maximum(B.degs) + 1
+    p, dp = zeros(S, N), zeros(S, N)
+    p[1] = one(S)
+    for j in 1:(N - 1)
+        prev, dprev = j == 1 ? (zero(S), zero(S)) : (p[j - 1], dp[j - 1])
+        p[j + 1] = ((x - B.a[j]) * p[j] - B.b[j] * prev) / B.b[j + 1]
+        dp[j + 1] = (p[j] + (x - B.a[j]) * dp[j] - B.b[j] * dprev) / B.b[j + 1]
+    end
+    return S[p[j + 1] for j in B.degs], S[abs(dp[j + 1]) / B.h for j in B.degs]
+end
+blocks(B::KernelBasis) = [j:j for j in eachindex(B.degs)]
+exact_integrals(B::KernelBasis{S}) where {S} = S[B.moments[j + 1] for j in B.degs]
+
+function verification_basis(dom::KernelDomain, n, ::Type{S}, exact) where {S}
+    degs = collect(_degrees(n))
+    K = maximum(degs)
+    k = dom.weight
+    rec = jacobi_recurrence(k.α, k.β)
+    lo, hi = S(dom.base.a), S(dom.base.b)
+    basis = KernelBasis{S}(degs, S[rec.a(j, S) for j in 0:K], S[j == 0 ? zero(S) : rec.b(j, S) for j in 0:(K + 1)],
+                           (hi + lo) / 2, (hi - lo) / 2, S.(kernel_moments(dom, K)))
+    return basis, "orthogonal Jacobi polynomials on the interval, against the kernel's integrals of them " *
+                  "(Gauss–Jacobi quadrature of divided differences)"
+end
 
 "Per-degree-block (max residual, max residual/tolerance, max tolerance)."
 function block_residuals(basis, xs, ws, ε, floor_tol)

@@ -84,6 +84,31 @@ refused. Pieces can also lie on a half line, `FunctionWeight(g, a, Inf; β, rate
 `g(x) (x − a)^β e^{−rate (x − a)}`, or on the whole line, `FunctionWeight(g, -Inf, Inf)` for
 `g(x) e^{−x²}`.
 
+## Principal values and finite parts
+
+A Cauchy principal value `⨍ f(x) w(x) / (x − t) dx` is not an integral against a weight,
+since the kernel changes sign at `t` and is not integrable there. It still has rules, and
+[`PrincipalValue`](@ref) puts it in the same form as a weight:
+
+```@repl w
+dom = WeightedDomain(Interval(-1, 1), PrincipalValue(1//3; α = 1//2, β = 1//2));  # √(1-x²)/(x - 1/3)
+r = rule(dom; degree = 20, digits = 30);
+integrate(x -> one(x), r)             # -π/3
+integrate(x -> x, r)                  # π/2 - π/9
+```
+
+[`FinitePart`](@ref) gives the Hadamard finite part `⨎ f(x) w(x) / (x − t)² dx` in the same
+way:
+
+```@repl w
+r = rule(WeightedDomain(Interval(-1, 1), FinitePart(1//3)); degree = 20, digits = 30);
+integrate(x -> one(x), r)             # -2/(1 - 1/9) = -9/4
+```
+
+Pass the smooth part `f` to `integrate`, not `f / (x − t)`. The point `t` is one of the
+nodes, so `f` must be finite there, and the weights have both signs. `t` is taken exactly as
+written: `0.3` is the binary number nearest 0.3, and `3//10` is 0.3.
+
 ## Other weights: using moments
 
 For a weight the package does not know, you can describe it by its moments: the integrals of

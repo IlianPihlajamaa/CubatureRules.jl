@@ -39,6 +39,8 @@ to `f`. The built-in weights are:
 | `GaussianWeight()`: `e^{-‖x‖²}` | `RealLine()`, `RealSpace{D}()` | `HermiteLine()`, `GaussianSpace(D)` |
 | `RadialExponentialWeight()`: `e^{-‖x‖}` | `RealSpace{D}()` | `ExponentialSpace(D)` |
 | `MomentWeight(aux, moments)`, e.g. `LogWeight(α)` | an `Interval`, or `HalfLine()` | |
+| `FunctionWeight(g, a, b; α, β)`, sums of them and `PointMass`es | an `Interval`, `HalfLine()` or `RealLine()` | |
+| `PrincipalValue(t; α, β)`, `FinitePart(t; α, β)` | an `Interval` | |
 
 The unbounded base domains `HalfLine`, `RealLine` and `RealSpace{D}` have infinite measure;
 they are mostly used as the base of a weighted domain. The double-exponential families
@@ -54,6 +56,16 @@ A [`MomentWeight`](@ref) describes a measure through its moments against a known
 polynomials. Those moments are only valid on the interval they were computed for, so a
 `WeightedDomain(Interval(a, b), MomentWeight(...))` is treated as its own reference domain
 and is never mapped. See [Measures given by moments](moments.md).
+
+## Singular kernels
+
+[`PrincipalValue`](@ref) and [`FinitePart`](@ref) are not measures. They stand for the
+Cauchy principal value and the Hadamard finite part of `∫ f(x) w(x) / (x − t)^k dx` with a
+Jacobi weight `w`, linear functionals that a rule can still be exact for. Their rules have
+signed weights, and `t` itself is a node. The point `t` is given in the interval's own
+coordinates, and the finite part does not scale like a measure under a change of variable,
+so these domains are their own reference and are never mapped either. `measure(dom)`
+returns the functional applied to `1`.
 
 ## Measure
 

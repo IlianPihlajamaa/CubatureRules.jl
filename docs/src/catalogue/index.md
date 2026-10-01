@@ -57,8 +57,10 @@ Not listed above:
   requested by level rather than degree.
 - `Lobatto`, `Radau` and `ClenshawCurtis`, which appear once QuadratureRules.jl is loaded.
 - `UpstreamLebedev`, which appears once Lebedev.jl is loaded.
-- `ModifiedChebyshev`, which applies to intervals with a [`MomentWeight`](@ref), and
-  `StieltjesDiscretization`, which applies to domains with a [`FunctionWeight`](@ref).
+- `ModifiedChebyshev`, which applies to intervals with a [`MomentWeight`](@ref);
+  `StieltjesDiscretization`, which applies to domains with a [`FunctionWeight`](@ref); and
+  `SingularGauss`, which applies to intervals with a [`PrincipalValue`](@ref) or
+  [`FinitePart`](@ref) kernel.
 
 ## Planned domains
 
