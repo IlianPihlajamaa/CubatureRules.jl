@@ -64,10 +64,11 @@ Gauss–Kronrod rules come from QuadGK.jl, and Lobatto, Radau and Clenshaw–Cur
 
 ```julia
 using Pkg
-Pkg.add(url = "https://github.com/IlianPihlajamaa/CubatureRules.jl")
+Pkg.add("CubatureRules")
 ```
 
-Julia 1.11 or later.
+Julia 1.11 or later. Until the first release appears in the General registry, install from
+the repository instead: `Pkg.add(url = "https://github.com/IlianPihlajamaa/CubatureRules.jl")`.
 
 ## Documentation
 

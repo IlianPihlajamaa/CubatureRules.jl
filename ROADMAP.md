@@ -654,7 +654,9 @@ here because most of it needs breadth to be meaningful.
 - [ ] ≥95% test coverage
 - [ ] Complete provenance manifest, every entry checked
 - [ ] Registered under an organisation — JuliaMath or JuliaApproximation — not a personal
-      account (§11, bus factor)
+      account (§11, bus factor) *(registered in General from the personal repository from
+      v0.1.0, with TagBot and CompatHelper; a transfer keeps the registry entry, which
+      follows the repository URL)*
 - [ ] CONTRIBUTING guide whose central section is "how to add a rule family": one type, one
       `candidates` method, its metadata, a `verify` method, a provenance entry
 - [ ] JOSS or arXiv paper

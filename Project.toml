@@ -1,6 +1,6 @@
 name = "CubatureRules"
 uuid = "0f38d63d-e18c-4973-acfc-eb502c230362"
-version = "0.1.0-DEV"
+version = "0.1.0"
 authors = ["Ilian Pihlajamaa"]
 
 [deps]

@@ -1,0 +1,30 @@
+# Opens a pull request when a dependency releases a version outside the [compat] bounds, so
+# that the bounds the registry relies on keep up. Weekly: the dependencies are few and slow.
+name: CompatHelper
+on:
+  schedule:
+    - cron: '0 3 * * 2'      # Tuesdays, 03:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  CompatHelper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - name: Install CompatHelper
+        run: |
+          import Pkg
+          Pkg.add(; name = "CompatHelper", uuid = "aa819f21-2bde-4658-8897-bab36330d9b7", version = "3")
+        shell: julia --color=yes {0}
+      - name: Run CompatHelper
+        run: |
+          import CompatHelper
+          CompatHelper.main(; subdirs = ["", "docs", "test"])
+        shell: julia --color=yes {0}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPATHELPER_PRIV: ${{ secrets.DOCUMENTER_KEY }}
