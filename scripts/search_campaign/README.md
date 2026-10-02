@@ -31,7 +31,12 @@ julia --project --heap-size-hint=2G scripts/search_campaign/campaign.jl triangle
 
 **Modes.**
 - `extend` works one degree step above the best table, which is the shipped table merged with
-  the finds so far. It moves up as soon as a rule exists there.
+  the finds so far. First, though, it settles the frontier: it goes back to the lowest new
+  degree whose best rule is still more than three unknowns above square (typically a freshly
+  grown rule), until that rule is pruned or the worker has spent two hours there without
+  improving it. Otherwise every later degree would be grown from a poor base: in a first run
+  that moved up as soon as any rule existed, the triangle reached degree 69 in a few hours,
+  but with 673 points at degree 58 against 576 at degree 57.
 - `improve` works at degrees between `--from` and `--to` (default: the top four of the best
   table), looking for rules with fewer points.
 - `--blind N` makes a worker ignore the shipped entries from degree `N` up. That's how the
