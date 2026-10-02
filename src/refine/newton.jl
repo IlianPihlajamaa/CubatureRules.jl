@@ -246,7 +246,8 @@ function mixed_precision_step(J::AbstractMatrix{BigFloat}, r::AbstractVector{Big
     # (the BigFloat QR included) reaches; asking for less would never finish
     tol = 64 * BigFloat(κ) * ldexp(BigFloat(1), -prec)
     Δ = zeros(BigFloat, n)
-    res = collect(r)
+    res = bigfloats(BigFloat, length(r))
+    foreach(mp_set!, res, r)                       # copies: `res .= r` would share r's numbers
     for _ in 1:(2 + ceil(Int, prec * log10(2) / max(16 - log10(κ), 1)))
         s = maximum(abs, res)
         iszero(s) && return Δ, κ, n
@@ -254,9 +255,28 @@ function mixed_precision_step(J::AbstractMatrix{BigFloat}, r::AbstractVector{Big
         δ = BigFloat.(c) .* s
         Δ .+= δ
         maximum(abs, δ) <= tol * maximum(abs, Δ) && return Δ, κ, n
-        res = r - J * Δ
+        residual_mp!(res, r, J, Δ)
     end
     return nothing
+end
+
+# res = r − J Δ, in place (core/mpfr.jl): with a product that allocates every term, these
+# products were most of a step on a large system (1 s each at 884 × 884). `res` must hold
+# distinct numbers at the working precision.
+function residual_mp!(res::Vector{BigFloat}, r::AbstractVector{BigFloat}, J::AbstractMatrix{BigFloat},
+                      Δ::Vector{BigFloat})
+    for i in eachindex(res, r)
+        mp_set!(res[i], r[i])
+        mp_neg!(res[i], res[i])                    # accumulate J Δ − r with one rounding a term
+    end
+    for j in axes(J, 2)
+        Δj = Δ[j]
+        for i in axes(J, 1)
+            mp_fma!(res[i], J[i, j], Δj, res[i])
+        end
+    end
+    foreach(x -> mp_neg!(x, x), res)
+    return res
 end
 
 # --- QR in BigFloat, in place -------------------------------------------------------------
@@ -407,6 +427,48 @@ function seed_cond(κ64::Real, bigjac)
 end
 
 """
+    refine_system(make_sys, θ64, bits; cancel, verbose, label) -> (θ, result, guard_bits)
+
+Refine a `Float64` seed of a moment system to `bits` bits; `make_sys(S)` builds the system in
+arithmetic `S`. Every seed-table family refines through this: guard bits from the condition
+number measured at the seed, Gauss–Newton at `bits + guard`, and one re-run with more guard
+if the condition number met along the way asks for it.
+
+The rank-revealing solve cuts at `2^-(working bits ÷ 2)`. Were `log2 κ` to approach half the
+working precision, the cut would discard genuine directions and Gauss–Newton would stop short
+of the root, so the working precision is also kept at twice the guard at least: the cut then
+sits 32 bits below `1/κ`. That floor binds only for badly conditioned systems at low targets.
+The returned `guard_bits` count every bit worked beyond `bits`.
+"""
+function refine_system(make_sys, θ64::Vector{Float64}, bits::Integer; cancel = nothing,
+                       verbose::Integer = 0, label::AbstractString = "refinement")
+    r64, J64 = make_sys(Float64)(θ64)
+    κ0 = seed_cond(lsq_step(J64, r64; rank_rtol = 1e-14)[2], () -> make_sys(BigFloat)(BigFloat.(θ64))[2])
+    guard = guard_bits_from_cond(κ0)
+    verbose >= 1 && @info @sprintf("%s: %d unknowns, %d equations, seed cond %.2e",
+                                   label, length(θ64), length(r64), κ0)
+    for attempt in 1:2
+        wbits = max(bits + guard, 2guard)
+        verbose >= 1 && @info @sprintf("  attempt %d at %d bits (%d guard)", attempt, wbits, guard)
+        res = with_bits(wbits) do
+            gauss_newton(make_sys(BigFloat), BigFloat.(θ64); step_tol = ldexp(BigFloat(1), -(bits + 16)),
+                         res_floor = ldexp(BigFloat(1), -(wbits - 12)),
+                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose,
+                         initial_cond = κ0)
+        end
+        needed = guard_bits_from_cond(res.cond_max)
+        if needed <= guard || attempt == 2
+            (verbose >= 1 && needed > guard) &&
+                @warn @sprintf("the conditioning met along the way asks for %d guard bits, not %d; \
+                                returning anyway on the last attempt", needed, guard)
+            return res.θ, res, wbits - bits
+        end
+        verbose >= 1 && @info @sprintf("  conditioning asks for %d guard bits, not %d — re-running", needed, guard)
+        guard = needed
+    end
+end
+
+"""
     gauss_newton(F, θ0; step_tol, res_floor, rank_rtol, maxiter = 60, cancel = nothing,
                  verbose = 0, initial_cond = nothing)
 
@@ -424,7 +486,7 @@ function gauss_newton(F, θ0::AbstractVector{S}; step_tol, res_floor, rank_rtol,
     # The accurate condition number is sampled at the two ends of the run and estimated
     # cheaply in between (see `lsq_step`). It chooses guard digits, so it has to be the real
     # σ₁/σ_min and not the QR lower bound; but the Jacobian of a Gauss–Newton run varies
-    # smoothly, so the seed and the solution bracket it, and `refine_octahedral` re-runs with
+    # smoothly, so the seed and the solution bracket it, and `refine_system` re-runs with
     # more guard if the number that comes back asks for it. A caller that has already
     # measured it at the seed passes `initial_cond` and saves the factorisation.
     κ = initial_cond === nothing ? estimate_cond(J) : Float64(initial_cond)

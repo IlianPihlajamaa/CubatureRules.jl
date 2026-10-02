@@ -70,32 +70,13 @@ cost_estimate(f::FullySymmetric, dom::Orthotope{D}, degree, T) where {D} =
 """
     refine_box(structure, n, θ64, bits; cancel, verbose) -> (θ, result, guard_bits)
 
-Refine a `Float64` seed of a fully symmetric box rule to `bits` bits by Gauss–Newton on the
-[`BoxMomentSystem`](@ref), with guard bits from the condition number measured at the seed.
-The working precision is also kept high enough that the rank-revealing solve, which cuts at
-`2^-(working bits / 2)`, never discards a genuine direction.
+Refine a `Float64` seed of a fully symmetric box rule to `bits` bits, by
+[`refine_system`](@ref) on the [`BoxMomentSystem`](@ref).
 """
-function refine_box(structure::BoxStructure, n::Integer, θ64::Vector{Float64}, bits::Integer;
-                    cancel = nothing, verbose::Integer = 0)
-    r64, J64 = BoxMomentSystem(structure, n, Float64)(θ64)
-    κ = seed_cond(lsq_step(J64, r64; rank_rtol = 1e-14)[2],
-                  () -> BoxMomentSystem(structure, n, BigFloat)(BigFloat.(θ64))[2])
-    guard = guard_bits_from_cond(κ)
-    for attempt in 1:2
-        tbits = max(bits, ceil(Int, 2 * (log2(clamp(κ, 1.0, 2.0^1000)) + 32)) - guard)
-        wbits = tbits + guard
-        verbose >= 1 && @info @sprintf("box refinement to degree %d: %d unknowns, %d equations, %d bits",
-                                       n, length(θ64), length(r64), wbits)
-        res = with_bits(wbits) do
-            gauss_newton(BoxMomentSystem(structure, n, BigFloat), BigFloat.(θ64);
-                         step_tol = ldexp(BigFloat(1), -(bits + 16)), res_floor = ldexp(BigFloat(1), -(wbits - 12)),
-                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose, initial_cond = κ)
-        end
-        needed = guard_bits_from_cond(res.cond_max)
-        (needed <= guard || attempt == 2) && return res.θ, res, wbits - bits
-        guard, κ = needed, max(κ, res.cond_max)
-    end
-end
+refine_box(structure::BoxStructure, n::Integer, θ64::Vector{Float64}, bits::Integer;
+           cancel = nothing, verbose::Integer = 0) =
+    refine_system(S -> BoxMomentSystem(structure, n, S), θ64, bits; cancel, verbose,
+                  label = "box refinement to degree $n")
 
 function build(f::FullySymmetric, dom::Orthotope{D}, degree::Int, ctx::BuildContext{T};
                seed::SeedSource = TableSeed()) where {D,T}

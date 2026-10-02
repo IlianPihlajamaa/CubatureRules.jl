@@ -109,42 +109,13 @@ end
 """
     refine_symmetric(structure, n, θ64, bits; cancel) -> (θ, result, guard_bits)
 
-Refine a `Float64` seed of a fully symmetric simplex rule (triangle or tetrahedron) to `bits` bits: guard bits from
-the condition number measured at the seed, Gauss–Newton at `bits + guard`, and one
-re-run with more guard if the condition number found along the way demands it.
+Refine a `Float64` seed of a fully symmetric simplex rule (triangle or tetrahedron) to `bits`
+bits, by [`refine_system`](@ref) on the [`SymmetricMomentSystem`](@ref).
 """
-function refine_symmetric(structure::SymmetricStructure, n::Integer, θ64::Vector{Float64},
-                                   bits::Integer; cancel = nothing, basis = invariant_basis(structure.N, n),
-                                   verbose::Integer = 0)
-    sys64 = SymmetricMomentSystem(structure, n, Float64, basis)
-    r64, J64 = sys64(θ64)
-    κ0 = seed_cond(lsq_step(J64, r64; rank_rtol = 1e-14)[2],
-                   () -> SymmetricMomentSystem(structure, n, BigFloat, basis)(BigFloat.(θ64))[2])
-    guard = guard_bits_from_cond(κ0)
-    if verbose >= 1
-        @info @sprintf("symmetric refinement to degree %d: %d orbits, %d unknowns, %d equations, seed cond %.2e",
-                       n, length(structure.orbits), length(θ64), length(r64), κ0)
-    end
-    for attempt in 1:2
-        wbits = bits + guard
-        verbose >= 1 && @info @sprintf("  attempt %d at %d bits (%d target + %d guard)",
-                                       attempt, wbits, bits, guard)
-        res = with_bits(wbits) do
-            sys = SymmetricMomentSystem(structure, n, BigFloat, basis)
-            θ0 = BigFloat.(θ64)
-            gauss_newton(sys, θ0; step_tol = ldexp(BigFloat(1), -(bits + 16)),
-                         res_floor = ldexp(BigFloat(1), -(wbits - 12)),
-                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose, initial_cond = κ0)
-        end
-        needed = guard_bits_from_cond(res.cond_max)
-        if needed <= guard || attempt == 2
-            return res.θ, res, guard
-        end
-        verbose >= 1 && @info @sprintf("  conditioning asks for %d guard bits, not %d — re-running",
-                                       needed, guard)
-        guard = needed
-    end
-end
+refine_symmetric(structure::SymmetricStructure, n::Integer, θ64::Vector{Float64}, bits::Integer;
+                 cancel = nothing, basis = invariant_basis(structure.N, n), verbose::Integer = 0) =
+    refine_system(S -> SymmetricMomentSystem(structure, n, S, basis), θ64, bits; cancel, verbose,
+                  label = "symmetric refinement to degree $n ($(length(structure.orbits)) orbits)")
 
 function build(f::XiaoGimbutas, dom::Simplex{2}, degree::Int, ctx::BuildContext;
                seed::SeedSource = TableSeed())

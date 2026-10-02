@@ -64,6 +64,12 @@ end
     return z
 end
 
+"`z = −x`, exactly."
+@inline function mp_neg!(z::BigFloat, x::BigFloat)
+    ccall((:mpfr_neg, MPFR_LIB), Int32, (Ref{BigFloat}, Ref{BigFloat}, Base.MPFR.MPFRRoundingMode), z, x, MPFR_RN)
+    return z
+end
+
 "`z = 2x`, exactly."
 @inline function mp_twice!(z::BigFloat, x::BigFloat)
     ccall((:mpfr_mul_2ui, MPFR_LIB), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, Base.MPFR.MPFRRoundingMode),

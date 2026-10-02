@@ -148,6 +148,12 @@ families and tooling on top of what lands here.
       path for minimal rules, not a fallback
 - [x] Per-iteration cond(J) estimate
 - [x] Guard digits set adaptively from cond(J); both recorded in the `Certificate`
+- [x] One refinement driver for every seed-table family *(`refine_system`, behind
+      `refine_symmetric`, `refine_octahedral` and `refine_box`: guard from the seed's
+      condition number, one re-run if the run asks for more, and a working precision of at
+      least twice the guard, so the rank-revealing cut at 2^-(bits/2) stays 32 bits below
+      1/κ and never discards a genuine direction. The floor binds for none of the shipped
+      simplex rules, whose refinements are bit-for-bit unchanged)*
 - [x] Cancellation token checked once per iteration (needed by v0.7, cheap now, expensive
       to retrofit — §4.2)
 - [x] Seed sources behind one interface: published table, orbit structure + multistart,
@@ -385,10 +391,15 @@ gaining enough breadth for the selector to be genuinely discriminating.
       a rejected rule; see notes/v0.4-spheres.md for what is left to try. Every odd degree
       133–201 is now shipped, from an external continuation campaign
       (scripts/import_octahedral_rules.jl); 19–131 remain)*
-- [ ] High-degree octahedral refinement *(the p₄ᵃp₆ᵇ system is conditioned near 10⁵⁴–10⁸¹
-      at degrees 133–201; `refine_octahedral` now raises its working precision so the
-      rank-revealing solve keeps every direction, which makes it correct but slow — minutes
-      per rule. An orthogonalized invariant basis would remove most of the cost)*
+- [x] High-degree octahedral refinement *(`refine_octahedral` solves the moment equations
+      in the orthonormal `O_h`-invariant harmonics (`OctahedralHarmonicSystem`): D4h-invariant
+      combinations of P̄_ℓ^m cos mφ averaged over x → y → z, exactly invariant whatever the
+      rounding of their Float64 coefficients. The same unknowns and solutions as the
+      p₄ᵃp₆ᵇ system, conditioned at 2.6e3 at degree 133 and 2.2e4 at 201 instead of 1e49 and
+      1e81, so every step takes the mixed-precision solve. Refining to 200 bits: 14 s at
+      degree 133 (was 81 s), 79 s at 201. The p₄ᵃp₆ᵇ system stays as the independent check
+      in scripts/certify_tables.jl. What remains is the BigFloat evaluation itself — three
+      Legendre tables per orbit; coefficients computed at the working precision would need one)*
 - [ ] Spherical $t$-designs — moved to v0.6, below
 - [x] `WeightedDomain` instances: `HermiteLine`, `LaguerreRay` *(pulled into v0.3 with
       Gauss–Laguerre and Gauss–Hermite)*

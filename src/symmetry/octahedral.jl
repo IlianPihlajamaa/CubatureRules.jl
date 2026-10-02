@@ -321,53 +321,13 @@ end
 """
     refine_octahedral(structure, n, θ64, bits; cancel) -> (θ, result, guard_bits)
 
-Refine a `Float64` seed of an `O_h`-symmetric sphere rule to `bits` bits, the same way
-[`refine_symmetric`](@ref) does on a simplex: guard digits from the condition number
-measured at the seed, Gauss–Newton at `bits + guard`, and one re-run if the condition
-number met along the way asks for more. When the condition number is so large that the
-rank-revealing solve would truncate genuine directions at `bits + guard` (above degree 17 in
-the shipped table), the solve runs at a higher target and the extra bits are counted in the
-returned `guard_bits`.
+Refine a `Float64` seed of an `O_h`-symmetric sphere rule to `bits` bits, by
+[`refine_system`](@ref) on the [`OctahedralHarmonicSystem`](@ref). The same unknowns solve
+the [`OctahedralMomentSystem`](@ref) in the invariants `p₄ᵃp₆ᵇ`, but its condition number
+grows like the monomials' (1e54 at degree 133), and each step then needs a `BigFloat` QR;
+in the orthonormal invariant harmonics it stays small.
 """
-function refine_octahedral(structure::OctahedralStructure, n::Integer, θ64::Vector{Float64},
-                           bits::Integer; cancel = nothing, verbose::Integer = 0)
-    sys64 = OctahedralMomentSystem(structure, n, Float64)
-    r64, J64 = sys64(θ64)
-    κ0 = seed_cond(lsq_step(J64, r64; rank_rtol = 1e-14)[2],
-                   () -> OctahedralMomentSystem(structure, n, BigFloat)(BigFloat.(θ64))[2])
-    guard = guard_bits_from_cond(κ0)
-    if verbose >= 1
-        @info @sprintf("octahedral refinement to degree %d: %d orbits, %d unknowns, %d equations, seed cond %.2e",
-                       n, length(structure.orbits), nunknowns(structure),
-                       length(invariant_exponents(n)), κ0)
-    end
-    κ = κ0
-    for attempt in 1:2
-        # The rank-revealing solve cuts at 2^-(wbits ÷ 2). In the p₄ᵃp₆ᵇ basis log2(κ) grows
-        # past the target itself at high degree (about 180 at degree 133, 270 at 201), and the
-        # cut would then discard genuine directions: Gauss–Newton stops short of the root or
-        # fails. So the target is raised until the cut sits 32 bits below 1/κ; the result is
-        # returned at that precision and the caller rounds it. No effect while κ is modest.
-        tbits = max(bits, ceil(Int, 2 * (log2(clamp(κ, 1.0, 2.0^1000)) + 32)) - guard)
-        wbits = tbits + guard
-        verbose >= 1 && @info @sprintf("  attempt %d at %d bits (%d target + %d guard)",
-                                       attempt, wbits, tbits, guard)
-        res = with_bits(wbits) do
-            sys = OctahedralMomentSystem(structure, n, BigFloat)
-            gauss_newton(sys, BigFloat.(θ64); step_tol = ldexp(BigFloat(1), -(bits + 16)),
-                         res_floor = ldexp(BigFloat(1), -(wbits - 12)),
-                         rank_rtol = ldexp(BigFloat(1), -(wbits ÷ 2)), maxiter = 60, cancel, verbose, initial_cond = κ0)
-        end
-        needed = guard_bits_from_cond(res.cond_max)
-        if needed <= guard || attempt == 2
-            (verbose >= 1 && needed > guard) &&
-                @warn @sprintf("the conditioning met along the way asks for %d guard bits, not %d; \
-                                returning anyway on the last attempt", needed, guard)
-            return res.θ, res, wbits - bits          # every bit worked beyond the target
-        end
-        verbose >= 1 && @info @sprintf("  conditioning asks for %d guard bits, not %d — re-running",
-                                       needed, guard)
-        guard = needed
-        κ = max(κ, res.cond_max)
-    end
-end
+refine_octahedral(structure::OctahedralStructure, n::Integer, θ64::Vector{Float64}, bits::Integer;
+                  cancel = nothing, verbose::Integer = 0) =
+    refine_system(S -> OctahedralHarmonicSystem(structure, n, S), θ64, bits; cancel, verbose,
+                  label = "octahedral refinement to degree $n ($(length(structure.orbits)) orbits)")

@@ -107,6 +107,56 @@ end
     @test maximum(abs, sys5(w)[1]) < 1e-14
 end
 
+@testset "octahedral invariant harmonics" begin
+    # one invariant harmonic of degree ℓ per invariant p₄ᵃp₆ᵇ of degree exactly ℓ
+    for ℓ in 0:2:40
+        @test CR.invariant_harmonic_count(ℓ) == count(((a, b),) -> 4a + 6b == ℓ, CR.invariant_exponents(ℓ))
+    end
+    s = CR.lebedev_entry_for(15).structure
+    @test CR.n_equations(CR.OctahedralHarmonicSystem(s, 31, Float64)) == length(CR.invariant_exponents(31))
+    # F = Cᵀ (f(x) + f(Rx) + f(R²x)) / 3, written out here from the parts
+    function harmonics(ℓ, x)
+        P = zeros(CR.legendre_length(ℓ))
+        f = sum(CR.d4h_harmonics(ℓ, CR.rotate3(CR.SVector{3,Float64}(x), j), P) for j in 0:2) / 3
+        return CR.oh_harmonic_coefficients(ℓ)' * f
+    end
+    rng = Xoshiro(17)
+    for ℓ in (0, 4, 12, 18, 24, 36)
+        x = normalize(randn(rng, 3))
+        F = harmonics(ℓ, x)
+        @test length(F) == CR.invariant_harmonic_count(ℓ)
+        @test all(y -> maximum(abs, harmonics(ℓ, y) - F) < 1e-12, oct_images(x))
+    end
+    # orthonormal on the sphere, under a Gauss × trapezoid product rule exact to degree 2·18
+    nz, nφ = 20, 40
+    E = eigen(SymTridiagonal(zeros(nz), [k / sqrt(4k^2 - 1) for k in 1:(nz - 1)]))
+    zs, wz = E.values, 2 .* E.vectors[1, :] .^ 2
+    pts = [(z, 2π * k / nφ) for z in zs for k in 0:(nφ - 1)]
+    wts = [w * 2π / nφ for w in wz for _ in 0:(nφ - 1)]
+    for ℓs in ((0, 4, 6), (8, 12), (12, 18), (18, 16))
+        rows = [vcat([harmonics(ℓ, [sqrt(1 - z^2) * cos(φ), sqrt(1 - z^2) * sin(φ), z]) for ℓ in ℓs]...)
+                for (z, φ) in pts]
+        G = sum(w * r * r' for (w, r) in zip(wts, rows))
+        @test maximum(abs, G - I) < 1e-12
+    end
+    # the system: exact at a solution, with the derivative it claims
+    for d in (15, 17)
+        e = CR.lebedev_entry_for(d)
+        sys = CR.OctahedralHarmonicSystem(e.structure, e.degree, Float64)
+        r, J = sys(e.seed)
+        @test maximum(abs, r) < 1e-13
+        Jfd = similar(J)
+        for k in eachindex(e.seed)
+            δ = 1e-6 * max(1.0, abs(e.seed[k]))
+            ek = [i == k ? δ : 0.0 for i in eachindex(e.seed)]
+            Jfd[:, k] = (sys(e.seed + ek; jacobian = false)[1] - sys(e.seed - ek; jacobian = false)[1]) / 2δ
+        end
+        @test maximum(abs, J - Jfd) < 1e-6 * maximum(abs, J)
+        # and far better conditioned than the same equations in p₄ᵃp₆ᵇ
+        @test cond(J) < cond(CR.OctahedralMomentSystem(e.structure, e.degree, Float64)(e.seed)[2]) / 100
+    end
+end
+
 @testset "octahedral refinement" begin
     s5 = CR.OctahedralStructure([:a1, :a3])
     sys5 = CR.OctahedralMomentSystem(s5, 5, Float64)
