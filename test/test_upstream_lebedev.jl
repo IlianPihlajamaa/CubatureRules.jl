@@ -41,9 +41,9 @@ end
     @test npoints(r2) < npoints(r)
     @test occursin("copyleft = true", provenance(r2).selection)
     # the warning can be switched off
-    CR.license_warnings!(false)
+    CR.selection_warnings!(false)
     @test_logs rule(Sphere{3}(); degree = 19)          # no warning at all
-    CR.license_warnings!(true)
+    CR.selection_warnings!(true)
 end
 
 @testset "upstream rules carry their terms" begin

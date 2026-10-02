@@ -187,6 +187,5 @@ end
         CR.selection_warnings!(false)
         @test_logs rule(Sphere{3}(); degree = 31)
         CR.selection_warnings!(true)
-        @test CR.license_warnings!(true)                       # the earlier name still works
     end
 end

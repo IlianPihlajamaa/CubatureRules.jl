@@ -149,13 +149,6 @@ const SELECTION_WARNINGS = Ref(true)
 const SELECTION_WARNED = Set{Tuple{Symbol,String,Int}}()
 
 """
-    license_warnings!(on)
-
-The earlier name of [`selection_warnings!`](@ref), which it calls.
-"""
-license_warnings!(on::Bool) = selection_warnings!(on)
-
-"""
     unloaded_alternatives(domain, degree) -> Vector{NamedTuple}
 
 Rules that a package which is not loaded would offer on the reference `domain` at `degree`,
