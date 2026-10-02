@@ -17,18 +17,22 @@ function status(root)
         isdir(dir) || continue
         shipped = Dict(e["degree"] => e["npoints"] for e in TOML.parsefile(joinpath(PKG, "src", "data", FILES[domain]))["rule"])
         best = Dict{Int,Int}()
+        exc = Dict{Int,Int}()
         cdir = joinpath(dir, "candidates")
         if isdir(cdir)
             for f in readdir(cdir; join = true)
                 endswith(f, ".toml") || continue
                 e = TOML.parsefile(f)
-                best[e["degree"]] = min(get(best, e["degree"], typemax(Int)), e["npoints"])
+                n = e["degree"]
+                e["npoints"] < get(best, n, typemax(Int)) || continue
+                best[n] = e["npoints"]; exc[n] = get(e, "excess", 0)
             end
         end
         println("== ", domain, ": shipped up to degree ", maximum(keys(shipped)))
         for n in sort(collect(keys(best)))
             s = get(shipped, n, nothing)
             println(@sprintf("   degree %3d: %5d points", n, best[n]),
+                    exc[n] > 0 ? "  excess $(exc[n])" : "",
                     s === nothing ? "  (new)" : s > best[n] ? "  (shipped $s)" : "  (shipped $s, not better)")
         end
         pdir = joinpath(dir, "pool")
