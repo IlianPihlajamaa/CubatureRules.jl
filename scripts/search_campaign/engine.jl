@@ -7,6 +7,7 @@ grow_excess(m, rng) = rand(rng, (3, 6, 12, max(8, m ÷ 8), max(8, m ÷ 4)))   # 
 const SIGMAS = (0.0, 1e-4, 5e-4, 2e-3, 6e-3, 1.5e-2)   # coordinate perturbations in the finish step
 const CHAIN_SHARE = 0.25                   # share of a worker's time spent in the package's own chains
 const PRUNE_TRIES = 10_000                 # refits per prune step: in effect all, as `eliminate` does
+const PATIENCE = 2.0                       # hours a worker spends on an unsettled frontier rule before moving up
 
 mutable struct Worker
     d::CampaignDomain
@@ -19,6 +20,9 @@ mutable struct Worker
     family_tries::Dict{Any,Int}
     families::Dict{String,Any}             # parent file → family key
     best::Dict{Int,Int}                    # degree → fewest points known
+    excess::Dict{Int,Int}                  # degree → excess of that rule (0 for shipped and imported rules)
+    worked::Dict{Tuple{Int,Int},Float64}   # (degree, best points) → seconds this worker spent there since
+    shipped_top::Int
     best_read::Float64
     stats::Dict{Symbol,Int}
     blind::Int                             # shipped entries at this degree and above are ignored (benchmarks)
@@ -85,7 +89,9 @@ function best_entries(w)
 end
 function refresh_best!(w; force = false)
     (force || time() - w.best_read > 60) || return w.best
-    w.best = Dict(n => e["npoints"] for (n, e) in best_entries(w))
+    es = best_entries(w)
+    w.best = Dict(n => e["npoints"] for (n, e) in es)
+    w.excess = Dict(n => get(e, "excess", 0) for (n, e) in es)
     w.best_read = time()
     return w.best
 end
@@ -135,6 +141,7 @@ function record!(w, n, s, θ, how)
     atomic_write(io -> TOML.print(io, e; sorted = true),
                  joinpath(candir(w), @sprintf("deg%03d_p%06d_w%d_%d.toml", n, npts, w.id, w.counter)))
     w.best[n] = npts
+    w.excess[n] = excess
     write_best_table(w)
     say(w, best == typemax(Int) ? @sprintf("NEW degree %d: %d points (excess %d, %s, refined in %.0f s)", n, npts, excess, how, t) :
                                   @sprintf("IMPROVED degree %d: %d → %d points (excess %d, %s)", n, best, npts, excess, how))
@@ -321,12 +328,22 @@ end
 
 # --- the worker loop -------------------------------------------------------------------------------
 
+"""
+The degree to work at. In extend mode, the lowest degree above the shipped table whose best rule
+is still far above square (a grown rule not yet pruned), until this worker has spent `PATIENCE`
+hours there without improving it; otherwise one degree step above the best table. Moving up from
+an unsettled rule would grow every later degree from a poor base.
+"""
 function target_degree(w, mode, lo, hi, maxdeg)
     best = refresh_best!(w)
     top = maximum(keys(best))
     step = degree_step(w.d)
-    if mode == "extend" && top + step <= maxdeg
-        return top + step
+    if mode == "extend"
+        for n in (w.shipped_top + step):step:top
+            haskey(best, n) || continue
+            get(w.excess, n, 0) > FINISH_EXCESS && get(w.worked, (n, best[n]), 0.0) < 3600PATIENCE && return n
+        end
+        top + step <= maxdeg && return top + step
     end
     lo = lo === nothing ? max(minimum(keys(best)), top - 3step) : lo
     hi = hi === nothing ? top : hi
@@ -340,8 +357,10 @@ function run_worker(domain, root, id; mode = "extend", lo = nothing, hi = nothin
     mkpath(joinpath(dir, "logs"))
     log = open(joinpath(dir, "logs", "worker$(id).log"), "a")
     w = Worker(d, dir, id, MersenneTwister(seed + 7919id), log, 0, Dict{String,Int}(), Dict{Any,Int}(),
-               Dict{String,Any}(), Dict{Int,Int}(), 0.0, Dict(:grow => 0, :prune => 0, :finish => 0, :finish_ok => 0, :finish_fail => 0),
+               Dict{String,Any}(), Dict{Int,Int}(), Dict{Int,Int}(), Dict{Tuple{Int,Int},Float64}(), 0,
+               0.0, Dict(:grow => 0, :prune => 0, :finish => 0, :finish_ok => 0, :finish_fail => 0),
                blind, Set{String}())
+    w.shipped_top = maximum(e["degree"] for e in shipped(w))
     say(w, "worker $id started: $domain, mode $mode, pid $(getpid())")
     started = time()
     iter = 0
@@ -350,6 +369,7 @@ function run_worker(domain, root, id; mode = "extend", lo = nothing, hi = nothin
         (time() - started) / 3600 < hours || break
         iter += 1
         n = target_degree(w, mode, lo, hi, maxdeg)
+        b0 = get(w.best, n, 0)
         pl = pool_list(w, n)
         high = filter(p -> p.excess > FINISH_EXCESS && !(p.path in w.exhausted), pl)
         near = filter(p -> 0 < p.excess <= FINISH_EXCESS || p.path in w.exhausted, pl)
@@ -373,6 +393,7 @@ function run_worker(domain, root, id; mode = "extend", lo = nothing, hi = nothin
             say(w, "error at degree $n: " * first(sprint(showerror, e), 300))
         end
         total_time += time() - t0
+        w.worked[(n, b0)] = get(w.worked, (n, b0), 0.0) + time() - t0
         if iter % 50 == 0
             say(w, "progress: " * join(("$k=$v" for (k, v) in sort(collect(w.stats))), ", ") *
                    @sprintf(", %.2f h", (time() - started) / 3600))
