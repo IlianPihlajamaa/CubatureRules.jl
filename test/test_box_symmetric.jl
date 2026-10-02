@@ -1,0 +1,58 @@
+using CubatureRules, Test
+const CR = CubatureRules
+
+# Fully symmetric rules on the square and the cube: orbits of the signed permutations, the
+# moment system on symmetrised Legendre products, and the shipped tables.
+
+@testset "box orbits and the moment system" begin
+    @test [o.mult for o in CR.box_orbit_types(2)] == [Int[], [1], [2], [1, 1]]
+    @test length(CR.box_orbit_types(3)) == 7
+    @test [CR.orbit_size(o) for o in CR.box_orbit_types(3)] == [1, 6, 8, 12, 24, 24, 48]
+    s = CR.BoxStructure([[], [1], [2, 1], [1, 1, 1]], 3)
+    θ = [0.3, 0.2, 0.5, 0.1, 0.7, 0.2, 0.05, 0.8, 0.5, 0.3]
+    xs, ws = CR.expand(s, θ)
+    @test length(xs) == CR.npoints(s) == 1 + 6 + 24 + 48
+    # the 3×3×3 Gauss rule is four orbits of the cube, and satisfies the degree-5 equations
+    a, w0, w1 = sqrt(3 / 5), 8 / 9, 5 / 9
+    g = CR.BoxStructure([[], [1], [2], [3]], 3)
+    r, _ = CR.BoxMomentSystem(g, 5, Float64)([w0^3, w0^2 * w1, a, w0 * w1^2, a, w1^3, a])
+    @test maximum(abs, r) < 1e-14
+    r, _ = CR.BoxMomentSystem(g, 7, Float64)([w0^3, w0^2 * w1, a, w0 * w1^2, a, w1^3, a])
+    @test maximum(abs, r) > 1e-3                                  # and not the degree-7 ones
+    # the Jacobian against central differences
+    sys = CR.BoxMomentSystem(s, 7, Float64)
+    _, J = sys(θ)
+    Jfd = hcat([(sys(θ + 1e-6 * (1:length(θ) .== k))[1] - sys(θ - 1e-6 * (1:length(θ) .== k))[1]) / 2e-6
+                for k in eachindex(θ)]...)
+    @test maximum(abs, J - Jfd) < 1e-8
+    @test CR.n_equations(CR.BoxMomentSystem(s, 6, Float64)) == CR.n_equations(CR.BoxMomentSystem(s, 7, Float64))
+end
+
+@testset "shipped square and cube rules" begin
+    for D in (2, 3)
+        es = CR.box_entries(D)
+        @test length(es) >= 6
+        for e in es
+            r = rule(FullySymmetric(), Orthotope{D}(); degree = e.degree)
+            @test npoints(r) == e.npoints && degree(r) == e.degree
+            v = check(r)
+            @test passed(v) && v.positive && v.interior && v.symmetric === true
+        end
+    end
+    # Float64 is served from the certified table as stored
+    @test certificate(rule(Orthotope{2}(); degree = 9)).iterations == 0
+    # more digits than the table holds: refined, and still verified
+    r = rule(FullySymmetric(), Orthotope{2}(); degree = 9, digits = 40)
+    @test passed(verify(r)) && occursin("Gauss–Newton", join(provenance(r).path, " "))
+    @test passed(verify(rule(FullySymmetric(), Orthotope{3}(); degree = 7, digits = 40)))
+    # an even degree is served by the odd rule above it
+    @test degree(rule(FullySymmetric(), Orthotope{2}(); degree = 8)) == 9
+    # chosen over the tensor rule on total degree
+    r = rule(Orthotope{3}(); degree = 7)
+    @test family(r) == "FullySymmetric" && npoints(r) == 34
+    # a mapped box, against the exact integral
+    box = Orthotope((0.0, 1.0, -1.0), (2.0, 2.0, 3.0))
+    r = rule(box; degree = 6)
+    @test passed(check(r))
+    @test integrate(x -> x[1]^2 * x[2]^3 + x[3]^4, r) ≈ 8 / 3 * 15 / 4 * 4 + 2 * 1 * 244 / 5 rtol = 1e-13
+end

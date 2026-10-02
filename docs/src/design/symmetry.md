@@ -39,6 +39,23 @@ the coordinates. Its orbits are the six used by Lebedev:
 | `c` | `(p, q, 0)`, `q² = 1 - p²` | 24 | 1 |
 | `d` | `(r, s, u)`, `u² = 1 - r² - s²` | 48 | 2 |
 
+### The square and the cube
+
+On `[-1, 1]^D` the group is again the signed permutations of the coordinates: 8 on the
+square, 48 on the cube. An orbit is fixed by its representative's distinct nonzero absolute
+values, how often each is repeated, and how many coordinates are zero. The square has four
+types and the cube seven:
+
+| Square | Points | Parameters | Cube | Points | Parameters |
+|---|---|---|---|---|---|
+| `(0, 0)` | 1 | 0 | `(0, 0, 0)` | 1 | 0 |
+| `(a, 0)` | 4 | 1 | `(a, 0, 0)` | 6 | 1 |
+| `(a, a)` | 4 | 1 | `(a, a, a)` | 8 | 1 |
+| `(a, b)` | 8 | 2 | `(a, a, 0)` | 12 | 1 |
+| | | | `(a, b, 0)` | 24 | 2 |
+| | | | `(a, a, b)` | 24 | 2 |
+| | | | `(a, b, c)` | 48 | 3 |
+
 ## The moment equations
 
 A rule made of whole orbits is invariant under the group. Its integration error on a
@@ -72,6 +89,22 @@ only needs to be evaluated at its representative. With the constraint substitute
 Every orbit is centrally symmetric, so odd-degree polynomials integrate to zero for any
 parameters. A rule exact to degree `2k` is therefore exact to `2k + 1`, and Lebedev rules are
 only offered at odd degrees.
+
+### On the square and the cube
+
+The invariant polynomials are the symmetric polynomials in `x₁², …, x_D²`. Here no invariant
+basis has to be computed: the symmetrised products of even-degree orthonormal Legendre
+polynomials,
+
+```math
+\varphi_\alpha = c_\alpha \sum_\sigma p_{\alpha_{\sigma(1)}}(x_1) \cdots p_{\alpha_{\sigma(D)}}(x_D),
+\qquad \alpha_1 \ge \dots \ge \alpha_D \ge 0 \text{ all even},
+```
+
+summed over the distinct rearrangements of `α`, are already orthonormal on the box. Only the
+constant has a nonzero integral, the system is as well conditioned as the rule itself allows,
+and each orbit is again evaluated at its representative only. As on the sphere, a rule of
+degree `2k` is one of degree `2k + 1`, so only odd degrees are tabulated.
 
 ## Conditioning of the invariant basis
 

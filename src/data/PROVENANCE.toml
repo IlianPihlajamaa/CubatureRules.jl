@@ -91,3 +91,51 @@ checked = """
 scripts/certify_tables.jl, 2026-09-24 and 2026-09-30 (degrees 3-17) and 2026-10-01 (degrees
 133-201): every seed is the correctly rounded Float64 value of the rule refined to 160 bits,
 and its defining-equation residual at 256 bits is recorded in the table."""
+
+[[file]]
+path = "square_d4_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the square [-1, 1]^2, invariant under its 8 symmetries, at odd degrees
+1-31."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_box_seeds.jl (2026-10-02): up to degree 13, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination, the best of two runs
+(16 and 32 chains) kept per degree. Neither numbers nor point counts were taken from any
+publication. The counts were compared afterwards with Witherden & Vincent (2015), who
+tabulate this class to degree 21: they agree at every degree except 17, where this table has
+57 points against 60."""
+license = "MIT"
+retrieved = "2026-10-02"
+citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
+generator = "scripts/generate_box_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-02: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table."""
+
+[[file]]
+path = "cube_oh_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the cube [-1, 1]^3, invariant under its 48 symmetries, at odd degrees
+1-17."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_box_seeds.jl (2026-10-02): up to degree 7, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination. Neither numbers nor
+point counts were taken from any publication. The counts were compared afterwards with
+Witherden & Vincent (2015), who tabulate this class to degree 11: they agree at every degree
+except 3, where this table has 8 points against 6, because a 6-point rule of degree 3 has
+its nodes on the faces and these rules keep every node inside."""
+license = "MIT"
+retrieved = "2026-10-02"
+citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
+generator = "scripts/generate_box_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-02: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table."""

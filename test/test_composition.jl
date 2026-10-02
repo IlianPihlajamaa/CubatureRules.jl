@@ -25,22 +25,25 @@ end
 
 @testset "tensor-product rules" begin
     for d in (1, 5, 12)
-        r = rule(Orthotope{2}(); degree = d)
+        r = rule(TensorProduct(GaussLegendre(), 2), Orthotope{2}(); degree = d)
         @test family(r) == "TensorProduct"
         @test npoints(r) == cld(d + 1, 2)^2
         @test sum(weights(r)) ≈ 4
         v = check(r)
         @test v.exact && v.sharp === true && v.positive && v.interior
     end
-    r = rule(Orthotope{3}(); degree = 7, digits = 40)
+    r = rule(TensorProduct(GaussLegendre(), 3), Orthotope{3}(); degree = 7, digits = 40)
     @test npoints(r) == 4^3
     @test passed(check(r))
     @test abs(integrate(x -> x[1]^2 * x[2]^4 * x[3]^0, r) - big(2) / 3 * big(2) / 5 * 2) < big(10.0)^-38
     # the claim is the conservative total degree, not the tensor-product space
-    @test degree(rule(Orthotope{2}(); degree = 6)) == 7          # 4 points per axis
-    @test integrate(x -> x[1]^7 * x[2]^7, rule(Orthotope{2}(); degree = 7)) ≈ 0 atol = 1e-14
+    t2 = TensorProduct(GaussLegendre(), 2)
+    @test degree(rule(t2, Orthotope{2}(); degree = 6)) == 7      # 4 points per axis
+    @test integrate(x -> x[1]^7 * x[2]^7, rule(t2, Orthotope{2}(); degree = 7)) ≈ 0 atol = 1e-14
     # …though it is in fact exact well beyond the claim, which is why the claim is stated
-    @test integrate(x -> x[1]^6 * x[2]^6, rule(Orthotope{2}(); degree = 7)) ≈ (2 / 7)^2 rtol = 1e-14
+    @test integrate(x -> x[1]^6 * x[2]^6, rule(t2, Orthotope{2}(); degree = 7)) ≈ (2 / 7)^2 rtol = 1e-14
+    # the fully symmetric rule of the same degree is not: x⁶y⁶ has total degree 12
+    @test !isapprox(integrate(x -> x[1]^6 * x[2]^6, rule(Orthotope{2}(); degree = 7)), (2 / 7)^2; rtol = 1e-6)
     # mapped onto a general box
     b = Orthotope((0.0, 1.0), (2.0, 3.0))
     rb = rule(b; degree = 6)
@@ -71,8 +74,8 @@ end
 @testset "registry on boxes" begin
     a = available(Orthotope{2}(); degree = 9)
     @test !isempty(a)
-    @test first(a).family == "TensorProduct(GaussLegendre)"
-    @test first(a).npoints == 25
+    @test first(a).family == "FullySymmetric" && first(a).npoints == 20     # ahead of the 5 × 5 tensor rule
+    @test any(c -> c.family == "TensorProduct(GaussLegendre)" && c.npoints == 25, a)
     @test isempty(candidates(TensorProduct, Orthotope((0.0, 0.0), (1.0, 1.0)), PolynomialDegree(3)))
     @test isempty(candidates(TensorProduct, Simplex{2}(), PolynomialDegree(3)))
     # exact rational box rules: a tensor product over Newton–Cotes

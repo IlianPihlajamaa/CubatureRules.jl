@@ -17,6 +17,13 @@ const CR = CubatureRules
         end
         @test isapprox(r, e.residual; rtol = 1e-6, atol = 1e-30)
     end
+    for D in (2, 3), e in CR.box_entries(D)
+        @test isfinite(e.residual) && e.residual < 1e-14 && e.residual_bits >= 256
+        r = CR.with_bits(128) do
+            Float64(maximum(abs, CR.BoxMomentSystem(e.structure, e.degree, BigFloat)(BigFloat.(e.seed); jacobian = false)[1]))
+        end
+        @test isapprox(r, e.residual; rtol = 1e-6, atol = 1e-30)
+    end
 end
 
 @testset "Float64 is shipped, lower precisions are rounded, higher ones refined" begin

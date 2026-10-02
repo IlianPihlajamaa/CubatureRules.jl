@@ -16,15 +16,21 @@
 """
     FullySymmetric()
 
-Fully symmetric (`S₄`), positive-weight, interior-node rules on the tetrahedron, refined by
-Gauss–Newton on the `S₄`-invariant moment system to any requested precision. Seeded:
-available at the degrees in the shipped seed table.
+Positive-weight, interior-node rules invariant under the whole symmetry group of their
+domain, refined by Gauss–Newton on the invariant moment system to any requested precision.
+Seeded: available at the degrees in the shipped seed tables.
 
-Point counts are the smallest found by the in-house search, not proven minima. They agree
-with Witherden & Vincent (2015) for degrees 1–10 and are smaller than Zhang, Cui & Liu
-(2009) at degrees 7, 9 and 11–14.
+- On the tetrahedron (`Simplex{3}()`), the 24 permutations of the barycentric coordinates
+  (`S₄`). Point counts agree with Witherden & Vincent (2015) for degrees 1–10 and are smaller
+  than Zhang, Cui & Liu (2009) at degrees 7, 9 and 11–14.
+- On the square and the cube (`Orthotope{2}()`, `Orthotope{3}()`), the 8 or 48 signed
+  permutations of the coordinates. At the same total degree they need far fewer points than
+  the tensor Gauss rule, most of all on the cube; the tensor rule remains the one for
+  tensor-product (`Q_k`) integrands, which it integrates exactly with fewer points.
 
-Keyword `seed` of [`rule`](@ref) selects the seed source, as for [`XiaoGimbutas`](@ref).
+Point counts are the smallest found by the in-house search, not proven minima. Keyword
+`seed` of [`rule`](@ref) selects the seed source on the tetrahedron, as for
+[`XiaoGimbutas`](@ref).
 """
 struct FullySymmetric <: RuleFamily end
 

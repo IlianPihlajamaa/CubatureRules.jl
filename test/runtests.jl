@@ -15,6 +15,7 @@ const CR = CubatureRules
     @testset "principal values and finite parts" include("test_kernel.jl")
     @testset "oscillatory weights" include("test_oscillatory.jl")
     @testset "wedges and pyramids" include("test_wedge_pyramid.jl")
+    @testset "fully symmetric square and cube rules" include("test_box_symmetric.jl")
     @testset "stored tables" include("test_stored_tables.jl")
     @testset "unbounded domains" include("test_unbounded.jl")
     @testset "spheres" include("test_sphere.jl")

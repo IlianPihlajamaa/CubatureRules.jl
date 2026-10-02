@@ -1012,13 +1012,15 @@ end
 
 Whether the rule is invariant under the symmetry group it claims: `:S_N` permutes the
 barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the reference interval,
-`:Oh` is the 48 signed permutations of Cartesian coordinates on a sphere. `nothing` when no
+`:Oh` is the 48 signed permutations of Cartesian coordinates (the sphere or the cube), `:D4`
+the 8 of the square. `nothing` when no
 symmetry is claimed.
 """
 check_symmetry(group::Symbol, xs, ws, tol) =
     group === :none ? nothing :
     group === :reflection ? check_reflection_symmetry(xs, ws, tol) :
     group === :Oh ? check_octahedral_symmetry(xs, ws, tol) :
+    group === :D4 ? check_square_symmetry(xs, ws, tol) :
     check_simplex_symmetry(xs, ws, tol)
 
 """
@@ -1038,6 +1040,24 @@ function check_octahedral_symmetry(xs, ws, tol)
             maximum(abs, (xs[j][1] - y[1], xs[j][2] - y[2], xs[j][3] - y[3])) <= tol &&
                 abs(ws[j] - w) <= tol * wscale
         end || return false
+    end
+    return true
+end
+
+"""
+    check_square_symmetry(xs, ws, tol)
+
+Whether the node/weight set in the plane is invariant under the 8 symmetries of the square:
+every signed permutation of the two coordinates of every node is again a node, carrying the
+same weight.
+"""
+function check_square_symmetry(xs, ws, tol)
+    length(first(xs)) == 2 || return false
+    wscale = maximum(abs, ws)
+    for (x, w) in zip(xs, ws), p in ((1, 2), (2, 1)), s1 in (1, -1), s2 in (1, -1)
+        y = (s1 * x[p[1]], s2 * x[p[2]])
+        any(j -> max(abs(xs[j][1] - y[1]), abs(xs[j][2] - y[2])) <= tol && abs(ws[j] - w) <= tol * wscale,
+            eachindex(xs)) || return false
     end
     return true
 end

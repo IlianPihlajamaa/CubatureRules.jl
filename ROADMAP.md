@@ -567,6 +567,18 @@ them.
       `map_to`. Verified against an orthonormal Dubiner × Legendre basis on the wedge, and
       on the pyramid against bounding-box Legendre polynomials integrated slice by slice.
       Symmetric rules with fewer points are not shipped)*
+- [x] Fully symmetric rules on the square and the cube
+      *(`FullySymmetric` on `Orthotope{2}()` and `Orthotope{3}()`: positive, interior rules
+      invariant under the 8 and 48 signed permutations of the coordinates. The symmetrised
+      products of even orthonormal Legendre polynomials are already orthonormal, so the
+      moment system needs no invariant basis and is well conditioned. Seeds in-house
+      (scripts/generate_box_seeds.jl): multistart at low degree, grow → eliminate above.
+      Square, odd degrees 1–31; cube, 1–17. Against Witherden & Vincent (2015): the square
+      agrees to degree 21 except 17, where it has 57 points against 60; the cube agrees to
+      11 except 3, where 8 interior points replace their 6 on the faces. Cube degree 15: 208
+      points against 512 for the tensor rule. The selector now prefers them on total degree;
+      tensor rules stay the ones for Q_k integrands, and are taken by naming
+      `TensorProduct`)*
 - [ ] Stroud $T_n$ in closed form for arbitrary $d$, carried from v0.4. Low priority while
       `ConicalProduct` covers every degree and `GrundmannMöller` is exactly rational: it
       buys smaller point counts at fixed low degree, not new capability
