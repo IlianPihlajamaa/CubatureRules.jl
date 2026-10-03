@@ -146,7 +146,8 @@ the rule from the degree below, just as the chains did. "Table" is the shipped p
   degrees generally. At the triangle and tetrahedron frontier (degrees 54–56 and 23–27) a single
   chain costs 10–20 minutes.
 - The cheap box chains remain worth running; hence the chain task.
-- Both methods beat the shipped cube rule at degree 13: 154 points against 160.
+- Both methods beat the cube rule then shipped at degree 13: 154 points against 160. The
+  table has had a 154-point rule since.
 
 ## Layout
 
