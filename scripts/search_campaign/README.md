@@ -108,7 +108,9 @@ its target degree:
 **Candidates.** Any degree-`n` rule with fewer points than the best known, at any excess, is a
 candidate:
 - it is refined to 100 digits by the package (`refine_symmetric`, `refine_box`);
-- it is checked to be positive and interior;
+- it is checked to be positive and interior, with no two nodes closer than 1e-6 (as
+  `scripts/verify_tables.jl` requires; closer nodes mean two orbits are merging, which is a
+  move for the prune and finish tasks rather than a rule);
 - it is written to `candidates/`, and the merged best table is rewritten.
 
 **Positive-weight solve.** Levenberg–Marquardt with every weight written as `w̄ exp(x)`, so that

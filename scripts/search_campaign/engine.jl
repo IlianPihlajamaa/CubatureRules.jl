@@ -7,6 +7,7 @@ grow_excess(m, rng) = rand(rng, (3, 6, 12, max(8, m ÷ 8), max(8, m ÷ 4)))   # 
 const SIGMAS = (0.0, 1e-4, 5e-4, 2e-3, 6e-3, 1.5e-2)   # coordinate perturbations in the finish step
 const CHAIN_SHARE = 0.25                   # share of a worker's time spent in the package's own chains
 const PRUNE_TRIES = 10_000                 # refits per prune step: in effect all, as `eliminate` does
+const MIN_SEPARATION = 1e-6                # as scripts/verify_tables.jl: closer nodes are merging orbits
 const PATIENCE = 2.0                       # hours a worker spends on an unsettled frontier rule before moving up
 
 mutable struct Worker
@@ -107,6 +108,24 @@ function write_best_table(w)
     end
 end
 
+"Smallest max-norm distance between two nodes, as scripts/verify_tables.jl measures it."
+function min_separation(s, θ)
+    x = try
+        first(CR.expand(s, Float64.(θ)))
+    catch                                     # a box orbit whose points coincide
+        return 0.0
+    end
+    sep = Inf
+    @inbounds for i in eachindex(x), j in (i + 1):length(x)
+        dmax = 0.0
+        for k in eachindex(x[i])
+            dmax = max(dmax, abs(x[i][k] - x[j][k]))
+        end
+        sep = min(sep, dmax)
+    end
+    return sep
+end
+
 # --- recording what a solve found --------------------------------------------------------------
 
 """
@@ -129,6 +148,11 @@ function record!(w, n, s, θ, how)
     wmin, mmin = margin(w.d, s, θr)
     if !(ok && wmin > 0 && mmin > 0)
         say(w, @sprintf("degree %d: %d points found (%s) but refinement failed", n, npts, how))
+        return
+    end
+    sep = min_separation(s, θr)
+    if sep <= MIN_SEPARATION                  # two orbits about to merge: a move for prune or finish, not a rule
+        say(w, @sprintf("degree %d: %d points found (%s) but nodes %.1e apart", n, npts, how, sep))
         return
     end
     best = get(refresh_best!(w; force = true), n, typemax(Int))     # someone may have beaten it meanwhile
