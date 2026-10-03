@@ -1,19 +1,23 @@
 # Verify every shipped symmetric rule, independently of the machinery that produced it
 # (PLAN §8: verification as an output, not just a test).
 #
-#     julia --project -t auto scripts/verify_tables.jl [digits] [degrees]
+#     julia --project -t auto scripts/verify_tables.jl [digits] [degrees] [domains]
 #
-# `degrees` (for example `49:50`) restricts the campaign to those degrees, which is what a
-# newly generated seed needs; without it every shipped rule is checked.
+# `degrees` (for example `49:50`, or `11,22`) restricts the campaign to those degrees, and
+# `domains` (any of `triangle,tetrahedron,square,cube`) to those domains, which is what newly
+# generated seeds need; without them every shipped rule is checked.
 #
 # For each rule: refine to `digits` (default 60), then check
 #   * exactness at its claimed degree and non-exactness one degree higher, against the
 #     orthonormal Dubiner basis at twice the precision (`check`)
 #   * positive weights, interior nodes, exact symmetry, distinct nodes
-#   * every monomial of degree ≤ d integrated to the exact Dirichlet moment, computed in
-#     independent arithmetic rather than through the invariant basis
-# and, for triangles, compare the point count with the published count of
-# Xiao & Gimbutas (2010), Table 1, column n₆.
+#   * every monomial of degree ≤ d integrated to its exact moment (Dirichlet on the simplex,
+#     products of 2/(k+1) on the box), computed in independent arithmetic rather than
+#     through the invariant basis or the orthonormal one
+# and compare the point count with the published one where there is one: Xiao & Gimbutas
+# (2010), Table 1, column n₆, for triangles, and the tables below for tetrahedra and boxes.
+# Triangles and tetrahedra are checked at every degree, the square and the cube at the odd
+# degrees, which are the ones tabulated.
 #
 # Exit status is non-zero if any rule fails, so this can be run as a campaign in CI.
 
@@ -29,8 +33,18 @@ const XG_N6 = [1, 3, 6, 6, 7, 12, 15, 16, 19, 25, 28, 33, 37, 42, 49, 55, 60, 67
                87, 96, 103, 112, 120, 130, 141, 150, 159, 171, 181, 193, 204, 214, 228,
                243, 252, 267, 282, 295, 309, 324, 339, 354, 370, 385, 399, 423, 435, 453]
 
+# Witherden & Vincent (2015): fully symmetric quadrilateral and hexahedron rules
+const SQUARE_PUBLISHED = Dict(1 => 1, 3 => 4, 5 => 8, 7 => 12, 9 => 20, 11 => 28, 13 => 37, 15 => 48,
+                              17 => 60, 19 => 72, 21 => 85)
+const CUBE_PUBLISHED = Dict(1 => 1, 3 => 6, 5 => 14, 7 => 34, 9 => 58, 11 => 90)
+
+# ∫ |x^e|: the moment itself on the simplex, where every one is positive; on the box, where
+# the odd ones vanish, the moment of |x^e|, so that the error is relative to the integrand
+moment_scale(::Simplex{D}, e) where {D} = CR.monomial_moment(Simplex{D}(), Tuple(e))
+moment_scale(::Orthotope, e) = prod(big(2) // (k + 1) for k in e)
+
 "Largest relative error over every monomial of degree ≤ d, in `bits`-bit arithmetic."
-function monomial_error(r, d::Int, bits::Int)
+function monomial_error(r, dom, d::Int, bits::Int)
     x = nodes(r)
     w = weights(r)
     D = length(first(x))
@@ -38,21 +52,27 @@ function monomial_error(r, d::Int, bits::Int)
         worst = big(0.0)
         for α in CR.compositions(d, D + 1)
             e = α[2:end]                                    # Cartesian exponents
-            exact = BigFloat(CR.monomial_moment(Simplex{D}(), Tuple(e)))
+            exact = BigFloat(CR.monomial_moment(dom, Tuple(e)))
             got = sum(BigFloat(w[i]) * prod(BigFloat(x[i][j])^e[j] for j in 1:D) for i in eachindex(x))
-            worst = max(worst, abs(got - exact) / exact)
+            worst = max(worst, abs(got - exact) / BigFloat(moment_scale(dom, e)))
         end
         worst
     end
 end
 
-function campaign(digits::Int; degrees = nothing)
+function campaign(digits::Int; degrees = nothing, domains = nothing)
     ok = true
-    for (fam, dom, published) in ((XiaoGimbutas(), Simplex{2}(), XG_N6), (FullySymmetric(), Simplex{3}(), TET_PUBLISHED))
+    for (label, fam, dom, published) in (("triangle", XiaoGimbutas(), Simplex{2}(), XG_N6),
+                                         ("tetrahedron", FullySymmetric(), Simplex{3}(), TET_PUBLISHED),
+                                         ("square", FullySymmetric(), Orthotope{2}(), SQUARE_PUBLISHED),
+                                         ("cube", FullySymmetric(), Orthotope{3}(), CUBE_PUBLISHED))
+        domains === nothing || label in domains || continue
         name = CR.family_name(fam)
         println("\n", name, " on ", dom, " — refined to ", digits, " digits")
         println("  degree  points  published  exact  sharp  positive  interior  symmetric  min sep   monomials")
-        wanted = degrees === nothing ? (1:last(degree_range(fam, dom))) : intersect(degrees, 1:last(degree_range(fam, dom)))
+        top = last(degree_range(fam, dom))
+        shipped = dom isa Orthotope ? (1:2:top) : (1:top)
+        wanted = degrees === nothing ? shipped : intersect(degrees, shipped)
         isempty(wanted) && (println("  (no requested degrees in range)"); continue)
         for d in wanted
             r = rule(fam, dom; degree = d, digits)
@@ -60,8 +80,9 @@ function campaign(digits::Int; degrees = nothing)
             x = nodes(r)
             sep = length(x) == 1 ? Inf :
                   minimum(maximum(abs, x[i] - x[j]) for i in eachindex(x) for j in (i + 1):length(x))
-            mono = monomial_error(r, d, 4 * CR.digits_to_bits(digits))
-            pub = published === nothing || d > length(published) ? "—" : string(published[d])
+            mono = monomial_error(r, dom, d, 4 * CR.digits_to_bits(digits))
+            p = get(published, d, nothing)
+            pub = p === nothing ? "—" : string(p)
             good = v.exact && v.sharp !== false && v.positive && v.interior && v.symmetric === true &&
                    sep > 1e-6 && mono < big(10.0)^(-digits + 2)
             ok &= good
@@ -84,6 +105,8 @@ end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     digits = isempty(ARGS) ? 60 : parse(Int, ARGS[1])
-    degrees = length(ARGS) < 2 ? nothing : (:)(parse.(Int, split(ARGS[2], ":"))...)
-    exit(campaign(digits; degrees) ? 0 : 1)
+    degrees = length(ARGS) < 2 ? nothing :
+              occursin(":", ARGS[2]) ? (:)(parse.(Int, split(ARGS[2], ":"))...) : parse.(Int, split(ARGS[2], ","))
+    domains = length(ARGS) < 3 ? nothing : split(ARGS[3], ",")
+    exit(campaign(digits; degrees, domains) ? 0 : 1)
 end

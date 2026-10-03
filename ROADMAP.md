@@ -584,10 +584,12 @@ them.
       products of even orthonormal Legendre polynomials are already orthonormal, so the
       moment system needs no invariant basis and is well conditioned. Seeds in-house
       (scripts/generate_box_seeds.jl): multistart at low degree, grow → eliminate above.
-      Square, odd degrees 1–31; cube, 1–17. Against Witherden & Vincent (2015): the square
-      agrees to degree 21 except 17, where it has 57 points against 60; the cube agrees to
-      11 except 3, where 8 interior points replace their 6 on the faces. Cube degree 15: 208
-      points against 512 for the tensor rule. The selector now prefers them on total degree;
+      Square, odd degrees 1–51; cube, 1–29 (above 31 and 17 from a 12-hour
+      scripts/search_box_campaign.jl run, which also shrank cube degrees 13–17). Against
+      Witherden & Vincent (2015): the square agrees to degree 21 except 17, where it has 57
+      points against 60; the cube agrees to 11 except 3, where 8 interior points replace
+      their 6 on the faces. Cube degree 15: 199 points against 512 for the tensor rule;
+      degree 29: 1280 against 3375. The selector now prefers them on total degree;
       tensor rules stay the ones for Q_k integrands, and are taken by naming
       `TensorProduct`)*
 - [ ] Stroud $T_n$ in closed form for arbitrary $d$, carried from v0.4. Low priority while

@@ -40,17 +40,18 @@ Generated in-house by scripts/generate_tetrahedron_seeds.jl: for each degree, a 
 in point count from a bound below which no fully symmetric rule exists, with multistart
 Levenberg-Marquardt on the S4-invariant moment system at each count; the winning rule is
 refined to 100 digits and rounded to Float64; above degree 10, node elimination from the
-rule one degree lower. Degrees 21-22 and the 288-point degree-17 rule were found by
-scripts/search_campaign.jl (2026-09-25). Neither numbers nor point counts were taken from
-any publication."""
+rule one degree lower. Degree 21, the 288-point degree-17 rule (2026-09-25), the 101-point
+degree-11 rule and the 609-point degree-22 rule (2026-10-02) were found by
+scripts/search_campaign.jl. Neither numbers nor point counts were taken from any
+publication."""
 license = "MIT"
 retrieved = "2026-09-19"
 citation = "none (generated in-house)"
 generator = "scripts/generate_tetrahedron_seeds.jl"
 checked = """
-scripts/certify_tables.jl, 2026-09-24: every seed is the correctly rounded Float64 value of
-the rule refined to 160 bits (the degree-11 triangle seed was 3 ulp off and was replaced),
-and its defining-equation residual at 256 bits is recorded in the table."""
+scripts/certify_tables.jl, 2026-09-24 (degrees 11 and 22 again 2026-10-03): every seed is
+the correctly rounded Float64 value of the rule refined to 160 bits, and its
+defining-equation residual at 256 bits is recorded in the table."""
 
 [[file]]
 path = "lebedev_seeds.toml"
@@ -97,45 +98,48 @@ path = "square_d4_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the square [-1, 1]^2, invariant under its 8 symmetries, at odd degrees
-1-31."""
+1-51."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_box_seeds.jl (2026-10-02): up to degree 13, a walk
 upwards in point count with random starts on every orbit structure of each count; above it,
 each degree grown from the one below and thinned by node elimination, the best of two runs
-(16 and 32 chains) kept per degree. Neither numbers nor point counts were taken from any
-publication. The counts were compared afterwards with Witherden & Vincent (2015), who
-tabulate this class to degree 21: they agree at every degree except 17, where this table has
-57 points against 60."""
+(16 and 32 chains) kept per degree. Degrees 33-51 were found by scripts/search_box_campaign.jl
+(2026-10-02, the same grow → eliminate moves run for 12 hours). Neither numbers nor point
+counts were taken from any publication. The counts were compared afterwards with Witherden &
+Vincent (2015), who tabulate this class to degree 21: they agree at every degree except 17,
+where this table has 57 points against 60."""
 license = "MIT"
 retrieved = "2026-10-02"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_box_seeds.jl"
+generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl (degrees 33-51)"
 checked = """
-scripts/certify_tables.jl, 2026-10-02: every seed is the correctly rounded Float64 value of
-the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table."""
+scripts/certify_tables.jl, 2026-10-02 (degrees 33-51 on 2026-10-03): every seed is the
+correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
+residual at 256 bits is recorded in the table. scripts/verify_tables.jl at 60 digits."""
 
 [[file]]
 path = "cube_oh_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the cube [-1, 1]^3, invariant under its 48 symmetries, at odd degrees
-1-17."""
+1-29."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_box_seeds.jl (2026-10-02): up to degree 7, a walk
 upwards in point count with random starts on every orbit structure of each count; above it,
-each degree grown from the one below and thinned by node elimination. Neither numbers nor
-point counts were taken from any publication. The counts were compared afterwards with
-Witherden & Vincent (2015), who tabulate this class to degree 11: they agree at every degree
-except 3, where this table has 8 points against 6, because a 6-point rule of degree 3 has
-its nodes on the faces and these rules keep every node inside."""
+each degree grown from the one below and thinned by node elimination. Degrees 19-29, and
+smaller rules at degrees 13 (154 points, was 160), 15 (199, was 208) and 17 (282, was 287),
+were found by scripts/search_box_campaign.jl (2026-10-02, the same moves run for 12 hours).
+Neither numbers nor point counts were taken from any publication. The counts were compared
+afterwards with Witherden & Vincent (2015), who tabulate this class to degree 11: they agree
+at every degree except 3, where this table has 8 points against 6, because a 6-point rule of
+degree 3 has its nodes on the faces and these rules keep every node inside."""
 license = "MIT"
 retrieved = "2026-10-02"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_box_seeds.jl"
+generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl (degrees 13-29)"
 checked = """
-scripts/certify_tables.jl, 2026-10-02: every seed is the correctly rounded Float64 value of
-the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table."""
+scripts/certify_tables.jl, 2026-10-02 (degrees 13-29 on 2026-10-03): every seed is the
+correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
+residual at 256 bits is recorded in the table. scripts/verify_tables.jl at 60 digits."""
