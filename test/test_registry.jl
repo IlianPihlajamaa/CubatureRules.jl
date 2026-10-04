@@ -12,10 +12,13 @@ const CR = CubatureRules
     @test !any(F -> F <: CombinatorFamily, CR.leaf_families())
 end
 
+# the first triangle degree beyond the Xiao–Gimbutas table, which grows as rules are found
+const BEYOND_XG = last(degree_range(XiaoGimbutas(), Simplex{2}())) + 1
+
 @testset "candidates" begin
     @test isempty(candidates(XiaoGimbutas, Interval(), PolynomialDegree(3)))
     @test isempty(candidates(XiaoGimbutas, Simplex{3}(), PolynomialDegree(3)))
-    @test isempty(candidates(XiaoGimbutas, Simplex{2}(), PolynomialDegree(60)))
+    @test isempty(candidates(XiaoGimbutas, Simplex{2}(), PolynomialDegree(BEYOND_XG)))
     @test candidates(XiaoGimbutas, Simplex{2}(), PolynomialDegree(20)) == [XiaoGimbutas()]
     # combinators recurse into the 1D leaves
     cp = candidates(ConicalProduct, Simplex{2}(), PolynomialDegree(5))
@@ -53,7 +56,7 @@ end
     r = rule(Simplex{2}(); degree = 17)
     @test family(r) == "XiaoGimbutas"
     @test occursin("XiaoGimbutas (60 points) < ConicalProduct", provenance(r).selection)
-    @test family(rule(Simplex{2}(); degree = 60)) == "ConicalProduct"      # beyond the seeded range
+    @test family(rule(Simplex{2}(); degree = BEYOND_XG)) == "ConicalProduct"      # beyond the seeded range
     @test family(rule(Simplex{2}(); degree = 5, T = Rational{BigInt})) == "GrundmannMöller"
     @test family(rule(Simplex{3}(); degree = 5)) == "FullySymmetric"          # 14 points beats 15 and 27
     @test family(rule(Simplex{2}(); degree = 5, family = ConicalProduct())) == "ConicalProduct"
@@ -78,7 +81,7 @@ end
     @test occursin("XiaoGimbutas", msg) && occursin("0–$xgmax", msg)
     @test occursin("0–∞", msg)
     e2 = try
-        rule(XiaoGimbutas(), Simplex{2}(); degree = 60)
+        rule(XiaoGimbutas(), Simplex{2}(); degree = BEYOND_XG)
     catch err
         err
     end
