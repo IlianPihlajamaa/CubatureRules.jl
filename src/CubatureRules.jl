@@ -29,6 +29,7 @@ include("domains/domains.jl")
 include("domains/momentweight.jl")
 include("domains/functionweight.jl")
 include("domains/kernel.jl")
+include("domains/inverse_distance.jl")
 include("domains/oscillatory.jl")
 include("domains/singular.jl")
 include("domains/moments.jl")
@@ -64,6 +65,7 @@ include("families/onedim/christoffel.jl")
 include("families/onedim/desinh.jl")
 include("families/onedim/delegated.jl")
 include("families/simplex/conical.jl")
+include("families/simplex/duffy_gauss.jl")
 include("symmetry/orbits.jl")
 include("symmetry/box.jl")
 include("symmetry/invariant.jl")
@@ -106,6 +108,7 @@ include("benchmark/construction.jl")
 # rarely typed is not worth a collision.
 export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain, JacobiWeight,
        MomentWeight, OrdinaryMoments, LogWeight, FunctionWeight, PointMass, PrincipalValue, FinitePart, Oscillatory,
+       InverseDistance,
        HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace, ExponentialSpace,
        Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
@@ -119,7 +122,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev,
-       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct
+       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct, DuffyGauss
 export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport
@@ -134,7 +137,7 @@ export verify, check, passed, @test_exact, cite
 public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recurrence, legendre_monic,
        christoffel, second_kind, endpoints, wheeler, MomentDomain, MomentBreakdownError,
        FunctionDomain, WeightPiece, discretize, discrete_stieltjes, verification_weight,
-       SingularKernel, KernelDomain, jacobi_hilbert, kernel_moments,
+       SingularKernel, KernelDomain, jacobi_hilbert, kernel_moments, InverseDistanceDomain,
        OscillatoryWeight, OscillatoryDomain, oscillatory_moments, spherical_bessel_up, spherical_bessel_down,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,

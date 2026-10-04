@@ -99,3 +99,51 @@ available at every degree and precision.
 
 Reference: A. H. Stroud, *Approximate Calculation of Multiple Integrals*, Prentice-Hall
 (1971).
+
+## The kernel 1/|y − x₀| on a triangle
+
+```@docs
+DuffyGauss
+InverseDistance
+```
+
+The weakly singular kernel of boundary-element methods, `∫_T f(y) / |y − x₀| dy` with `x₀`
+in the triangle, as the weight of a `WeightedDomain`. A rule for it carries the kernel in its
+weights and is exact when `f` is a polynomial up to its degree. Here `x₀` is inside, so the
+triangle is cut into three sub-triangles:
+
+```@example simplex
+T = Simplex((0, 0), (1, 0), (3 // 10, 8 // 10))
+dom = WeightedDomain(T, InverseDistance((1 // 3, 1 // 4)))
+r = rule(dom; degree = 9, digits = 30)
+npoints(r), degree(r), integrate(y -> 1 + y[1] * y[2], r)
+```
+
+```@example simplex
+v = check(r)
+v.exact, v.sharp, v.positive, v.interior
+```
+
+The Duffy map from `x₀`, `y = x₀ + s (a + t (b − a))` on a sub-triangle with edges `a` and
+`b`, has the Jacobian `s |a × b|` and gives `|y − x₀| = s √q(t)` with `q(t) = |a + t (b − a)|²`.
+So `f(y) / |y − x₀| dy = f |a × b| / √q(t) ds dt`: the singularity cancels, and what remains is
+a polynomial in `s` and `t` times the weight `1 / √q(t)`. The rule is Gauss–Legendre in `s`
+times the Gauss rule of that weight in `t`. The weight depends on the shape of the
+sub-triangle, so every rule is built for its triangle and its point, at any precision. Its
+Gauss rule comes from the Stieltjes procedure on a discretisation of the weight. `q` has
+complex roots `t* ± iη`, and the substitution `t = t* + η sinh u` turns the weight into the
+constant `1/|b − a|`, so Gauss–Legendre in `u` discretises it with geometric convergence even
+when the sub-triangle is thin.
+
+An ordinary triangle rule converges only slowly on such an integrand, because the kernel is
+not a polynomial: on the triangle above with `x₀` at a vertex, the 291-point Xiao–Gimbutas
+rule of degree 40 integrates `1/|y − x₀|` itself with a relative error of 9e-4, where a rule
+of this family integrates `f(y)/|y − x₀|` exactly for every polynomial `f` of its degree —
+36 points for degree 11 (`notes/singular-bem.md`).
+
+`check` verifies these rules against the orthonormal Dubiner polynomials of the triangle,
+whose integrals with the kernel it computes independently, in polar coordinates about `x₀`.
+Triangles in three dimensions, points off the triangle (near-singular integrals) and the
+stronger singularities of double-layer and hypersingular kernels are not covered yet.
+
+Reference: M. G. Duffy, *SIAM J. Numer. Anal.* 19 (1982) 1260–1262, doi:10.1137/0719090.

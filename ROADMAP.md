@@ -515,7 +515,15 @@ gaining enough breadth for the selector to be genuinely discriminating.
       measured exact to 40 digits at degrees 5–20, where an ordinary degree-40 rule is off
       by 9e-4. Stages: weakly singular collocation; a generalised Gaussian rule for
       Helmholtz; near-singular collocation; Galerkin pairs, through SauterSchwabQuadrature.jl
-      if it runs at `BigFloat`; principal values and finite parts; tetrahedra)*
+      if it runs at `BigFloat`; principal values and finite parts; tetrahedra.
+      **Stage 1 done:** `WeightedDomain(T, InverseDistance(x₀))` on a planar triangle, `x₀`
+      at a vertex, on an edge or inside (decided exactly), with rules from `DuffyGauss`:
+      `m²` points per sub-triangle for degree `2m − 1`, positive and interior, the weight's
+      Gauss rule from the Stieltjes procedure on a sinh-substituted discretisation: 0.03 s
+      for a degree-15 Float64 rule with `x₀` inside, and 0.3 s when a sub-triangle is 1e-6
+      or 1e-12 thin (288 discretisation points against 72, the same at both). Verified
+      against Dubiner polynomials integrated in polar coordinates about `x₀`. Next:
+      triangles in three dimensions)*
 
 **Removed in this stage**
 

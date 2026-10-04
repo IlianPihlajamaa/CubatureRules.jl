@@ -2,8 +2,11 @@
 
 Working notes for PLAN §0.3 and §6 Tier 5, the flagship application: rules for the singular
 and near-singular integrals of boundary-element methods, generated for the element at hand,
-at any precision, with a claim that says what they integrate exactly. Nothing here is built
-yet; the spike numbers below are what the first stage rests on.
+at any precision, with a claim that says what they integrate exactly. The spike numbers
+below are what the first stage rests on. **Stage 1 is built:**
+`WeightedDomain(T, InverseDistance(x₀))` with rules from `DuffyGauss`
+(`src/domains/inverse_distance.jl`, `src/families/simplex/duffy_gauss.jl`), as described
+under "The core construction", with the API chosen below.
 
 ## The integrals
 

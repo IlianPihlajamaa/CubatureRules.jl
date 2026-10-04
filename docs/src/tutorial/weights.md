@@ -124,6 +124,22 @@ Pass the smooth part `f` to `integrate`, not `f / (x − t)`. The point `t` is o
 nodes, so `f` must be finite there, and the weights have both signs. `t` is taken exactly as
 written: `0.3` is the binary number nearest 0.3, and `3//10` is 0.3.
 
+## A singular kernel on a triangle
+
+The weakly singular kernel of boundary-element methods, `∫_T f(y) / |y − x₀| dy` with `x₀` in
+the triangle, is a weight on the triangle, [`InverseDistance`](@ref):
+
+```@repl w
+T = Simplex((0, 0), (1, 0), (0, 1));
+r = rule(WeightedDomain(T, InverseDistance((0, 0))); degree = 9);
+integrate(y -> 1.0, r)                # √2 log(1 + √2)
+sqrt(2) * log(1 + sqrt(2))
+```
+
+Again pass only the smooth part `f`; the kernel is in the weights. `x₀` may be a vertex, on
+an edge or inside, and the rule is built for that triangle and that point. See
+[`DuffyGauss`](@ref) for how.
+
 ## Other weights: using moments
 
 For a weight the package does not know, you can describe it by its moments: the integrals of

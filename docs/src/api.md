@@ -140,6 +140,12 @@ jacobi_hilbert
 kernel_moments
 ```
 
+## The kernel 1/|y − x₀| on triangles
+
+```@docs
+InverseDistanceDomain
+```
+
 ## Verification
 
 ```@docs

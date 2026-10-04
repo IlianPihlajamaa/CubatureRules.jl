@@ -39,11 +39,30 @@ to `bits`; then Newton on that recurrence gives the nodes.
 """
 function stieltjes_work(w::FunctionWeight, n::Integer, bits::Integer; verbose::Integer = 0,
                         maxpoints::Integer = 4096)
+    return converged_stieltjes((M, wbits) -> discretize(w, M, wbits), n, bits; verbose, maxpoints,
+                               name = "StieltjesDiscretization", failure = (M, gap) -> """
+        the discretisation of $(w) did not converge to $(bits) bits with at most $(maxpoints) points \
+        per piece (the recurrence still changed by $(gap) at $M points). The discretisation \
+        converges quickly only when g is smooth on each piece: move endpoint singularities into the \
+        exponents α and β, and split a piece where g has a kink or a jump.""")
+end
+
+"""
+    converged_stieltjes(discretize, n, bits; verbose, maxpoints, name, failure) -> (x, λ, M, gap, usedbits)
+
+The `n`-point Gauss rule of the measure that `discretize(M, wbits) -> (x, λ)` approximates by
+`M`-point discrete measures, accurate to `bits`: `M` is doubled until the recurrence
+coefficients of two successive resolutions agree to `bits`, and Newton on that recurrence
+gives the nodes. `failure(M, gap)` is the message when the discretisation does not converge,
+with the last change in the recurrence.
+"""
+function converged_stieltjes(discretize, n::Integer, bits::Integer; verbose::Integer = 0,
+                             maxpoints::Integer = 4096, name::String, failure)
     N = n + 1                                         # the Gauss driver reads a₀ … a_n
     wbits = bits + 32 + 2 * ceil(Int, log2(n + 1))
     tol = ldexp(BigFloat(1), -(bits + 4))
     coefficients(M) = with_bits(wbits) do
-        discrete_stieltjes(N, discretize(w, M, wbits)...)
+        discrete_stieltjes(N, discretize(M, wbits)...)
     end
     M = max(2N, 16)
     prev = coefficients(M)
@@ -59,7 +78,7 @@ function stieltjes_work(w::FunctionWeight, n::Integer, bits::Integer; verbose::I
         verbose >= 1 && @info @sprintf("  %d points per piece: recurrence changed by %.2e (want %.2e)",
                                        M, Float64(gap), Float64(tol))
         if gap <= tol
-            x, λ, _ = gauss_from_recurrence(n, moment_recurrence(cur...), wbits; name = "StieltjesDiscretization")
+            x, λ, _ = gauss_from_recurrence(n, moment_recurrence(cur...), wbits; name)
             return x, λ, M, gap, wbits
         end
         # A singularity or kink inside g shows as algebraic convergence: the change shrinks by
@@ -77,11 +96,7 @@ function stieltjes_work(w::FunctionWeight, n::Integer, bits::Integer; verbose::I
         end
         prev = cur
     end
-    throw(RefinementError("StieltjesDiscretization", """
-        the discretisation of $(w) did not converge to $(bits) bits with at most $(maxpoints) points \
-        per piece (the recurrence still changed by $(Float64(gap)) at $M points). The discretisation \
-        converges quickly only when g is smooth on each piece: move endpoint singularities into the \
-        exponents α and β, and split a piece where g has a kink or a jump."""))
+    throw(RefinementError(name, failure(M, Float64(gap))))
 end
 
 """

@@ -635,6 +635,72 @@ function verification_basis(dom::KernelDomain, n, ::Type{S}, exact) where {S}
                   "(Gauss–Jacobi quadrature of divided differences)"
 end
 
+# A triangle with the kernel 1/|y − x₀| is verified against the orthonormal Dubiner
+# polynomials of the triangle, with their weighted integrals computed in polar coordinates
+# about x₀ (see `patch_frame`): on each sub-triangle (x₀, p, q) the kernel cancels the polar
+# Jacobian, the radial integral of a polynomial is exact with Gauss–Legendre, and the angle is
+# taken along the edge pq, as τ = h sinh v, where the integrand is entire. The construction
+# shares none of this: it works in the Duffy coordinates, with a Gauss rule of 1/√q(t) from a
+# recurrence.
+struct KernelTriangleBasis{S} <: VerificationBasis
+    dub::DubinerBasis{S}
+    A::SMatrix{2,2,S,4}             # reference coordinates ξ = A (y − v₀)
+    v0::SVector{2,S}
+    integrals::Vector{S}
+end
+function evaluate!(B::KernelTriangleBasis{S}, y) where {S}
+    ξ = B.A * (SVector{2,S}(S(y[1]), S(y[2])) - B.v0)
+    dubiner!(B.dub.φ, B.dub.gx, B.dub.gy, B.dub.ws, ξ[1], ξ[2])
+    # the gradient in y, for the tolerance on rounded nodes: Aᵀ ∇_ξ
+    g = [abs(B.A[1, 1] * gx + B.A[2, 1] * gy) + abs(B.A[1, 2] * gx + B.A[2, 2] * gy) for (gx, gy) in zip(B.dub.gx, B.dub.gy)]
+    return B.dub.φ, g
+end
+blocks(B::KernelTriangleBasis) = blocks(B.dub)
+exact_integrals(B::KernelTriangleBasis) = B.integrals
+
+function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) where {S}
+    exact && throw(ArgumentError("rules for the kernel 1/|y − x₀| are not exact rationals"))
+    K = maximum(_degrees(n))
+    v = [SVector{2,S}(map(S, p)) for p in vertices(dom.base)]
+    A = inv(hcat(v[2] - v[1], v[3] - v[1]))
+    dub = DubinerBasis{S}(K; normalize = true)
+    x0 = SVector{2,S}(map(S, dom.weight.x0))
+    patches, _ = singular_patches(dom)
+    nr = cld(K + 1, 2) + 1                                  # exact in ρ to degree 2nr − 1 > K
+    ρ, wρ = gauss_jacobi_work(nr, 0, 0, precision(S))[1:2]
+    function integrals(Nv)
+        total = zeros(S, dubiner_length(K))
+        x, w = gauss_jacobi_work(Nv, 0, 0, precision(S))[1:2]
+        for (p, q) in patches
+            f, u, h, τp, τq = patch_frame(x0, p, q, S)
+            va, vb = asinh(τp / h), asinh(τq / h)
+            c, hv = (va + vb) / 2, (vb - va) / 2
+            for (xk, wk) in zip(x, w)
+                e = f + h * sinh(c + hv * xk) * u               # where the ray meets the edge
+                for (ρj, wj) in zip(ρ, wρ)
+                    ξ = A * (x0 + (1 + ρj) / 2 * (e - x0) - v[1])
+                    dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
+                    total .+= (hv * wk * h * wj / 2) .* dub.φ
+                end
+            end
+        end
+        return total
+    end
+    # the angular integrand is entire; double the points until two resolutions agree
+    Nv = 2K + 16
+    prev = integrals(Nv)
+    tol = ldexp(one(S), -(precision(S) - 16))
+    while true
+        Nv *= 2
+        cur = integrals(Nv)
+        maximum(abs, cur - prev) <= tol * max(one(S), maximum(abs, cur)) && (prev = cur; break)
+        Nv > 4096 && throw(ArgumentError("the reference integrals for $(dom) did not converge with $Nv points"))
+        prev = cur
+    end
+    return KernelTriangleBasis{S}(dub, A, v[1], prev), "orthonormal Dubiner, against their integrals with the kernel " *
+                                                        "(polar coordinates about x₀, Gauss–Legendre along each edge)"
+end
+
 # An oscillatory weight is verified against its Legendre moments, with the spherical Bessel
 # functions computed downwards by Miller's algorithm (`oscillatory_moments`), where the
 # construction computes them upwards. q_k = √(2k + 1) P_k in the orthonormal scaling.
