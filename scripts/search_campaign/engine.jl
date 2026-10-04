@@ -9,6 +9,9 @@ const CHAIN_SHARE = 0.25                   # share of a worker's time spent in t
 const PRUNE_TRIES = 10_000                 # refits per prune step: in effect all, as `eliminate` does
 const MIN_SEPARATION = 1e-6                # as scripts/verify_tables.jl: closer nodes are merging orbits
 const PATIENCE = 2.0                       # hours a worker spends on an unsettled frontier rule before moving up
+const KICK_SHARE = 0.25                    # share of the tasks that are kicks, once near-square rules exist
+const KICK_T = 0.5                         # kick temperature, in general orbits' worth of points
+const KICK_RESTART = 0.1                   # chance that a kick restarts from the best rule
 
 mutable struct Worker
     d::CampaignDomain
@@ -28,6 +31,7 @@ mutable struct Worker
     stats::Dict{Symbol,Int}
     blind::Int                             # shipped entries at this degree and above are ignored (benchmarks)
     exhausted::Set{String}                 # pool files no prune move improved: left to the finish step
+    kick_state::Dict{Int,Any}              # degree → this worker's current rule for kicks, (structure, θ)
 end
 
 stamp() = Dates.format(now(), "yyyy-mm-dd HH:MM:SS")
@@ -281,8 +285,15 @@ after each and saving every step, as far as any move succeeds. The rule where it
 marked exhausted: further moves from it are left to the finish step, which perturbs them.
 """
 function prune!(w, n, parent)
-    d = w.d
     _, s, θ, _ = load_rule(w, parent.path)
+    s, θ, steps = prune_from(w, n, s, θ, "prune")
+    say(w, @sprintf("prune degree %d: %d steps from %d to %d points, excess %d", n, steps, parent.npoints,
+                    CR.npoints(s), CR.nunknowns(s) - n_equations(w.d, n)))
+end
+
+"Remove points from `(s, θ)` one successful move at a time, recording each step; the last rule reached."
+function prune_from(w, n, s, θ, how)
+    d = w.d
     m = n_equations(d, n)
     steps = 0
     while CR.nunknowns(s) > m
@@ -294,15 +305,51 @@ function prune!(w, n, parent)
             r = fit(d, mv[1], mv[2], n)
             r === nothing && continue
             s, θ = r
-            record!(w, n, s, θ, "prune")
+            record!(w, n, s, θ, how)
             steps += 1; ok = true
             break
         end
         ok || (push!(w.exhausted, pool_path(w, n, s, θ)); break)
     end
     w.stats[:prune] += steps
-    say(w, @sprintf("prune degree %d: %d steps from %d to %d points, excess %d", n, steps, parent.npoints,
-                    CR.npoints(s), CR.nunknowns(s) - m))
+    return s, θ, steps
+end
+
+"""
+Kick (basin hopping): from this worker's current rule at degree `n` — at first, and now and then
+again, the best one known — add one to three orbits, fit, and prune back as far as any move
+succeeds. The result becomes the current rule if it has no more points, and otherwise with
+probability exp(-ΔN / T), T being `KICK_T` general orbits' worth of points. Prune and finish only
+ever descend; this walks from one local minimum to the next, and can climb out of one.
+"""
+function kick!(w, n)
+    d = w.d
+    m = n_equations(d, n)
+    cur = get(w.kick_state, n, nothing)
+    if cur === nothing || rand(w.rng) < KICK_RESTART
+        e = get(best_entries(w), n, nothing)
+        e === nothing && return false
+        cur = (structure(d, e["structure"]), Float64.(e["seed"]))
+    end
+    s0, θ0 = cur
+    small = small_orbits(d)
+    added = [isempty(small) || rand(w.rng) < 0.7 ? general_orbit(d) : rand(w.rng, small) for _ in 1:rand(w.rng, 1:3)]
+    r = nothing
+    for _ in 1:8
+        s, θ = with_orbits(d, s0, θ0, [random_orbit(d, o, w.rng) for o in added])
+        r = fit(d, s, θ, n)
+        r === nothing || break
+    end
+    w.stats[:kick] = get(w.stats, :kick, 0) + 1
+    r === nothing && (say(w, "kick degree $n: no fit with $(length(added)) added orbit(s)"); return false)
+    record!(w, n, r[1], r[2], "kick")
+    s, θ, steps = prune_from(w, n, r[1], r[2], "kick")
+    N0, N1 = CR.npoints(s0), CR.npoints(s)
+    accept = N1 <= N0 || rand(w.rng) < exp(-(N1 - N0) / (KICK_T * CR.orbit_size(general_orbit(d))))
+    accept && (w.kick_state[n] = (s, θ))
+    say(w, @sprintf("kick degree %d: %d points, +%d orbit(s), pruned to %d, excess %d (%s)", n, N0, length(added),
+                    N1, CR.nunknowns(s) - m, accept ? "accepted" : "rejected"))
+    return true
 end
 
 "Finish: one cheap attempt at removing points from a near-square parent, chosen family by family."
@@ -383,7 +430,7 @@ function run_worker(domain, root, id; mode = "extend", lo = nothing, hi = nothin
     w = Worker(d, dir, id, MersenneTwister(seed + 7919id), log, 0, Dict{String,Int}(), Dict{Any,Int}(),
                Dict{String,Any}(), Dict{Int,Int}(), Dict{Int,Int}(), Dict{Tuple{Int,Int},Float64}(), 0,
                0.0, Dict(:grow => 0, :prune => 0, :finish => 0, :finish_ok => 0, :finish_fail => 0),
-               blind, Set{String}())
+               blind, Set{String}(), Dict{Int,Any}())
     w.shipped_top = maximum(e["degree"] for e in shipped(w))
     say(w, "worker $id started: $domain, mode $mode, pid $(getpid())")
     started = time()
@@ -400,7 +447,9 @@ function run_worker(domain, root, id; mode = "extend", lo = nothing, hi = nothin
         roll = rand(w.rng)
         t0 = time()
         try
-            if chain_time < CHAIN_SHARE * total_time       # chains get a share of the time, not of the tasks
+            if haskey(w.best, n) && !isempty(near) && roll < KICK_SHARE && chain_time >= CHAIN_SHARE * total_time
+                kick!(w, n)                                # in place of prune and most grows: as benchmarked
+            elseif chain_time < CHAIN_SHARE * total_time   # chains get a share of the time, not of the tasks
                 chain!(w, n)
                 chain_time += time() - t0
             elseif isempty(pl) || (length(pl) < 3 && roll < 0.5)

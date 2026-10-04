@@ -72,7 +72,7 @@ degree `n`. That gives `m` equations for `u` unknowns.
   or a node outside the domain.
 
 The pooled search keeps every intermediate rule, so the endgame becomes shared work. A worker
-repeatedly picks one of four tasks:
+repeatedly picks one of five tasks:
 
 1. **Chain** (25% of the time). One of the package's own chains, from the best rule one degree step
    down. Where a chain costs seconds (boxes, lower degrees) these are hard to beat; see the
@@ -98,12 +98,24 @@ repeatedly picks one of four tasks:
      1.5e-2.
    - **Fit:** alternately with the package's fit and with the positive-weight solve below.
    - A success that still has unknowns to spare goes back into the pool.
+5. **Kick** (basin hopping). Prune and finish only ever remove points, so a rule they have
+   exhausted is a dead end. A kick leaves it instead:
+   - each worker keeps a current rule per degree, at first (and in 10% of kicks again) the best
+     one known;
+   - it adds one to three orbits (70% general ones) at random places, fits, and prunes back as
+     far as any move succeeds, which often removes a different orbit than the one added;
+   - the result becomes the current rule if it has no more points, and otherwise with
+     probability exp(−ΔN / T), with T half a general orbit's worth of points (3 on the triangle,
+     12 on the tetrahedron, 4 on the square, 24 on the cube).
+
+   This is a Metropolis walk over local minima: it can cross a plateau of equal point counts, or
+   climb out of a minimum, where every other task only descends.
 
 **Choosing a task.** Apart from the 25% of chains, a worker chooses by what the pool holds at
 its target degree:
 - *grow* while the pool is nearly empty;
 - *prune* while nothing there is near square;
-- otherwise mostly *finish*, with some grow and prune to keep the pool varied.
+- otherwise a *kick* a quarter of the time, and mostly *finish* the rest, with some grow.
 
 **Candidates.** Any degree-`n` rule with fewer points than the best known, at any excess, is a
 candidate:
@@ -151,6 +163,34 @@ the rule from the degree below, just as the chains did. "Table" is the shipped p
 - Both methods beat the cube rule then shipped at degree 13: 154 points against 160. The
   table has had a 154-point rule since.
 
+### Kicks, and two ideas that did not help
+
+Three additions were tried as options against the engine without them, on the same 15-minute,
+single-core, blind runs, with different seeds (worker numbers):
+
+- **kick**: basin hopping, as described above;
+- **adaptive**: tasks chosen by Thompson sampling of each task's rate of results within one
+  general orbit of the best, per second;
+- **ucb**: the finish task choosing orbit families by UCB1 on refit success, instead of evenly.
+
+| Problem (table) | Without | kick | kick + ucb | ucb | adaptive |
+|---|---|---|---|---|---|
+| tetrahedron 16 (250) | 250, 265, 258, 250 | **248**, 259, **248**, 259 | –, –, 259, 259 | 250, 259 | 250, 265 |
+| cube 19 (380) | 384, 386 | 374, 376 | 378, **369** | | |
+| triangle 40 (291) | 292, 292 | 292, 291 | 291, 291 | | |
+| square 41 (305) | 304, 304 | 304, 304 | 305, 304 | | |
+| triangle 35 (225) | 226, 226 | 226, 226 | | 226, 226 | 226, 226 |
+
+- **Kicks help.** On cube 19 they end about 10 points lower, on the tetrahedron 2–7 points
+  lower on average, and on triangle 40 they reach the table more often. They are never worse.
+  They are now a regular task.
+- **ucb** is mixed: the best cube result, but the tetrahedron runs were no better than kicks alone.
+- **adaptive** changed nothing: in these runs the best counts came from chains and grows in the
+  first minutes, before there was anything to adapt to.
+
+Neither of the last two was kept. Three of these runs beat the shipped tables (tetrahedron 16:
+248 points against 250; cube 19: 369 against 380; square 41: 304 against 305).
+
 ## Layout
 
 ```
@@ -183,7 +223,7 @@ campaign/pooled/
 | File | Contents |
 |---|---|
 | `campaign.jl` | one worker: options, then `run_worker` |
-| `engine.jl` | the pool, the four tasks, the positive-weight solve, candidates |
+| `engine.jl` | the pool, the five tasks, the positive-weight solve, candidates |
 | `domains.jl` | one adapter per domain, over the package's orbit machinery |
 | `launch.jl`, `status.jl` | start workers; summarise a campaign |
 
