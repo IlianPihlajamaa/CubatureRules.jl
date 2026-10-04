@@ -93,6 +93,9 @@ task = Threads.@spawn rule(UpstreamLebedev(), Sphere{3}(); degree = 125, digits 
 CubatureRules.cancel!(tok)          # the task stops with a CancelledError
 ```
 
+On Julia 1.11, keep other `BigFloat` work out of the way while such a task runs: the
+precision it sets is global there, not per task (see [Threads](../design/precision.md#Threads)).
+
 ## Verification fails
 
 If `check(r)` fails for a rule you built with `rule`, that is a bug in the package; please

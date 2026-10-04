@@ -355,9 +355,9 @@ gaining enough breadth for the selector to be genuinely discriminating.
 
 **Exit criteria**
 
-- [ ] `available(Orthotope{3}(); degree = 11)` offers tensor and non-tensor candidates,
-      ranked *(ten tensor candidates, ranked; the non-tensor half waits on Smolyak, below,
-      since no non-tensor box family exists yet — carried to v0.6)*
+- [x] `available(Orthotope{3}(); degree = 11)` offers tensor and non-tensor candidates,
+      ranked *(the tensor candidates, and `FullySymmetric` on the cube, which the selector
+      prefers at total degree: 90 points against 216)*
 - [x] Nested sequences produce error estimates with no additional integrand calls
       *(`EmbeddedRule` over Kronrod, nested Fejér 2, tanh-sinh, exp-sinh and sinh-sinh; the
       test counts the evaluations)*
@@ -507,6 +507,15 @@ gaining enough breadth for the selector to be genuinely discriminating.
       the Lobatto points, not from the closed-form Filon weights. The j_k are computed
       upwards at a precision raised by the recurrence's loss, and verified downwards by
       Miller's algorithm; the two agree to 1e-67 from κ = 1e-30 to 1.2e5)*
+- [ ] Singular and near-singular boundary-element integrals on triangles — the flagship of
+      PLAN §0.3 and §6 Tier 5 *(design and feasibility spike in notes/singular-bem.md. The
+      Duffy map from the singular vertex turns `p(y)/|y − x₀|` into a polynomial times the
+      weight `1/√q(t)` in the collapsed direction, so Gauss–Legendre times the Gauss rule of
+      that weight is exact, a `PolynomialDegree` claim on the kernel-weighted triangle:
+      measured exact to 40 digits at degrees 5–20, where an ordinary degree-40 rule is off
+      by 9e-4. Stages: weakly singular collocation; a generalised Gaussian rule for
+      Helmholtz; near-singular collocation; Galerkin pairs, through SauterSchwabQuadrature.jl
+      if it runs at `BigFloat`; principal values and finite parts; tetrahedra)*
 
 **Removed in this stage**
 
@@ -611,8 +620,11 @@ them.
       below)*
 - [ ] Robustness tuning and a compute budget — the hard parts are these, not the mathematics
       *(multi-chain driver done; no compute budget yet)*
-- [ ] Target: an MIT-licensed seed table for at least one domain where the literature runs
-      out, which both extends coverage and unwinds the §0.2 dependency
+- [x] Target: an MIT-licensed seed table for at least one domain where the literature runs
+      out, which both extends coverage and unwinds the §0.2 dependency *(triangles to degree
+      68 against Xiao & Gimbutas' 50, the square to 75 and the cube to 41 against Witherden &
+      Vincent's 21 and 11, tetrahedra to 30, Lebedev 133–201 beyond Lebedev's 131; all
+      generated in-house)*
 
 **Exit criteria**
 

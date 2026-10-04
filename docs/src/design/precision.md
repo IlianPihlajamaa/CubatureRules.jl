@@ -75,3 +75,18 @@ no rounding. Only families with rational nodes and weights support this (`Grundm
 Any `AbstractFloat` can be the output type. The rule is computed in `BigFloat` with enough
 bits for that type and converted at the end, so `Float32`, `Double64` and `Float128` rules
 are as accurate as their type allows.
+
+## Threads
+
+The working precision is set with `setprecision(f, BigFloat, bits)` around each step that
+needs it. From Julia 1.12 on, that setting belongs to the task that makes it, and rules can
+be built in any number of tasks at once. In Julia 1.11 it is global: two tasks building
+`BigFloat` rules at the same time, or one building a rule while another computes with
+`BigFloat`, change each other's precision, and a rule can come back less accurate than its
+certificate says. Measured on 1.11.4: 16 tasks, each inside its own `setprecision`, saw
+another task's precision 23,625 times; on 1.13, never.
+
+So on Julia 1.11, build `BigFloat` rules from one task at a time. Everything else is
+unaffected there too: `Float64` rules served from the stored tables, the package's threaded
+seed searches (which compute in `Float64`), and `integrate(f, r, cells; threaded = true)`,
+which never sets the precision.
