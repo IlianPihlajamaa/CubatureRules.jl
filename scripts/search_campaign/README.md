@@ -275,4 +275,4 @@ This search then extends them.
   worker picks up from wherever the pool is.
 - This replaces the single-process scripts `scripts/search_campaign.jl` and
   `scripts/search_box_campaign.jl`, which ran the package's chains back to back; the chain task
-  runs the same chains. They are in the history up to commit 88d7fca.
+  runs the same chains. They are in the history up to commit 6e11464.

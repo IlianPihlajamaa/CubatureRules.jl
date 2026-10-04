@@ -1,7 +1,7 @@
 # O_h-symmetric sphere rules: orbit structures and Float64 seeds.
 # Degrees 3-17 generated in-house by scripts/generate_lebedev_seeds.jl; degrees 133-201 from
 # the continuation search described in src/data/PROVENANCE.toml, imported by
-# scripts/import_octahedral_rules.jl (removed after commit 88d7fca). No published numbers
+# scripts/import_octahedral_rules.jl (removed after commit 6e11464). No published numbers
 # appear in the table.
 # Last written: 2026-10-01
 #
