@@ -20,8 +20,9 @@ fixed, then refined to 100 digits and rounded to Float64. Above degree 20, node 
 from the rule one degree lower (src/refine/elimination.jl); degrees 51-53 by
 scripts/search_campaign.jl (2026-09-25/26), 54-56 by the same grow → eliminate chains
 (2026-10-01/02), and 57-68 and the smaller rules at degree 35 (225 points, was 226) and 46
-(379, was 381) by the pooled search, scripts/search_campaign/ (2026-10-02/03). No numerical table was consulted. The point counts (a combinatorial fact stated in the paper's prose and tables, not the
-tabulated nodes or weights) are from Xiao & Gimbutas (2010)."""
+(379, was 381) by the pooled search, scripts/search_campaign/ (2026-10-02/03). No numerical
+table was consulted. The point counts (a combinatorial fact stated in the paper's prose and
+tables, not the tabulated nodes or weights) are from Xiao & Gimbutas (2010)."""
 license = "MIT"
 retrieved = "2026-09-18"
 citation = "H. Xiao and Z. Gimbutas, Comput. Math. Appl. 59 (2010) 663-676, doi:10.1016/j.camwa.2009.10.027"
@@ -136,7 +137,8 @@ upwards in point count with random starts on every orbit structure of each count
 each degree grown from the one below and thinned by node elimination. Degrees 19-29, and
 smaller rules at degrees 13 (154 points, was 160), 15 (199, was 208) and 17 (282, was 287),
 were found by scripts/search_box_campaign.jl (2026-10-02, the same moves run for 12 hours),
-and degrees 31-41 by the pooled search, scripts/search_campaign/ (2026-10-02/03). Neither numbers nor point counts were taken from any publication. The counts were compared
+and degrees 31-41 by the pooled search, scripts/search_campaign/ (2026-10-02/03). Neither
+numbers nor point counts were taken from any publication. The counts were compared
 afterwards with Witherden & Vincent (2015), who tabulate this class to degree 11: they agree
 at every degree except 3, where this table has 8 points against 6, because a 6-point rule of
 degree 3 has its nodes on the faces and these rules keep every node inside."""

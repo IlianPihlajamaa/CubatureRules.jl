@@ -31,11 +31,11 @@ end
 # Checking a rule costs about its point count squared: 1.6 s for the 120-point square rule of
 # degree 25, 47 s for the 1280-point cube rule of degree 29 and 7 minutes for the 3548-point one
 # of degree 41. Every entry is checked in the full sweep (CUBATURERULES_FULL_SWEEP=1); per
-# commit, as for the simplex tables, every one of at most 120 points, every fourth of the rest
-# and the largest, among the entries of at most 1500 points.
+# commit, as for the simplex tables (test_families.jl), every one of at most 120 points, every
+# fourth of the rest and the largest, among the entries of at most 650 points.
 function box_sweep(es)
     get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1" && return es
-    affordable = filter(e -> e.npoints <= 1500, sort(es; by = e -> e.degree))
+    affordable = filter(e -> e.npoints <= 650, sort(es; by = e -> e.degree))
     large = filter(e -> e.npoints > 120, affordable)
     keep = Set(e.degree for e in vcat(filter(e -> e.npoints <= 120, affordable), large[1:4:end], last(affordable)))
     return filter(e -> e.degree in keep, affordable)

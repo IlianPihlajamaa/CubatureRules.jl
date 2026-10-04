@@ -10,19 +10,26 @@ const CR = CubatureRules
 # which is what a separate testset used to do.
 #
 # And the exhaustive sweep is reserved for the full CI run: `CUBATURERULES_FULL_SWEEP=1`
-# checks every shipped degree, and without it the sweep takes every cheap one, then every
-# fourth of the rest, and always the last shipped. The full workflow sets it; the per-commit
-# one does not.
+# checks every shipped degree, and without it the sweep takes, among the rules of at most
+# `PER_COMMIT_POINTS` points, every cheap one, then every fourth of the rest, and always the
+# largest. The full workflow sets it; the per-commit one does not.
 full_sweep() = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1"
+
+# The per-commit ceiling. Checking a rule costs about its point count squared, and the tables
+# keep growing: with the 1422-point tetrahedron rule of degree 30 always checked, and the
+# invariant bases up to degree 30 built for it, the per-commit suite took three times as long
+# and passed the 60-minute limit on one runner. The rules above it are left to the full sweep.
+const PER_COMMIT_POINTS = 650
 
 # Cost, not degree, decides what the short sweep covers: the two families reach a given
 # point count at very different degrees — the triangle passes 120 points around degree 25,
 # the tetrahedron around degree 11 — and it is the point count that the build time tracks.
 function sweep_degrees(fam, dom, dmax; cheap = 120)
     full_sweep() && return collect(1:dmax)
-    small = [d for d in 1:dmax if npoints(fam, dom, d) <= cheap]
-    large = [d for d in 1:dmax if npoints(fam, dom, d) > cheap]
-    return unique!(vcat(small, large[1:4:end], dmax))
+    affordable = [d for d in 1:dmax if npoints(fam, dom, d) <= PER_COMMIT_POINTS]
+    small = [d for d in affordable if npoints(fam, dom, d) <= cheap]
+    large = [d for d in affordable if npoints(fam, dom, d) > cheap]
+    return unique!(vcat(small, large[1:4:end], last(affordable)))
 end
 
 # An orbit collapsing onto another would make the point count meaningless.
