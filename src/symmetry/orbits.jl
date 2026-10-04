@@ -166,9 +166,6 @@ function expand(s::SymmetricStructure, θ::AbstractVector{S}) where {S}
     return λs, ws
 end
 
-"Cartesian coordinates on the reference simplex from barycentric: drop λ₀."
-bary_to_ref(λ::AbstractVector) = λ[2:end]
-
 """
     orbit_pattern_types(N)
 

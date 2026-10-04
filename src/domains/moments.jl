@@ -54,7 +54,6 @@ struct AffineMap{D,T,L}
 end
 
 (m::AffineMap)(x) = m.A * x + m.b
-jacobian_det(m::AffineMap) = abs(det(m.A))
 
 """
     affine_map(from, to)

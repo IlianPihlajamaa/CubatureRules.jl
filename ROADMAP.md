@@ -390,7 +390,7 @@ gaining enough breadth for the selector to be genuinely discriminating.
       margins from every structure tried, including Lebedev's own — a local minimum, not
       a rejected rule; see notes/v0.4-spheres.md for what is left to try. Every odd degree
       133–201 is now shipped, from an external continuation campaign
-      (scripts/import_octahedral_rules.jl); 19–131 remain)*
+      (imported by scripts/import_octahedral_rules.jl, since removed); 19–131 remain)*
 - [x] High-degree octahedral refinement *(`refine_seed` solves the moment equations
       in the orthonormal `O_h`-invariant harmonics (`OctahedralHarmonicSystem`): D4h-invariant
       combinations of P̄_ℓ^m cos mφ averaged over x → y → z, exactly invariant whatever the
@@ -699,7 +699,8 @@ them.
       moment system needs no invariant basis and is well conditioned. Seeds in-house
       (scripts/generate_box_seeds.jl): multistart at low degree, grow → eliminate above.
       Square, odd degrees 1–75; cube, 1–41 (above 31 and 17 from a 12-hour
-      scripts/search_box_campaign.jl run, which also shrank cube degrees 13–17, and above
+      scripts/search_box_campaign.jl run (since replaced by scripts/search_campaign/), which
+      also shrank cube degrees 13–17, and above
       51 and 29 from the pooled search, scripts/search_campaign/). Against
       Witherden & Vincent (2015): the square agrees to degree 21 except 17, where it has 57
       points against 60; the cube agrees to 11 except 3, where 8 interior points replace

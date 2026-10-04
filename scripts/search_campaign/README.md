@@ -233,5 +233,6 @@ This search then extends them.
 
 - The search state is the pool. Workers can be stopped and started at any time, and a new
   worker picks up from wherever the pool is.
-- The older single-process scripts, `scripts/search_campaign.jl` and
-  `scripts/search_box_campaign.jl`, remain. They run the package's chains directly.
+- This replaces the single-process scripts `scripts/search_campaign.jl` and
+  `scripts/search_box_campaign.jl`, which ran the package's chains back to back; the chain task
+  runs the same chains. They are in the history up to commit 88d7fca.

@@ -13,11 +13,11 @@
 # mathematics, only about what is being asked for.
 #
 # Every odd degree from 133 to 201 comes from a separate continuation campaign run outside this
-# repository (src/data/PROVENANCE.toml; imported by scripts/import_octahedral_rules.jl): each
-# rule is grown from the one below by adding orbits, pruned back to a square system — as many
-# unknowns as invariant conditions — and solved with positive weights. Those point counts are
-# not claimed minimal. Nothing between degrees 17 and 133 is tabulated, so a request in that
-# range is answered by the degree-133 rule, the smallest entry above it.
+# repository (src/data/PROVENANCE.toml; imported by scripts/import_octahedral_rules.jl, since
+# removed): each rule is grown from the one below by adding orbits, pruned back to a square
+# system — as many unknowns as invariant conditions — and solved with positive weights. Those
+# point counts are not claimed minimal. Nothing between degrees 17 and 133 is tabulated, so a
+# request in that range is answered by the degree-133 rule, the smallest entry above it.
 #
 # Only odd degrees are tabulated. Every O_h orbit is centrally symmetric, so the odd
 # harmonics integrate to zero whatever the parameters and a rule of degree 2k is

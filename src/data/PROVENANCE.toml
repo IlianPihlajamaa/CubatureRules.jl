@@ -26,7 +26,7 @@ tables, not the tabulated nodes or weights) are from Xiao & Gimbutas (2010)."""
 license = "MIT"
 retrieved = "2026-09-18"
 citation = "H. Xiao and Z. Gimbutas, Comput. Math. Appl. 59 (2010) 663-676, doi:10.1016/j.camwa.2009.10.027"
-generator = "scripts/generate_triangle_seeds.jl; scripts/search_campaign.jl (degrees 51-56); scripts/search_campaign/ (35, 46, 57-68)"
+generator = "scripts/generate_triangle_seeds.jl; scripts/search_campaign.jl, removed after 88d7fca (degrees 51-56); scripts/search_campaign/ (35, 46, 57-68)"
 checked = """
 scripts/certify_tables.jl, 2026-09-24 (degrees 35, 46 and 54-68 on 2026-10-03): every seed
 is the correctly rounded Float64 value of the rule refined to 160 bits (the degree-11
@@ -52,7 +52,7 @@ Neither numbers nor point counts were taken from any publication."""
 license = "MIT"
 retrieved = "2026-09-19"
 citation = "none (generated in-house)"
-generator = "scripts/generate_tetrahedron_seeds.jl; scripts/search_campaign.jl (degrees 21-27); scripts/search_campaign/ (28-30)"
+generator = "scripts/generate_tetrahedron_seeds.jl; scripts/search_campaign.jl, removed after 88d7fca (degrees 21-27); scripts/search_campaign/ (28-30)"
 checked = """
 scripts/certify_tables.jl, 2026-09-24 (degrees 11, 22 and 23-30 on 2026-10-03): every seed is
 the correctly rounded Float64 value of the rule refined to 160 bits, and its
@@ -92,7 +92,7 @@ citation = """
 V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2;
 V. I. Lebedev and D. N. Laikov, Doklady Mathematics 59 (1999) 477-481 (the degree-131 rule the
 degree 133-201 continuation started from)"""
-generator = "scripts/generate_lebedev_seeds.jl (degrees 3-17); scripts/import_octahedral_rules.jl (degrees 133-201)"
+generator = "scripts/generate_lebedev_seeds.jl (degrees 3-17); scripts/import_octahedral_rules.jl, removed after 88d7fca (degrees 133-201)"
 checked = """
 scripts/certify_tables.jl, 2026-09-24 and 2026-09-30 (degrees 3-17) and 2026-10-01 (degrees
 133-201): every seed is the correctly rounded Float64 value of the rule refined to 160 bits,
@@ -118,7 +118,7 @@ where this table has 57 points against 60."""
 license = "MIT"
 retrieved = "2026-10-02"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl (degrees 33-51); scripts/search_campaign/ (53-75)"
+generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl, removed after 88d7fca (degrees 33-51); scripts/search_campaign/ (53-75)"
 checked = """
 scripts/certify_tables.jl, 2026-10-02 (degrees 33-75 on 2026-10-03): every seed is the
 correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
@@ -145,7 +145,7 @@ degree 3 has its nodes on the faces and these rules keep every node inside."""
 license = "MIT"
 retrieved = "2026-10-02"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl (degrees 13-29); scripts/search_campaign/ (31-41)"
+generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl, removed after 88d7fca (degrees 13-29); scripts/search_campaign/ (31-41)"
 checked = """
 scripts/certify_tables.jl, 2026-10-02 (degrees 13-41 on 2026-10-03): every seed is the
 correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
