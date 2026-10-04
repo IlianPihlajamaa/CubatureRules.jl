@@ -572,7 +572,7 @@ them.
       *(affine images of the reference shapes, given by their vertices; a twisted wedge or
       a non-parallelogram pyramid base is refused, since no rule keeps its degree there.
       Wedge: `WedgeProduct`, the cheapest triangle family times Gauss–Legendre, so the
-      shipped Xiao–Gimbutas table to degree 53 and the conical product beyond. Pyramid:
+      shipped Xiao–Gimbutas table to degree 68 and the conical product beyond. Pyramid:
       `ConicalProduct` with Gauss–Jacobi(2, 0) in the collapsed direction, m³ points for
       degree 2m − 1. Both at every degree and precision, with mesh integration and
       `map_to`. Verified against an orthonormal Dubiner × Legendre basis on the wedge, and
@@ -584,8 +584,9 @@ them.
       products of even orthonormal Legendre polynomials are already orthonormal, so the
       moment system needs no invariant basis and is well conditioned. Seeds in-house
       (scripts/generate_box_seeds.jl): multistart at low degree, grow → eliminate above.
-      Square, odd degrees 1–51; cube, 1–29 (above 31 and 17 from a 12-hour
-      scripts/search_box_campaign.jl run, which also shrank cube degrees 13–17). Against
+      Square, odd degrees 1–75; cube, 1–41 (above 31 and 17 from a 12-hour
+      scripts/search_box_campaign.jl run, which also shrank cube degrees 13–17, and above
+      51 and 29 from the pooled search, scripts/search_campaign/). Against
       Witherden & Vincent (2015): the square agrees to degree 21 except 17, where it has 57
       points against 60; the cube agrees to 11 except 3, where 8 interior points replace
       their 6 on the faces. Cube degree 15: 199 points against 512 for the tensor rule;

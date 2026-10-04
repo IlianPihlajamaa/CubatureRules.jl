@@ -1,11 +1,14 @@
 # Check the shipped Float64 seed tables so that Float64 requests can be served from them
 # without refinement (see `build_symmetric` and the Lebedev `build`).
 #
-#     julia --project -t auto scripts/certify_tables.jl [triangle|tetrahedron|lebedev|square|cube ...]
-#     julia --project -t auto scripts/certify_tables.jl triangle:51,52,53 tetrahedron:17,21,22
+#     julia --project scripts/certify_tables.jl [triangle|tetrahedron|lebedev|square|cube ...]
+#     julia --project scripts/certify_tables.jl triangle:51,52,53 tetrahedron:17,21,22
 #
 # A table name alone checks every entry; `name:degrees` only those degrees, which is what
-# newly merged entries need.
+# newly merged entries need. Entries are refined one at a time: BigFloat precision is global
+# in Julia 1.11 (`setprecision(f, BigFloat, bits)` is not task-local), so threads refining at
+# different working precisions change each other's precision. To use more cores, run one
+# process per table; each writes only its own file.
 #
 # For every entry: refine the stored seed to 160 bits, round the result to Float64, and
 # compare it with the stored seed. A stored seed that is not the correctly rounded value is
@@ -66,7 +69,7 @@ function certify(name, degrees = nothing)
     todo = [i for (i, e) in enumerate(entries)
             if get(e, "status", "ok") == "ok" && (degrees === nothing || e["degree"] in degrees)]
     results = Vector{Any}(undef, length(entries))
-    Threads.@threads :dynamic for i in todo
+    for i in todo
         t = @elapsed results[i] = refine_and_residual(entries[i], kind, N)
         e = entries[i]
         θr, ulps, resid = results[i]

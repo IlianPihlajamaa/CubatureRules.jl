@@ -52,7 +52,7 @@ numbers were used, and the table is MIT licensed. Above degree 20 they were foun
 from the rule one degree lower and eliminating nodes (see [Seed strategies](../design/seeds.md)),
 which found rules with fewer points than the published ones at most degrees from 27 on, for
 example 139 instead of 141 at degree 27 and 412 instead of 423 at degree 48. Degrees 51 to
-53 go beyond the published table. These are the smallest counts the searches reached, not
+68 go beyond the published table. These are the smallest counts the searches reached, not
 proven minima. Rules with the minimal number of points are not unique; the table contains
 the one with the largest smallest barycentric coordinate among those found.
 
@@ -65,7 +65,7 @@ FullySymmetric
 Fully symmetric (`S₄`), positive-weight tetrahedron rules with interior nodes. Unlike the
 triangle rules, these point counts are not taken from a paper: they are the smallest found by
 the package's own search, starting from a number of points below which no fully symmetric
-rule can exist. They are not proven to be minimal.
+rule can exist, and they go up to degree 30. They are not proven to be minimal.
 
 ## Grundmann–Möller
 

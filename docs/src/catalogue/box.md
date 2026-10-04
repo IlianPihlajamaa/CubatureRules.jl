@@ -35,7 +35,7 @@ fewer points than the tensor Gauss rule:
 ```@example box
 using Markdown
 rows = ["| Degree | Square: symmetric | Square: tensor | Cube: symmetric | Cube: tensor |", "|---|---|---|---|---|"]
-for d in (3, 5, 7, 9, 11, 15, 21, 29, 41, 51)
+for d in (3, 5, 7, 9, 11, 15, 21, 29, 41, 51, 75)
     sq = npoints(rule(Orthotope{2}(); degree = d))
     cu = d <= last(CubatureRules.degree_range(FullySymmetric(), Orthotope{3}())) ? npoints(rule(Orthotope{3}(); degree = d)) : "—"
     m = cld(d + 1, 2)
@@ -57,7 +57,7 @@ point counts are compared with Witherden & Vincent (2015), who tabulate the same
 degree 21 on the square and 11 on the cube. On the cube at degree 3 the table has 8 points
 where they give 6: a 6-point rule of degree 3 has to put its nodes on the faces, at
 `(±1, 0, 0)`, and these rules keep every node inside. Beyond those degrees the tables go on
-to 51 on the square and 29 on the cube; there the counts are the smallest the searches
+to 75 on the square and 41 on the cube; there the counts are the smallest the searches
 reached, not proven minima. Only odd degrees are tabulated: every orbit is centrally
 symmetric, so a rule of degree `2k` is one of degree `2k + 1`.
 
