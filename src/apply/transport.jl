@@ -95,6 +95,28 @@ end
     return s, S(dst.a) - s * S(src.a), abs(s)
 end
 
+# A triangle in the plane onto a triangle in space, through the reference triangle and the
+# triangle's frame: A is 3 × 2, and the weights scale by the area element |e₁ × e₂| over the
+# Jacobian of `src`.
+@inline function _affine(src::Simplex{2}, dst::SurfaceTriangle, ::Type{S}) where {S}
+    E, v0, J = surface_frame(dst, S)
+    isreference(src) && return E, v0, J
+    B, c, Jb = _affine(src, Simplex{2}(), S)                   # src → reference
+    return E * B, E * c + v0, J * Jb
+end
+
+function map_to(r::QuadratureRule{2,T,<:Simplex{2}}, dom::SurfaceTriangle) where {T}
+    S = promote_type(T, eltype(eltype(dom.vertices)))
+    S <: Integer && (S = Rational{BigInt})
+    return _at_rule_precision(r) do
+        A, b, J = _affine(r.domain, dom, S)
+        xs = [A * SVector{2,S}(x) + b for x in r.nodes]
+        ws = [S(w) * J for w in r.weights]
+        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
+                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
+    end
+end
+
 # ---------------------------------------------------------------------------------------
 
 """

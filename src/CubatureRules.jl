@@ -29,6 +29,7 @@ include("domains/domains.jl")
 include("domains/momentweight.jl")
 include("domains/functionweight.jl")
 include("domains/kernel.jl")
+include("domains/surface_triangle.jl")
 include("domains/inverse_distance.jl")
 include("domains/oscillatory.jl")
 include("domains/singular.jl")
@@ -108,7 +109,7 @@ include("benchmark/construction.jl")
 # rarely typed is not worth a collision.
 export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain, JacobiWeight,
        MomentWeight, OrdinaryMoments, LogWeight, FunctionWeight, PointMass, PrincipalValue, FinitePart, Oscillatory,
-       InverseDistance,
+       InverseDistance, SurfaceTriangle,
        HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace, ExponentialSpace,
        Polytope, Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim

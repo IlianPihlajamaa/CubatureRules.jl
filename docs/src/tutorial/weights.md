@@ -137,8 +137,9 @@ sqrt(2) * log(1 + sqrt(2))
 ```
 
 Again pass only the smooth part `f`; the kernel is in the weights. `x₀` may be a vertex, on
-an edge or inside, and the rule is built for that triangle and that point. See
-[`DuffyGauss`](@ref) for how.
+an edge or inside, and the rule is built for that triangle and that point. The triangle may
+also lie in space, as a boundary element: `WeightedDomain(SurfaceTriangle(v₀, v₁, v₂),
+InverseDistance(x₀))` with three coordinates each. See [`DuffyGauss`](@ref) for how.
 
 ## Other weights: using moments
 

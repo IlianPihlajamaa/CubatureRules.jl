@@ -522,8 +522,16 @@ gaining enough breadth for the selector to be genuinely discriminating.
       Gauss rule from the Stieltjes procedure on a sinh-substituted discretisation: 0.03 s
       for a degree-15 Float64 rule with `x₀` inside, and 0.3 s when a sub-triangle is 1e-6
       or 1e-12 thin (288 discretisation points against 72, the same at both). Verified
-      against Dubiner polynomials integrated in polar coordinates about `x₀`. Next:
-      triangles in three dimensions)*
+      against Dubiner polynomials integrated in polar coordinates about `x₀`.
+      **Triangles in space done:** `SurfaceTriangle(v₀, v₁, v₂)`, a flat triangle in three
+      dimensions, takes every rule of the reference triangle through `map_to` (and
+      `integrate(f, r, triangles)` maps a reference rule on the fly), and carries the
+      kernel with the same construction. A floating-point `x₀` within 64 ulps of the
+      triangle's plane or boundary is moved onto it — a centroid computed in `Float64` is
+      off the plane by about 1e-17 — and the provenance records it; exact input is never
+      moved. A planar triangle rotated into space by a rational rotation gives the planar
+      integrals to 1e-32 at 30 digits. Next: the generalised Gaussian rule for Helmholtz,
+      and near-singular points)*
 
 **Removed in this stage**
 

@@ -7,7 +7,7 @@ the current version actually supports.
 | Page | Domains |
 |---|---|
 | [Interval](interval.md) | `Interval`, Jacobi-weighted intervals, weights given by moments or by functions |
-| [Simplex](simplex.md) | `Simplex{D}`: triangle, tetrahedron and higher |
+| [Simplex](simplex.md) | `Simplex{D}`: triangle, tetrahedron and higher; `SurfaceTriangle`, a triangle in space; the inverse-distance kernel of boundary elements |
 | [Box](box.md) | `Orthotope{D}` |
 | [Sphere](sphere.md) | `Sphere{D}`: circle, sphere and higher |
 | [Ball](ball.md) | `Ball{D}`, `Disk` |

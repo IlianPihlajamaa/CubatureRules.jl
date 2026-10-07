@@ -385,6 +385,15 @@ function reference_nodes(r::QuadratureRule{D,T,<:Sphere}, ::Type{S}) where {D,T,
     return xs, [S(w) / ρ^(D - 1) for w in r.weights]
 end
 
+# A triangle in space maps back to the reference triangle through the left inverse of its
+# frame, and its weights carry the area element |e₁ × e₂|.
+function reference_nodes(r::QuadratureRule{3,T,<:SurfaceTriangle}, ::Type{S}) where {T,S}
+    E, v0, J = surface_frame(r.domain, S)
+    P = inv(E' * E) * E'
+    xs = [Vector{S}(P * (SVector{3,S}(map(S, x)) - v0)) for x in r.nodes]
+    return xs, [S(w) / J for w in r.weights]
+end
+
 # A weighted domain in more than one dimension is its own reference here: there is no map
 # to apply, so the nodes pass through.
 function reference_nodes(r::QuadratureRule{D,T,<:WeightedDomain}, ::Type{S}) where {D,T,S}
@@ -642,17 +651,17 @@ end
 # taken along the edge pq, as τ = h sinh v, where the integrand is entire. The construction
 # shares none of this: it works in the Duffy coordinates, with a Gauss rule of 1/√q(t) from a
 # recurrence.
-struct KernelTriangleBasis{S} <: VerificationBasis
+struct KernelTriangleBasis{S,D,L} <: VerificationBasis
     dub::DubinerBasis{S}
-    A::SMatrix{2,2,S,4}             # reference coordinates ξ = A (y − v₀)
-    v0::SVector{2,S}
+    A::SMatrix{2,D,S,L}             # reference coordinates ξ = A (y − v₀); a left inverse in space
+    v0::SVector{D,S}
     integrals::Vector{S}
 end
-function evaluate!(B::KernelTriangleBasis{S}, y) where {S}
-    ξ = B.A * (SVector{2,S}(S(y[1]), S(y[2])) - B.v0)
+function evaluate!(B::KernelTriangleBasis{S,D}, y) where {S,D}
+    ξ = B.A * (SVector{D,S}(ntuple(i -> S(y[i]), D)) - B.v0)
     dubiner!(B.dub.φ, B.dub.gx, B.dub.gy, B.dub.ws, ξ[1], ξ[2])
     # the gradient in y, for the tolerance on rounded nodes: Aᵀ ∇_ξ
-    g = [abs(B.A[1, 1] * gx + B.A[2, 1] * gy) + abs(B.A[1, 2] * gx + B.A[2, 2] * gy) for (gx, gy) in zip(B.dub.gx, B.dub.gy)]
+    g = [sum(abs(B.A[1, i] * gx + B.A[2, i] * gy) for i in 1:D) for (gx, gy) in zip(B.dub.gx, B.dub.gy)]
     return B.dub.φ, g
 end
 blocks(B::KernelTriangleBasis) = blocks(B.dub)
@@ -661,11 +670,13 @@ exact_integrals(B::KernelTriangleBasis) = B.integrals
 function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) where {S}
     exact && throw(ArgumentError("rules for the kernel 1/|y − x₀| are not exact rationals"))
     K = maximum(_degrees(n))
-    v = [SVector{2,S}(map(S, p)) for p in vertices(dom.base)]
-    A = inv(hcat(v[2] - v[1], v[3] - v[1]))
+    D = length(dom.weight.x0)
+    v = [SVector{D,S}(map(S, p)) for p in vertices(dom.base)]
+    E = hcat(v[2] - v[1], v[3] - v[1])
+    A = inv(E' * E) * E'                                    # E⁻¹ in the plane, its left inverse in space
     dub = DubinerBasis{S}(K; normalize = true)
-    x0 = SVector{2,S}(map(S, dom.weight.x0))
-    patches, _ = singular_patches(dom)
+    x0r, patches, _, _ = singular_point(dom)                # the point the rule is for
+    x0 = SVector{D,S}(x0r)
     nr = cld(K + 1, 2) + 1                                  # exact in ρ to degree 2nr − 1 > K
     ρ, wρ = gauss_jacobi_work(nr, 0, 0, precision(S))[1:2]
     function integrals(Nv)
@@ -697,8 +708,8 @@ function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) whe
         Nv > 4096 && throw(ArgumentError("the reference integrals for $(dom) did not converge with $Nv points"))
         prev = cur
     end
-    return KernelTriangleBasis{S}(dub, A, v[1], prev), "orthonormal Dubiner, against their integrals with the kernel " *
-                                                        "(polar coordinates about x₀, Gauss–Legendre along each edge)"
+    return KernelTriangleBasis{S,D,2D}(dub, A, v[1], prev), "orthonormal Dubiner, against their integrals with the kernel " *
+                                                             "(polar coordinates about x₀, Gauss–Legendre along each edge)"
 end
 
 # An oscillatory weight is verified against its Legendre moments, with the spherical Bessel

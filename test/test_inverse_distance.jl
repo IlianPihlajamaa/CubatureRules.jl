@@ -43,7 +43,7 @@ end
         @test eltype(r) == T && check(r).exact
     end
     # the kernel's x₀ is read exactly: 0.3 is the binary number nearest 0.3
-    @test CR.singular_patches(WeightedDomain(Simplex((0.0, 0.0), (0.6, 0.0), (0.0, 1.0)), InverseDistance((0.3, 0.0))))[2] === :edge
+    @test CR.singular_point(WeightedDomain(Simplex((0.0, 0.0), (0.6, 0.0), (0.0, 1.0)), InverseDistance((0.3, 0.0))))[3] === :edge
 end
 
 @testset "a thin sub-triangle: x₀ within 1e-6 of an edge" begin
@@ -57,6 +57,65 @@ end
     # and a smooth integrand: the rule is not exact on e^{y₁}, but converges geometrically
     vals = [integrate(y -> exp(y[1]), rule(dom; degree = d, digits = 30)) for d in (11, 21, 31)]
     @test abs(vals[3] - vals[2]) < 1e-12 * abs(vals[3]) && abs(vals[3] - vals[2]) < abs(vals[2] - vals[1])
+end
+
+@testset "rounding is absorbed: a point meant to be on the triangle" begin
+    # a third of the way along an edge, computed in Float64, is 7e-18 off it: moved onto it,
+    # and the rule is built for that point
+    T = Simplex((0.1, 0.0), (0.0, 0.3), (0.7, 0.9))
+    dom = WeightedDomain(T, InverseDistance((0.1 + (0.0 - 0.1) / 3, 0.3 / 3)))
+    _, _, place, moved = CR.singular_point(dom)
+    @test place === :edge && 0 < moved < 1e-16
+    r = rule(dom; degree = 7)
+    @test npoints(r) == 2 * 16 && occursin("moved by", provenance(r).path[1])
+    @test check(r).exact
+    # exact input is never moved: a rational point 1e-30 from an edge is inside it
+    _, _, place, moved = CR.singular_point(WeightedDomain(Simplex((0, 0), (1, 0), (0, 1)), InverseDistance((1//2, 1//10^30))))
+    @test place === :interior && moved == 0
+end
+
+@testset "triangles in space" begin
+    # ordinary rules: the reference triangle's, mapped, with the area element
+    T3 = SurfaceTriangle((0, 0, 0), (1, 0, 1), (0, 1, 1))
+    @test measure(T3) ≈ sqrt(3) / 2
+    for (kw, tol) in (((degree = 6,), 1e-14), ((degree = 6, digits = 40), 1e-39))
+        r = rule(T3; kw...)
+        v = check(r)
+        @test v.exact && v.sharp === true && v.positive && v.interior
+        @test abs(integrate(y -> y[3]^2, r) - sqrt(big(3)) / 4) < tol       # √3 ∫ (ξ₁ + ξ₂)² over the reference
+    end
+    # one reference rule for many triangles, mapped on the fly
+    rref = rule(Simplex{2}(); degree = 6)
+    f3(y) = y[3]^2 + y[1] * y[2]
+    @test integrate(f3, rref, T3) ≈ integrate(f3, rule(T3; degree = 6)) rtol = 1e-14
+    @test integrate(f3, rref, [T3, T3]) ≈ 2 * integrate(f3, rref, T3) rtol = 1e-14
+
+    # the kernel: a planar triangle turned into space by a rational rotation has the planar
+    # integrals, since the kernel depends only on distance
+    Q = CR.SMatrix{3,3}(3//5, 0, -4//5, 0, 1, 0, 4//5, 0, 3//5) * CR.SMatrix{3,3}(1, 0, 0, 0, 3//5, 4//5, 0, -4//5, 3//5)
+    shift = CR.SVector(1//2, -1//3, 2)
+    lift3(p) = Q * CR.SVector(p[1], p[2], 0) + shift
+    tri2 = [(0, 0), (1, 0), (3//10, 8//10)]
+    f2(p) = 1 + p[1]^3 * p[2] - 2p[2]^4
+    for x0 in ((1//3, 1//4), (1//2, 0), (0, 0))
+        r2 = rule(WeightedDomain(Simplex(tri2...), InverseDistance(x0)); degree = 9, digits = 30)
+        r3 = rule(WeightedDomain(SurfaceTriangle(lift3.(tri2)...), InverseDistance(lift3(x0))); degree = 9, digits = 30)
+        @test npoints(r3) == npoints(r2)
+        @test abs(integrate(y -> f2(transpose(Q) * (y - shift)), r3) - integrate(f2, r2)) < big(10.0)^-28
+        v = check(r3)
+        @test v.exact && v.sharp === true && v.positive && v.interior
+    end
+
+    # a centroid computed in Float64 is off the plane by rounding: projected onto it
+    v = ((0.1, 0.2, 0.3), (1.3, -0.4, 0.7), (0.2, 1.1, -0.5))
+    c = Tuple((CR.SVector(v[1]) + CR.SVector(v[2]) + CR.SVector(v[3])) / 3)
+    r = rule(WeightedDomain(SurfaceTriangle(v...), InverseDistance(c)); degree = 9)
+    @test npoints(r) == 3 * 25 && check(r).exact
+    # but a point off the plane, a near-singular integral, is refused
+    n = cross(CR.SVector(v[2]) - CR.SVector(v[1]), CR.SVector(v[3]) - CR.SVector(v[1]))
+    @test_throws ArgumentError rule(WeightedDomain(SurfaceTriangle(v...), InverseDistance(Tuple(CR.SVector(c) + 1e-3 * n))); degree = 4)
+    @test_throws ArgumentError SurfaceTriangle((0, 0, 0), (1, 1, 1), (2, 2, 2))
+    @test_throws ArgumentError SurfaceTriangle((0, 0), (1, 0), (0, 1))
 end
 
 @testset "interface" begin

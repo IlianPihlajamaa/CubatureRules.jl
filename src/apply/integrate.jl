@@ -102,6 +102,7 @@ function _integrate_threaded(f::F, r::QuadratureRule, cells) where {F}
 end
 
 _coordtype(s::Simplex) = eltype(eltype(s.vertices))
+_coordtype(t::SurfaceTriangle) = eltype(eltype(t.vertices))
 
 "Arithmetic type of a mapped evaluation: exact inputs stay exact (Int → Rational{BigInt})."
 @inline function _maptype(::Type{R}, ::Type{C}) where {R,C}

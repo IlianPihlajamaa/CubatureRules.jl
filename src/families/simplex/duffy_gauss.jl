@@ -16,7 +16,8 @@
 """
     DuffyGauss()
 
-Rules for the kernel `1/|y − x₀|` on a triangle, an [`InverseDistance`](@ref) weight. The
+Rules for the kernel `1/|y − x₀|` on a triangle in the plane or in space, an
+[`InverseDistance`](@ref) weight. The
 triangle is cut at `x₀` into one, two or three sub-triangles with a vertex at `x₀` (as `x₀` is
 a vertex, on an edge or inside). On each, the Duffy map `y = x₀ + s (a + t (b − a))` cancels
 the singularity and leaves the weight `1/√q(t)`, `q(t) = |a + t (b − a)|²`, in the collapsed
@@ -60,11 +61,11 @@ bits)` returns the `M`-point Gauss–Legendre rule on `[−1, 1]`, so that calle
 function inverse_sqrt_quadratic_rule(a, b, m::Integer, bits::Integer, gl)
     function discretize(M, wbits)
         with_bits(wbits) do
-            A, B = SVector{2,BigFloat}(a), SVector{2,BigFloat}(b)
+            A, B = SVector{length(a),BigFloat}(a), SVector{length(b),BigFloat}(b)
             d = B - A
             dd = dot(d, d)
             ts = -dot(A, d) / dd                       # q(t) = |d|² ((t − t*)² + η²)
-            η = abs(_cross(A, B)) / dd
+            η = _area2(A, B) / dd
             u0, u1 = asinh(-ts / η), asinh((1 - ts) / η)
             x, w = gl(M, wbits)
             c, h = (u0 + u1) / 2, (u1 - u0) / 2
@@ -78,9 +79,9 @@ end
 
 function build(f::DuffyGauss, dom::InverseDistanceDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("nodes for the kernel 1/|y − x₀| are irrational; $(T) is not supported"))
-    patches, place = singular_patches(dom)
+    x0, patches, place, moved = singular_point(dom)
+    D = length(x0)
     m = duffy_m(degree)
-    x0 = SVector{2,Rational{BigInt}}(_exact(dom.weight.x0[1]), _exact(dom.weight.x0[2]))
     ctx.verbose >= 1 && @info @sprintf("DuffyGauss: %d sub-triangle%s, %d × %d points each, target %d bits",
                                        length(patches), length(patches) == 1 ? "" : "s", m, m, ctx.bits)
     # Gauss–Legendre rules on [−1, 1], shared by the s-direction and every discretisation
@@ -88,17 +89,17 @@ function build(f::DuffyGauss, dom::InverseDistanceDomain, degree::Int, ctx::Buil
     gl(M, bits) = get!(() -> gauss_jacobi_work(M, 0, 0, bits)[1:2], cache, (M, bits))
     trules = [inverse_sqrt_quadratic_rule(p - x0, q - x0, m, ctx.bits + 8, gl) for (p, q) in patches]
     wbits = maximum(r[5] for r in trules)
-    xs, ws = SVector{2,T}[], T[]
+    xs, ws = SVector{D,T}[], T[]
     with_bits(wbits) do
         sx, sw = gl(m, wbits)
-        X0 = SVector{2,BigFloat}(x0)
+        X0 = SVector{D,BigFloat}(x0)
         for ((p, q), (t, λ, _, _, _)) in zip(patches, trules)
-            a, b = SVector{2,BigFloat}(p - x0), SVector{2,BigFloat}(q - x0)
-            J = abs(_cross(a, b))
+            a, b = SVector{D,BigFloat}(p - x0), SVector{D,BigFloat}(q - x0)
+            J = _area2(a, b)
             for (si, swi) in zip(sx, sw), (tj, λj) in zip(t, λ)
                 s, w = (1 + si) / 2, swi / 2
                 y = X0 + s * (a + tj * (b - a))
-                push!(xs, SVector{2,T}(finalize_number(ctx, y[1]), finalize_number(ctx, y[2])))
+                push!(xs, SVector{D,T}(ntuple(i -> finalize_number(ctx, y[i]), D)))
                 push!(ws, finalize_number(ctx, w * λj * J))
             end
         end
@@ -112,7 +113,10 @@ function build(f::DuffyGauss, dom::InverseDistanceDomain, degree::Int, ctx::Buil
     prov = Provenance(family = "DuffyGauss", derivation = Derived(),
                       path = ["kernel: 1/|y − x₀| on $(dom.base), x₀ = $(Tuple(dom.weight.x0)) " *
                               (place === :vertex ? "a vertex" : place === :edge ? "on an edge" : "inside") *
-                              ": $(length(patches)) sub-triangle$(length(patches) == 1 ? "" : "s") with a vertex at x₀",
+                              ": $(length(patches)) sub-triangle$(length(patches) == 1 ? "" : "s") with a vertex at x₀" *
+                              (moved > 0 ? @sprintf("; x₀ moved by %.1e onto the triangle%s to absorb rounding, so the rule is for x₀ = %s",
+                                                    moved, D == 3 ? " (its plane or boundary)" : "'s boundary",
+                                                    Tuple(Float64.(x0))) : ""),
                               "Duffy map y = x₀ + s (a + t (b − a)) on each: f(y)/|y − x₀| dy = f |a × b| / √q(t) ds dt",
                               "s: $m-point Gauss–Legendre on [0, 1]",
                               "t: $m-point Gauss rule of 1/√q(t), from the Stieltjes procedure on a sinh-substituted " *

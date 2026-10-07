@@ -143,7 +143,48 @@ of this family integrates `f(y)/|y − x₀|` exactly for every polynomial `f` o
 
 `check` verifies these rules against the orthonormal Dubiner polynomials of the triangle,
 whose integrals with the kernel it computes independently, in polar coordinates about `x₀`.
-Triangles in three dimensions, points off the triangle (near-singular integrals) and the
-stronger singularities of double-layer and hypersingular kernels are not covered yet.
+
+The same works on a triangle in space, a [`SurfaceTriangle`](@ref), as a boundary element
+of a surface mesh: the construction uses only distances and the area element, so it is the
+same in three dimensions.
+
+```@example simplex
+E = SurfaceTriangle((0.1, 0.2, 0.3), (1.3, -0.4, 0.7), (0.2, 1.1, -0.5))
+c = (E.vertices[1] + E.vertices[2] + E.vertices[3]) / 3        # the collocation point
+r = rule(WeightedDomain(E, InverseDistance(c)); degree = 9)
+npoints(r), check(r).exact
+```
+
+A point computed in floating point, like this centroid, is on the triangle only to rounding:
+here it is 1.7e-17 off the plane. `x₀` within 64 units in the last place of the triangle's
+plane or boundary is moved onto it and the rule is built for that point, as the provenance
+says; exact coordinates are never moved. Points genuinely off the triangle (near-singular
+integrals) and the stronger singularities of double-layer and hypersingular kernels are not
+covered yet.
 
 Reference: M. G. Duffy, *SIAM J. Numer. Anal.* 19 (1982) 1260–1262, doi:10.1137/0719090.
+
+## Triangles in space
+
+```@docs
+SurfaceTriangle
+```
+
+A flat triangle in three dimensions takes every rule of the reference triangle, mapped onto
+it with the area element, so the degree claim carries over to polynomials in the three
+coordinates:
+
+```@example simplex
+E = SurfaceTriangle((0, 0, 0), (1, 0, 1), (0, 1, 1))
+r = rule(E; degree = 6)
+family(r), npoints(r), integrate(y -> y[3]^2, r), sqrt(3) / 4
+```
+
+To integrate over many triangles, build one rule on `Simplex{2}()` and pass the triangles to
+`integrate`, which maps the rule onto each on the fly without building anything:
+
+```@example simplex
+r = rule(Simplex{2}(); degree = 6)
+mesh = [SurfaceTriangle((0, 0, 0), (1, 0, 1), (0, 1, 1)), SurfaceTriangle((1, 0, 1), (1, 1, 2), (0, 1, 1))]
+integrate(y -> y[3]^2, r, mesh)
+```

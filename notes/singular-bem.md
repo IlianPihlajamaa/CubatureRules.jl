@@ -6,7 +6,10 @@ at any precision, with a claim that says what they integrate exactly. The spike 
 below are what the first stage rests on. **Stage 1 is built:**
 `WeightedDomain(T, InverseDistance(x₀))` with rules from `DuffyGauss`
 (`src/domains/inverse_distance.jl`, `src/families/simplex/duffy_gauss.jl`), as described
-under "The core construction", with the API chosen below.
+under "The core construction", with the API chosen below, on triangles in the plane and in
+space (`SurfaceTriangle`, `src/domains/surface_triangle.jl`). A floating-point `x₀` within
+rounding of the triangle's plane or boundary is moved onto it: a collocation point computed
+in `Float64` is almost never exactly on its element.
 
 ## The integrals
 
