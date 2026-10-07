@@ -9,7 +9,11 @@ below are what the first stage rests on. **Stage 1 is built:**
 under "The core construction", with the API chosen below, on triangles in the plane and in
 space (`SurfaceTriangle`, `src/domains/surface_triangle.jl`). A floating-point `x₀` within
 rounding of the triangle's plane or boundary is moved onto it: a collocation point computed
-in `Float64` is almost never exactly on its element.
+in `Float64` is almost never exactly on its element. **Stage 3 (near-singular) is built
+too,** as `DuffySinh` (`src/families/simplex/duffy_sinh.jl`), and differs from the plan
+below in one respect: the radial direction is not sinh-substituted but gets the Gauss rule
+of its own weight on each line, from that weight's moments, which keeps the rule's size
+fixed as `x₀` approaches; the sinh substitution is used across the lines only.
 
 ## The integrals
 

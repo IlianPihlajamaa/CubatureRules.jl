@@ -667,6 +667,81 @@ end
 blocks(B::KernelTriangleBasis) = blocks(B.dub)
 exact_integrals(B::KernelTriangleBasis) = B.integrals
 
+"""
+    polar_kernel_integrals(dom, L, S, φ!; degree) -> Vector{S}
+
+`∫_T φᵢ(y)/|y − x₀| dy` for `L` functions, `φ!(out, y)` writing their values at `y`, which are
+polynomials of degree at most `degree`; in polar coordinates about the apex `c` of
+[`kernel_geometry`](@ref), in arithmetic `S`. On each sub-triangle `(c, p, q)` the angle is
+taken along the edge `pq`, `τ = h sinh v` from the foot of the perpendicular at distance `h`,
+and the ray to the edge point `e` has length `R`; with `β = (e − c)·(c − x₀)/R` and
+`H = |x₀ − c|` the sub-triangle contributes
+
+    ∫ dv ∫₀¹ φ(c + ρ (e − c)) h ρ R / √(R² ρ² + 2 β R ρ + H²) dρ.
+
+For `x₀` on the triangle (`H = 0`) the radial factor is `h`, and Gauss–Legendre in `ρ` is
+exact; off it, `ρ = ρ* + κ sinh z` about the point of the ray nearest `x₀` turns the radial
+factor into `h ρ dz`, entire in `z`. The angular integrand is entire in `v`. Both are refined
+until two resolutions agree to the precision of `S`.
+
+How independent this is of the constructions: the radial direction is (they use Gauss rules
+of the radial weight, from its moments), and so are the coordinates, polar about `c` against
+Duffy's. The angular substitution is the one `DuffySinh` makes in its angular direction, set
+up separately, along the edge, at its own resolution.
+"""
+function polar_kernel_integrals(dom::InverseDistanceDomain, L::Integer, ::Type{S}, φ!; degree::Integer = 0) where {S}
+    g = kernel_geometry(dom)
+    D = length(g.x0)
+    x0, c = SVector{D,S}(g.x0), SVector{D,S}(g.c)
+    H2 = S(g.H2)
+    near = !iszero(g.H2)
+    nr = cld(degree + 1, 2) + 1                             # exact in ρ to degree 2nr − 1 > degree
+    vals = zeros(S, L)
+    function integrals(level)
+        total = zeros(S, L)
+        x, w = gauss_jacobi_work((2degree + 16) * 2^level, 0, 0, precision(S))[1:2]
+        ρg, wg = gauss_jacobi_work(near ? (2degree + 16) * 2^level : nr, 0, 0, precision(S))[1:2]
+        for (p, q) in g.patches
+            f, u, h, τp, τq = patch_frame(c, p, q, S)
+            va, vb = asinh(τp / h), asinh(τq / h)
+            vm, hv = (va + vb) / 2, (vb - va) / 2
+            for (xk, wk) in zip(x, w)
+                e = f + h * sinh(vm + hv * xk) * u           # where the ray meets the edge
+                if !near                                    # the radial factor is h: exact in ρ
+                    for (ρj, wj) in zip(ρg, wg)
+                        φ!(vals, c + (1 + ρj) / 2 * (e - c))
+                        total .+= (hv * wk * h * wj / 2) .* vals
+                    end
+                    continue
+                end
+                # |c + ρ(e − c) − x₀|² = R²((ρ − ρ*)² + κ²): ρ = ρ* + κ sinh z turns the radial
+                # factor h ρ R/√(…) dρ into h ρ dz, entire in z (ρ − ρ* = exp z when κ = 0)
+                R = norm(e - c)
+                β = dot(e - c, c - x0) / R
+                ρs = -β / R
+                κ = sqrt(max(H2 - β^2, zero(S))) / R
+                z0, z1 = iszero(κ) ? (log(-ρs), log(1 - ρs)) : (asinh(-ρs / κ), asinh((1 - ρs) / κ))
+                zm, hz = (z0 + z1) / 2, (z1 - z0) / 2
+                for (ρj, wj) in zip(ρg, wg)
+                    z = zm + hz * ρj
+                    ρ = iszero(κ) ? ρs + exp(z) : ρs + κ * sinh(z)
+                    φ!(vals, c + ρ * (e - c))
+                    total .+= (hv * wk * hz * wj * h * ρ) .* vals
+                end
+            end
+        end
+        return total
+    end
+    prev = integrals(0)
+    tol = ldexp(one(S), -(precision(S) - 16))
+    for level in 1:6
+        cur = integrals(level)
+        maximum(abs, cur - prev) <= tol * max(one(S), maximum(abs, cur)) && return cur
+        prev = cur
+    end
+    throw(ArgumentError("the reference integrals for $(dom) did not converge"))
+end
+
 function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) where {S}
     exact && throw(ArgumentError("rules for the kernel 1/|y − x₀| are not exact rationals"))
     K = maximum(_degrees(n))
@@ -675,41 +750,15 @@ function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) whe
     E = hcat(v[2] - v[1], v[3] - v[1])
     A = inv(E' * E) * E'                                    # E⁻¹ in the plane, its left inverse in space
     dub = DubinerBasis{S}(K; normalize = true)
-    x0r, patches, _, _ = singular_point(dom)                # the point the rule is for
-    x0 = SVector{D,S}(x0r)
-    nr = cld(K + 1, 2) + 1                                  # exact in ρ to degree 2nr − 1 > K
-    ρ, wρ = gauss_jacobi_work(nr, 0, 0, precision(S))[1:2]
-    function integrals(Nv)
-        total = zeros(S, dubiner_length(K))
-        x, w = gauss_jacobi_work(Nv, 0, 0, precision(S))[1:2]
-        for (p, q) in patches
-            f, u, h, τp, τq = patch_frame(x0, p, q, S)
-            va, vb = asinh(τp / h), asinh(τq / h)
-            c, hv = (va + vb) / 2, (vb - va) / 2
-            for (xk, wk) in zip(x, w)
-                e = f + h * sinh(c + hv * xk) * u               # where the ray meets the edge
-                for (ρj, wj) in zip(ρ, wρ)
-                    ξ = A * (x0 + (1 + ρj) / 2 * (e - x0) - v[1])
-                    dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
-                    total .+= (hv * wk * h * wj / 2) .* dub.φ
-                end
-            end
-        end
-        return total
+    function φ!(out, y)
+        ξ = A * (y - v[1])
+        dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
+        out .= dub.φ
     end
-    # the angular integrand is entire; double the points until two resolutions agree
-    Nv = 2K + 16
-    prev = integrals(Nv)
-    tol = ldexp(one(S), -(precision(S) - 16))
-    while true
-        Nv *= 2
-        cur = integrals(Nv)
-        maximum(abs, cur - prev) <= tol * max(one(S), maximum(abs, cur)) && (prev = cur; break)
-        Nv > 4096 && throw(ArgumentError("the reference integrals for $(dom) did not converge with $Nv points"))
-        prev = cur
-    end
-    return KernelTriangleBasis{S,D,2D}(dub, A, v[1], prev), "orthonormal Dubiner, against their integrals with the kernel " *
-                                                             "(polar coordinates about x₀, Gauss–Legendre along each edge)"
+    integrals = polar_kernel_integrals(dom, dubiner_length(K), S, φ!; degree = K)
+    return KernelTriangleBasis{S,D,2D}(dub, A, v[1], integrals),
+           "orthonormal Dubiner, against their integrals with the kernel (polar coordinates about " *
+           "the nearest point of the triangle, Gauss–Legendre along each edge and graded along each ray)"
 end
 
 # An oscillatory weight is verified against its Legendre moments, with the spherical Bessel

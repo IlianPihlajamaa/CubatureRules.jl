@@ -530,8 +530,17 @@ gaining enough breadth for the selector to be genuinely discriminating.
       triangle's plane or boundary is moved onto it — a centroid computed in `Float64` is
       off the plane by about 1e-17 — and the provenance records it; exact input is never
       moved. A planar triangle rotated into space by a rational rotation gives the planar
-      integrals to 1e-32 at 30 digits. Next: the generalised Gaussian rule for Helmholtz,
-      and near-singular points)*
+      integrals to 1e-32 at 30 digits.
+      **Near-singular points done:** `x₀` off the triangle goes to `DuffySinh`. The triangle
+      is cut at its point nearest `x₀`; each radial line gets the Gauss rule of its own
+      weight `s/√(q s² + 2ℓ s + H²)`, from moments by a three-term recurrence and Wheeler's
+      algorithm, so the radial direction is exact however close `x₀` is; across the lines,
+      sinh-substituted Gauss–Legendre (Johnston–Elliott), refined until the integrals of
+      every polynomial of the degree agree between two resolutions. Exact to working
+      precision; from 1 down to 1e-8 above a triangle the degree-9 rule has the same size,
+      and builds in about 0.35 s. `check` computes its references in polar coordinates
+      about the nearest point, with a sinh substitution along each ray. Next: the
+      generalised Gaussian rule for Helmholtz)*
 
 **Removed in this stage**
 

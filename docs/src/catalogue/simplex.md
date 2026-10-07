@@ -158,11 +158,41 @@ npoints(r), check(r).exact
 A point computed in floating point, like this centroid, is on the triangle only to rounding:
 here it is 1.7e-17 off the plane. `x₀` within 64 units in the last place of the triangle's
 plane or boundary is moved onto it and the rule is built for that point, as the provenance
-says; exact coordinates are never moved. Points genuinely off the triangle (near-singular
-integrals) and the stronger singularities of double-layer and hypersingular kernels are not
+says; exact coordinates are never moved. A point further off is near-singular, the next
+section. The stronger singularities of double-layer and hypersingular kernels are not
 covered yet.
 
 Reference: M. G. Duffy, *SIAM J. Numer. Anal.* 19 (1982) 1260–1262, doi:10.1137/0719090.
+
+## Near-singular integrals
+
+```@docs
+DuffySinh
+```
+
+With `x₀` off the triangle the integrand is smooth, but an ordinary rule needs ever more
+points as `x₀` comes closer: the kernel then varies on the scale of the distance. Here
+`x₀` is 1e-6 above a triangle in space:
+
+```@example simplex
+E = SurfaceTriangle((0, 0, 0), (1, 0, 0), (3 // 10, 8 // 10, 0))
+r = rule(WeightedDomain(E, InverseDistance((1 // 3, 1 // 4, 1e-6))); degree = 9)
+family(r), npoints(r), integrate(y -> 1 + y[1] * y[2], r)
+```
+
+The triangle is cut at its point `c` nearest to `x₀`, and mapped by the Duffy map from `c`.
+Along each radial line the kernel is a weight on `[0, 1]`, `s / √(q s² + 2ℓ s + H²)` with `H`
+the distance from `x₀` to `c`; its moments follow a three-term recurrence from a closed form,
+and the line gets the Gauss rule of that weight, built from them at any precision. So the
+radial direction is exact for polynomials however close `x₀` is, and the rule does not grow
+as `x₀` approaches the triangle. Across the lines, what is left is analytic but not a
+polynomial, and is integrated with Gauss–Legendre after a sinh substitution (P. R. Johnston
+and D. Elliott, *Int. J. Numer. Meth. Engng* 62 (2005) 564–578, doi:10.1002/nme.1208), with
+more points until the rule's integrals of every polynomial of its degree agree between two
+resolutions to the precision asked for. The rule is therefore exact to working precision,
+like every other rule here, but it grows with that precision, and `npoints(DuffySinh(), …)`
+gives only its smallest size. `check` verifies it against integrals computed in polar
+coordinates about `c`.
 
 ## Triangles in space
 

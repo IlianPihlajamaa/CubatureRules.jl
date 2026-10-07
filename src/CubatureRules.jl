@@ -67,6 +67,7 @@ include("families/onedim/desinh.jl")
 include("families/onedim/delegated.jl")
 include("families/simplex/conical.jl")
 include("families/simplex/duffy_gauss.jl")
+include("families/simplex/duffy_sinh.jl")
 include("symmetry/orbits.jl")
 include("symmetry/box.jl")
 include("symmetry/invariant.jl")
@@ -123,7 +124,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev,
-       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct, DuffyGauss
+       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct, DuffyGauss, DuffySinh
 export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport

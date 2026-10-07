@@ -17,7 +17,8 @@
     DuffyGauss()
 
 Rules for the kernel `1/|y − x₀|` on a triangle in the plane or in space, an
-[`InverseDistance`](@ref) weight. The
+[`InverseDistance`](@ref) weight, with `x₀` on the triangle ([`DuffySinh`](@ref) takes the
+points off it). The
 triangle is cut at `x₀` into one, two or three sub-triangles with a vertex at `x₀` (as `x₀` is
 a vertex, on an edge or inside). On each, the Duffy map `y = x₀ + s (a + t (b − a))` cancels
 the singularity and leaves the weight `1/√q(t)`, `q(t) = |a + t (b − a)|²`, in the collapsed
@@ -44,7 +45,8 @@ const DUFFY_1982 = Citation(key = "Duffy1982", authors = ["M. G. Duffy"],
                             pages = "1260–1262", doi = "10.1137/0719090")
 
 duffy_m(degree) = max(1, cld(degree + 1, 2))
-candidates(::Type{DuffyGauss}, dom::InverseDistanceDomain, ::PolynomialDegree) = [DuffyGauss()]
+candidates(::Type{DuffyGauss}, dom::InverseDistanceDomain, ::PolynomialDegree) =
+    kernel_geometry(dom).place === :near ? DuffyGauss[] : [DuffyGauss()]
 npoints(::DuffyGauss, dom, degree::Integer) = npatches(dom) * duffy_m(degree)^2
 claimed_degree(::DuffyGauss, dom, degree) = 2duffy_m(degree) - 1
 degree_range(::DuffyGauss, dom) = 0:typemax(Int)
@@ -79,7 +81,9 @@ end
 
 function build(f::DuffyGauss, dom::InverseDistanceDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("nodes for the kernel 1/|y − x₀| are irrational; $(T) is not supported"))
-    x0, patches, place, moved = singular_point(dom)
+    g = kernel_geometry(dom)
+    g.place === :near && throw(ArgumentError("DuffyGauss is for x₀ on the triangle; $(Tuple(dom.weight.x0)) is off it: use DuffySinh"))
+    x0, patches, place, moved = g.x0, g.patches, g.place, g.moved
     D = length(x0)
     m = duffy_m(degree)
     ctx.verbose >= 1 && @info @sprintf("DuffyGauss: %d sub-triangle%s, %d × %d points each, target %d bits",

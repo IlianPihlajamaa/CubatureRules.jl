@@ -43,7 +43,7 @@ end
         @test eltype(r) == T && check(r).exact
     end
     # the kernel's x₀ is read exactly: 0.3 is the binary number nearest 0.3
-    @test CR.singular_point(WeightedDomain(Simplex((0.0, 0.0), (0.6, 0.0), (0.0, 1.0)), InverseDistance((0.3, 0.0))))[3] === :edge
+    @test CR.kernel_geometry(WeightedDomain(Simplex((0.0, 0.0), (0.6, 0.0), (0.0, 1.0)), InverseDistance((0.3, 0.0)))).place === :edge
 end
 
 @testset "a thin sub-triangle: x₀ within 1e-6 of an edge" begin
@@ -64,13 +64,13 @@ end
     # and the rule is built for that point
     T = Simplex((0.1, 0.0), (0.0, 0.3), (0.7, 0.9))
     dom = WeightedDomain(T, InverseDistance((0.1 + (0.0 - 0.1) / 3, 0.3 / 3)))
-    _, _, place, moved = CR.singular_point(dom)
+    (; place, moved) = CR.kernel_geometry(dom)
     @test place === :edge && 0 < moved < 1e-16
     r = rule(dom; degree = 7)
     @test npoints(r) == 2 * 16 && occursin("moved by", provenance(r).path[1])
     @test check(r).exact
     # exact input is never moved: a rational point 1e-30 from an edge is inside it
-    _, _, place, moved = CR.singular_point(WeightedDomain(Simplex((0, 0), (1, 0), (0, 1)), InverseDistance((1//2, 1//10^30))))
+    (; place, moved) = CR.kernel_geometry(WeightedDomain(Simplex((0, 0), (1, 0), (0, 1)), InverseDistance((1//2, 1//10^30))))
     @test place === :interior && moved == 0
 end
 
@@ -111,11 +111,41 @@ end
     c = Tuple((CR.SVector(v[1]) + CR.SVector(v[2]) + CR.SVector(v[3])) / 3)
     r = rule(WeightedDomain(SurfaceTriangle(v...), InverseDistance(c)); degree = 9)
     @test npoints(r) == 3 * 25 && check(r).exact
-    # but a point off the plane, a near-singular integral, is refused
-    n = cross(CR.SVector(v[2]) - CR.SVector(v[1]), CR.SVector(v[3]) - CR.SVector(v[1]))
-    @test_throws ArgumentError rule(WeightedDomain(SurfaceTriangle(v...), InverseDistance(Tuple(CR.SVector(c) + 1e-3 * n))); degree = 4)
     @test_throws ArgumentError SurfaceTriangle((0, 0, 0), (1, 1, 1), (2, 2, 2))
     @test_throws ArgumentError SurfaceTriangle((0, 0), (1, 0), (0, 1))
+end
+
+@testset "near-singular: x₀ off the triangle" begin
+    # above a triangle in space, from far to very close: exact, and tending to the singular
+    # integral at the foot as x₀ comes down, the gap being about 2πH f(foot)
+    T = SurfaceTriangle((0, 0, 0), (1, 0, 0), (3//10, 8//10, 0))
+    f(y) = 1 + y[1]^2 * y[2] - y[2]^3
+    Is = integrate(f, rule(WeightedDomain(T, InverseDistance((1//3, 1//4, 0))); degree = 9, digits = 30))
+    for H in (1//10^4, 1//10^8)
+        r = rule(WeightedDomain(T, InverseDistance((1//3, 1//4, H))); degree = 9)
+        @test family(r) == "DuffySinh"
+        @test abs(integrate(f, r) - Is + 2π * H * f((1//3, 1//4))) < 50H^2 + 1e-14
+        # `check` costs seconds here (its reference integrals are refined to 128 bits): once
+        if H == 1//10^8
+            v = check(r)
+            @test v.exact && v.sharp === true && v.positive && v.interior
+        end
+    end
+    # the point count does not grow as x₀ comes closer: each radial line has the Gauss rule of
+    # its own weight
+    @test npoints(rule(WeightedDomain(T, InverseDistance((1//3, 1//4, 1//10^12))); degree = 9)) <=
+          npoints(rule(WeightedDomain(T, InverseDistance((1//3, 1//4, 1//10))); degree = 9))
+    # in the plane, just outside an edge
+    r = rule(WeightedDomain(TRI, InverseDistance((1//2, -1//1000))); degree = 7)
+    v = check(r)
+    @test v.exact && v.sharp === true && v.positive && v.interior
+    # at 30 digits, against the 2πH asymptotics
+    r = rule(WeightedDomain(T, InverseDistance((1//3, 1//4, 1//10^12))); degree = 9, digits = 30)
+    @test abs(integrate(f, r) - Is + 2π * big(1//10^12) * f((1//3, 1//4))) < big(10.0)^-21
+    # far away, an ordinary rule of high degree agrees
+    far = WeightedDomain(TRI, InverseDistance((2, 2)))
+    @test integrate(f, rule(far; degree = 7)) ≈
+          integrate(y -> f(y) / sqrt((y[1] - 2)^2 + (y[2] - 2)^2), rule(TRI; degree = 40)) rtol = 1e-14
 end
 
 @testset "interface" begin
@@ -126,8 +156,9 @@ end
     r = rule(dom; degree = 6)
     @test occursin("inside", provenance(r).path[1]) && !isempty(provenance(r).citations)
     @test passed(verify(r))
-    # refused: outside the triangle, a degenerate triangle, exact arithmetic
-    @test_throws ArgumentError rule(WeightedDomain(TRI, InverseDistance((2, 0))); degree = 4)
+    # a point off the triangle is a near-singular one, for DuffySinh
+    @test family(rule(WeightedDomain(TRI, InverseDistance((2, 0))); degree = 4)) == "DuffySinh"
+    # refused: a degenerate triangle, exact arithmetic
     @test_throws ArgumentError rule(WeightedDomain(Simplex((0, 0), (1, 1), (2, 2)), InverseDistance((0, 0))); degree = 4)
     @test_throws NoRuleError rule(dom; degree = 4, T = Rational{BigInt})        # names DuffyGauss and why
     @test_throws ArgumentError InverseDistance((Inf, 0.0))
