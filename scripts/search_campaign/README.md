@@ -292,35 +292,9 @@ with a negative weight; multistart over the structures of a point count, as
 
 ## Extending it to other domains
 
-The engine needs nothing new. A wedge or pyramid adapter does need orbit machinery the package
-doesn't have yet for those domains; at present it has only their conical and product rules.
-
-**Wedge** (triangular prism, `T × [-1, 1]`).
-- *Symmetry:* S₃ × Z₂, of order 12.
-- *Orbits:* a triangle orbit (centroid, vertex type or general) times a height of either
-  `z = 0` or `±z`, so six orbit types in all.
-- *Invariant basis:* the invariant polynomials are products of S₃-invariant polynomials on the
-  triangle and even polynomials in `z`. An orthonormal invariant basis is therefore the
-  triangle's `invariant_basis` times even orthonormal Legendre polynomials, with no new
-  projection to compute.
-- *Rest:* the moment system, margins and moves follow the box code, with one more kind of
-  move: sending `z` to zero.
-
-**Pyramid** (square base, apex on the axis).
-- *Symmetry:* C₄ᵥ, of order 8, acting on each horizontal slice as on the square.
-- *Orbits:* a square orbit of the slice (centre, `(a, 0)`, `(a, a)` or `(a, b)`, scaled by
-  `1 − z`) at a height `z`.
-- *Invariant basis:* this has to be computed as on the simplex: the Reynolds projection of an
-  orthonormal pyramid basis, block by block in degree, checked against its Molien series.
-  Options for the basis are the rational Bergot–Cohen–Duruflé functions or a polynomial basis
-  that is exact on the pyramid's polynomial space.
-
-**Both** also need:
-- first rules from multistart at low degree, as `generate_box_seeds.jl` does;
-- a refinement function (Gauss–Newton with the precision floor of `refine_seed`);
-- a seed table with provenance.
-
-This search then extends them.
+The engine needs nothing new: a domain needs only an adapter in `domains.jl` over the
+package's orbit machinery for it (orbit types, moment system, fit, moves, grow → eliminate,
+margins, refinement) and a seed table in `src/data` to start from.
 
 ## Notes
 
