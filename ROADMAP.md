@@ -548,7 +548,13 @@ gaining enough breadth for the selector to be genuinely discriminating.
       on all five geometries tried, often by orders of magnitude, since the Gauss rule of
       `1/√q` already integrates the regular terms `P √q` with geometric convergence. Not
       committed; `DuffyGauss` with `φ e^{ikr}` as the integrand serves the weakly singular
-      Helmholtz kernel (notes/singular-bem.md, "Stage 2, measured"). Next: Galerkin pairs)*
+      Helmholtz kernel (notes/singular-bem.md, "Stage 2, measured").
+      **Galerkin pairs: delegated.** SauterSchwabQuadrature.jl takes its one-dimensional rule
+      as an argument and computes in its arithmetic: with this package's Gauss–Legendre rules
+      at 60 digits the common-face Laplace integral reaches the closed form to 6e-33 at 40
+      points per axis, and the common edge and vertex converge as fast in the vertex order it
+      expects. Documented in the catalogue and tested; no pair rules of our own. Next:
+      strongly singular and hypersingular kernels — principal values and finite parts)*
 
 **Removed in this stage**
 

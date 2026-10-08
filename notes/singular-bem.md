@@ -199,6 +199,15 @@ of it: `estimate_cond` indexed past
    independent reference (polar coordinates about `x₀`, as in the spike). API to decide.
 2. ~~The Helmholtz-ready generalised Gaussian rule in the collapsed direction~~: built,
    measured, not needed (above).
+   *Stage 4 (Galerkin pairs), 2026-10-08: delegated.* SauterSchwabQuadrature.jl takes its
+   one-dimensional rule as a vector of `(x, w)` and computes in its arithmetic; fed this
+   package's Gauss–Legendre rules on `[0, 1]` at 60 digits, the common-face Laplace integral
+   converges geometrically to the closed form `(4A²/3) Σ (1/a) ln(((a+b)² − c²)/(b² − (c−a)²))`
+   — 4e-5, 1e-9, 1e-17, 6e-33 at 5, 10, 20, 40 points per axis, `6n⁴` evaluations, 90 s at 40.
+   Common edge and common vertex converge as fast with the vertices in the order it expects
+   (a common vertex first in both triangles; a common edge at positions 1 and 3 of both, in
+   the same order), algebraically otherwise. Documented in the catalogue and tested
+   (`test/test_galerkin.jl`); no pair rules of our own.
 3. Near-singular collocation.
 4. Galerkin pairs: interop with SauterSchwabQuadrature.jl, or own pair rules.
 5. Strongly singular and hypersingular kernels.

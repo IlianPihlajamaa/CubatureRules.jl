@@ -14,6 +14,7 @@ const CR = CubatureRules
     @testset "weights given as functions" include("test_stieltjes.jl")
     @testset "principal values and finite parts" include("test_kernel.jl")
     @testset "the kernel 1/|y − x₀| on triangles" include("test_inverse_distance.jl")
+    @testset "Galerkin pairs through SauterSchwabQuadrature.jl" include("test_galerkin.jl")
     @testset "oscillatory weights" include("test_oscillatory.jl")
     @testset "wedges and pyramids" include("test_wedge_pyramid.jl")
     @testset "fully symmetric square and cube rules" include("test_box_symmetric.jl")
