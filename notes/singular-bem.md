@@ -126,7 +126,7 @@ terms.
    That has to be checked: a combination `P + Q/√q` vanishes where `P² q = Q²`, a polynomial
    of degree `2n`, one more zero than the Haar condition allows. If it fails, node
    elimination from a larger rule (Bremer–Gimbutas–Rokhlin) still works, with a few more
-   nodes.
+   nodes. *Built and measured, 2026-10-08, and not shipped: see "Stage 2, measured" below.*
 2. **Near-singular collocation.** With `x₀` at height `h` above the plane of `T` and its
    projection `x₀'` taken as the Duffy apex (with signed sub-triangles when `x₀'` is outside
    `T`), `|y − x₀|² = s² q(t) + h²`. For each `t` the weight `s / √(q(t) s² + h²)` is known in
@@ -147,12 +147,58 @@ terms.
 5. **Curved elements** follow Montanelli–Aussal–Haddar (locate the preimage of `x₀` by Newton,
    then the same constructions in the parameter domain). Later.
 
+## Stage 2, measured: the Helmholtz-ready rule does not pay
+
+The claim that fits is graded: exact on polynomials of degree `≤ d` in `y` and `r`, that is
+on `p/r` and `q` with `deg p ≤ d`, `deg q ≤ d − 1` (`r²` being a polynomial). In the collapsed
+direction that asks for exactness on `tᵏ` (`k ≤ d`) and `tᵏ √q(t)` (`k ≤ d − 1`) against
+`1/√q`, `2d + 1` functions; the radial direction is unchanged.
+
+*Existence and construction.* Newton on `d + 1` nodes from the Gauss rule of `1/√q`, in
+BigFloat with a rank-revealing solve, converges on thin sub-triangles at every degree tried
+(to 30) and on fat ones only at low degree: from degree 6 on a right or equilateral corner,
+10–12 on obtuse ones. Two causes. Where `√q` is close to a polynomial the two families are
+nearly dependent (singular values to 1e-15 at degree 12); and on a sub-triangle symmetric
+about its apex the symmetric solutions are overdetermined at even `d`, so Newton started from
+a symmetric rule meets a singular Jacobian. Rules of `d + 1` nodes do exist there: the
+sinh-substituted grid of `DuffyGauss` is a positive rule on which both families are entire;
+corrected to exactness and reduced by Carathéodory's construction it gives a positive rule on
+at most `2d + 1` nodes (non-negative least squares stalled, the columns being dependent to
+1e-15), and node elimination with the nodes free takes it to `d + 1` on most fat
+sub-triangles. A family built this way (`DuffyDistance`, Newton first, then grid →
+Carathéodory → elimination) verified exact and sharp at degrees 0–12 with `x₀` at vertices,
+on edges, inside, and on a triangle in space, against Dubiner polynomials and `r` times
+them, integrated in polar coordinates. It has about twice the points of `DuffyGauss` at the
+same degree and takes 5–45 s from degree 9.
+
+*What it buys.* Nothing, measured on `∫ φ(y) cos(5r)/r dy`, `φ` a bilinear polynomial,
+against the polar-coordinate reference, at about equal point counts:
+
+| geometry | `DuffyDistance` | `DuffyGauss` |
+|---|---|---|
+| right triangle, `x₀` at the right angle | 9.8e-8 (60 points) | 4.0e-10 (64) |
+| `x₀` on an edge, 1/100 from a vertex | 1.4e-11 (287) | 2.4e-18 (288) |
+| `x₀` inside, 1/100 from an edge | 2.4e-6 (155) | 1.5e-9 (147) |
+| `x₀` at a 170° vertex | 1.8e-7 (50) | 2.4e-7 (49) |
+| `x₀` inside, near the middle | 4.2e-12 (301) | 4.5e-14 (300) |
+
+The polynomial terms of the Helmholtz series become `P √q` in the collapsed direction, and
+`√q` is analytic on `[0, 1]`: the `m`-point Gauss rule of `1/√q` integrates them with
+geometric convergence, and where `√q` is far from a polynomial (a thin sub-triangle) that
+sub-triangle carries little of the regular part. Exactness on them costs twice the nodes in
+the collapsed direction, which `DuffyGauss` spends more profitably on degree. So the weakly
+singular Helmholtz kernel on flat triangles is served by `DuffyGauss` with `φ e^{ikr}` as the
+integrand, converging geometrically; the generalised rule was not committed. One fix came out
+of it: `estimate_cond` indexed past
+`R` for an ill-conditioned underdetermined BigFloat Jacobian.
+
 ## Stages
 
 1. Weakly singular collocation on flat triangles: `x₀` at a vertex, on an edge, inside.
    Rules with a `PolynomialDegree` claim on the kernel-weighted triangle, verified against an
    independent reference (polar coordinates about `x₀`, as in the spike). API to decide.
-2. The Helmholtz-ready generalised Gaussian rule in the collapsed direction (`SpanOf`).
+2. ~~The Helmholtz-ready generalised Gaussian rule in the collapsed direction~~: built,
+   measured, not needed (above).
 3. Near-singular collocation.
 4. Galerkin pairs: interop with SauterSchwabQuadrature.jl, or own pair rules.
 5. Strongly singular and hypersingular kernels.

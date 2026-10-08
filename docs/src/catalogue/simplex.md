@@ -157,6 +157,24 @@ rule of degree 40 integrates `1/|y − x₀|` itself with a relative error of 9e
 of this family integrates `f(y)/|y − x₀|` exactly for every polynomial `f` of its degree —
 36 points for degree 11 (`notes/singular-bem.md`).
 
+The Helmholtz kernel `e^{ikr}/r`, `r = |y − x₀|`, needs no other rule: integrate `f(y) e^{ikr}`
+with the weight `1/r`. Its Taylor series in `r` has, besides the terms `p/r` the rule is exact
+on, polynomial terms, which the Gauss rule of `1/√q` integrates with geometric convergence
+since `√q` is analytic. With `x₀` at the right angle of the unit triangle the reference is
+`∫₀^{π/2} sin(k R(θ))/k dθ`, `R(θ) = 1/(cos θ + sin θ)`, in polar coordinates:
+
+```@example simplex
+k = 5
+dom = WeightedDomain(Simplex((0, 0), (1, 0), (0, 1)), InverseDistance((0, 0)))
+θr = rule(Interval(0, π / 2); degree = 99)
+ref = sum(w * sin(k / (cos(θ[1]) + sin(θ[1]))) / k for (θ, w) in zip(nodes(θr), weights(θr)))
+[(d, npoints(rule(dom; degree = d)), abs(integrate(y -> cos(k * hypot(y...)), rule(dom; degree = d)) - ref))
+ for d in (5, 9, 13, 17, 21)]
+```
+
+A rule exact on the polynomial terms as well was built and measured, and did worse at equal
+point count on every geometry tried (`notes/singular-bem.md`).
+
 `check` verifies these rules against the orthonormal Dubiner polynomials of the triangle,
 whose integrals with the kernel it computes independently, in polar coordinates about `x₀`.
 

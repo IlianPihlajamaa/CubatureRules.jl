@@ -47,9 +47,11 @@ function estimate_cond(J::AbstractMatrix)
     κ = iszero(σ[end]) ? Inf : σ[1] / σ[end]
     if !(κ < 1e12) && !(eltype(J) <: Float64)
         # R of a pivoted QR has the singular values of J; iterating on it costs O(n²) a step,
-        # where a BigFloat SVD cost O(n³) and was most of a large Lebedev build
+        # where a BigFloat SVD cost O(n³) and was most of a large Lebedev build. An
+        # underdetermined J is factored transposed, which has the same singular values and
+        # a square R.
         κ = with_bits(256) do
-            triangular_cond_mp(pivoted_qr_mp(J)[1])
+            triangular_cond_mp(pivoted_qr_mp(size(J, 1) < size(J, 2) ? permutedims(J) : J)[1])
         end
     end
     return κ
@@ -385,7 +387,7 @@ The estimates converge from below, so after a fixed number of steps the result i
 bound, in practice within a small factor, which is what choosing guard digits needs.
 """
 function triangular_cond_mp(R::AbstractMatrix; iterations::Int = 12)
-    n = size(R, 2)
+    n = min(size(R)...)
     any(i -> iszero(R[i, i]), 1:n) && return Inf
     U = UpperTriangular(R[1:n, 1:n])
     start() = [BigFloat(1) + BigFloat(i) / (2n) for i in 1:n]      # fixed, so deterministic

@@ -30,6 +30,12 @@ end
     _, κs, ranks = setprecision(() -> CR.lsq_step(Js, BigFloat[1, 2]; rank_rtol = big(2.0)^-100), 256)
     @test ranks == 1
     @test κs > 1e20
+    # the condition number of an ill-conditioned underdetermined Jacobian in extended precision
+    # (more unknowns than equations, as when refitting a rule with spare nodes): estimated
+    # from the transpose, which has the same singular values; it indexed past R's rows before
+    Jw = setprecision(() -> BigFloat[1 0 1; 0 big(10.0)^-14 0], 256)
+    @test 1e13 < CR.estimate_cond(Jw) < 1e15
+    @test CR.estimate_cond(permutedims(Jw)) ≈ CR.estimate_cond(Jw) rtol = 1e-3
 end
 
 @testset "guard digits from the measured condition number" begin

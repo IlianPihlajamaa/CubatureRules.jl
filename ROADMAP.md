@@ -539,8 +539,16 @@ gaining enough breadth for the selector to be genuinely discriminating.
       every polynomial of the degree agree between two resolutions. Exact to working
       precision; from 1 down to 1e-8 above a triangle the degree-9 rule has the same size,
       and builds in about 0.35 s. `check` computes its references in polar coordinates
-      about the nearest point, with a sinh substitution along each ray. Next: the
-      generalised Gaussian rule for Helmholtz)*
+      about the nearest point, with a sinh substitution along each ray.
+      **Helmholtz: measured, nothing to build.** A rule exact on polynomials in `y` and
+      `|y − x₀|` was built (`2d + 1` functions in the collapsed direction, which are not a
+      Chebyshev system: Newton where it converges, else the discretisation reduced by
+      Carathéodory's construction and thinned by node elimination) and verified to degree
+      12; but on `φ(y) cos(5r)/r` `DuffyGauss` was as accurate or more at equal point count
+      on all five geometries tried, often by orders of magnitude, since the Gauss rule of
+      `1/√q` already integrates the regular terms `P √q` with geometric convergence. Not
+      committed; `DuffyGauss` with `φ e^{ikr}` as the integrand serves the weakly singular
+      Helmholtz kernel (notes/singular-bem.md, "Stage 2, measured"). Next: Galerkin pairs)*
 
 **Removed in this stage**
 
