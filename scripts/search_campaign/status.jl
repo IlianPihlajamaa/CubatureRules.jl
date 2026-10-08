@@ -9,6 +9,7 @@ using TOML, Printf
 
 const PKG = normpath(joinpath(@__DIR__, "..", ".."))
 const FILES = Dict("triangle" => "triangle_s3_seeds.toml", "tetrahedron" => "tetrahedron_s4_seeds.toml",
+                   "sphere" => "lebedev_seeds.toml",
                    "square" => "square_d4_seeds.toml", "cube" => "cube_oh_seeds.toml")
 
 function status(root)

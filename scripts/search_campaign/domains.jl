@@ -3,7 +3,8 @@
 # wrapper over machinery the package already has.
 #
 #     table_file(d)            shipped seed table, in src/data
-#     degree_step(d)           1 on simplices; 2 on boxes, whose rules have odd degree only
+#     degree_step(d)           1 on simplices; 2 on boxes and the sphere, whose rules have odd
+#                              degree only
 #     n_equations(d, n)        invariant moment equations at degree n
 #     structure(d, mults)      orbit structure from the table's `structure` field, and back
 #     orbit_mults(d, s)
@@ -119,5 +120,92 @@ entry(d::BoxDomain, n, s, θr, cond, note) =
     Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => orbit_mults(d, s),
                      "seed" => θr, "status" => "ok", "note" => note)
 
+# --- the sphere: O_h-symmetric (Lebedev-type) rules ------------------------------------------
+
+struct SphereDomain <: CampaignDomain end
+
+const _OCT_KINDS = (:a1, :a2, :a3, :b, :c, :d)
+
+table_file(::SphereDomain) = "lebedev_seeds.toml"
+degree_step(::SphereDomain) = 2
+n_equations(::SphereDomain, n) = length(CR.invariant_exponents(n))
+structure(::SphereDomain, kinds) = CR.OctahedralStructure(Symbol.(kinds))
+orbit_mults(::SphereDomain, s) = [String(o.kind) for o in s.orbits]
+family(::SphereDomain, s) = Tuple(count(o -> o.kind === k, s.orbits) for k in _OCT_KINDS)
+
+# The fit works in the orthonormal invariant harmonics, not in p₄ᵃp₆ᵇ as the package's
+# fit_octahedral does: in Float64 the monomial system is hopeless above degree 17 (condition
+# number 6e5 at the degree-17 rule, 1e19 one orbit later, 1e48 at degree 133), the harmonic
+# one is not (23 and 2.6e3).
+function fit(::SphereDomain, s, θ0, n)
+    sys = CR.OctahedralHarmonicSystem(s, n, Float64)
+    θ, nr = CR.levenberg_marquardt(sys, θ0; maxiter = 400, tol = 1e-13, accept = x -> CR.octahedral_margins(s, x)[2] > -0.02)
+    nr <= 1e-10 || return nothing
+    res = CR.gauss_newton(sys, θ; step_tol = 1e-15, res_floor = 1e-13, rank_rtol = 1e-13, maxiter = 10)
+    res.residual <= 1e-12 || return nothing
+    wmin, dmin = CR.octahedral_margins(s, res.θ)
+    (wmin > 0 && dmin > 1e-6 && CR.node_separation(s, res.θ) > 1e-6) || return nothing
+    return s, CR.canonical_octahedral(s, res.θ)
+end
+system(::SphereDomain, s, n) = CR.OctahedralHarmonicSystem(s, n, Float64)
+weight_indices(::SphereDomain, s) = [off + 1 for off in CR.param_offsets(s)]
+inside(::SphereDomain, s, θ) = CR.octahedral_margins(s, θ)[2] > -0.02
+moves(::SphereDomain, s, θ) = [(mv.structure, mv.θ0, mv.removed, 0.0, mv.what) for mv in CR.octahedral_elimination_moves(s, θ)]
+
+general_orbit(::SphereDomain) = CR.OctahedralOrbit(:d)
+small_orbits(::SphereDomain) = [CR.OctahedralOrbit(:b), CR.OctahedralOrbit(:c)]   # a₁, a₂, a₃ occur at most once
+volume(::SphereDomain) = 4π
+random_orbit(::SphereDomain, o, rng) = (o.kind, CR.random_octahedral_parameters(rng, CR.OctahedralStructure([o.kind]), 1.0))
+# New orbits start at half the rule's mean weight, as in the package's grow_octahedral: sphere
+# degrees step by two, and an orbit carrying a token weight cannot absorb the gap.
+function with_orbits(::SphereDomain, s, θ, new)
+    w = 0.5 * 4π / CR.npoints(s)
+    return CR.from_octahedral_blocks(vcat(CR.octahedral_blocks(s, θ), [(k, vcat(w, p[2:end])) for (k, p) in new]))
+end
+margin(::SphereDomain, s, θ) = CR.octahedral_margins(s, θ)
+# A grow → eliminate chain with the fit above (the package's grow_and_eliminate_octahedral uses
+# the monomial fit). Growth always adds a d orbit: from degree 18 on every exact rule needs one,
+# since the square of the product of the nine mirror planes' linear forms is an invariant of
+# degree 18 that vanishes, with its gradient, at every point of every other orbit type, and has
+# a positive integral.
+function chain(d::SphereDomain, s, θ, n, seed)
+    rng = MersenneTwister(seed)
+    m = n_equations(d, n)
+    g = nothing
+    for _ in 1:16
+        new = [random_orbit(d, general_orbit(d), rng)]
+        u = CR.nunknowns(s) + CR.nunknowns(general_orbit(d))
+        while u < m
+            o = rand(rng, small_orbits(d))
+            push!(new, random_orbit(d, o, rng)); u += CR.nunknowns(o)
+        end
+        g = fit(d, with_orbits(d, s, θ, new)..., n)
+        g === nothing || break
+    end
+    g === nothing && return nothing
+    s, θ = g
+    while true                           # eliminate: most points first, random among equals
+        mvs = sort!(filter(mv -> CR.nunknowns(mv[1]) >= m, moves(d, s, θ)); by = mv -> (-mv[3], rand(rng)))
+        r = nothing
+        for mv in mvs
+            r = fit(d, mv[1], mv[2], n)
+            r === nothing || break
+        end
+        r === nothing && return s, θ
+        s, θ = r
+    end
+end
+
+function refine(::SphereDomain, s, n, θ64)
+    θ, res, _ = CR.refine_octahedral(s, n, θ64, BITS)
+    return Float64.(θ), res.converged, res.cond
+end
+function entry(d::SphereDomain, n, s, θr, cond, note)
+    wmin, dmin = CR.octahedral_margins(s, θr)
+    return Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => orbit_mults(d, s),
+                            "seed" => θr, "status" => "ok", "note" => note, "method" => "pooled search",
+                            "min_weight" => wmin, "min_margin" => dmin, "cond" => cond)
+end
+
 const DOMAINS = Dict("triangle" => SimplexDomain(3), "tetrahedron" => SimplexDomain(4),
-                     "square" => BoxDomain(2), "cube" => BoxDomain(3))
+                     "square" => BoxDomain(2), "cube" => BoxDomain(3), "sphere" => SphereDomain())

@@ -2,13 +2,15 @@
 #
 #     julia --project --heap-size-hint=2G scripts/search_campaign/campaign.jl DOMAIN [options]
 #
-# DOMAIN is triangle, tetrahedron, square or cube. Options:
+# DOMAIN is triangle, tetrahedron, square, cube or sphere. Options:
 #     --root DIR        campaign directory, shared by all workers (default campaign/pooled)
 #     --worker K        worker number, for file names, logs and the random stream (default 1)
 #     --mode M          extend (default): work at one degree step above the best table, until
 #                       --max-degree; then, and with improve, at a degree between --from and --to
 #                       (default: the top four degrees of the best table)
-#     --from N --to N   degree range for improve
+#     --from N --to N   degree range for improve and fill
+#                       (fill: work upwards through a gap in the table, from --from to --to,
+#                       each degree grown from the one below; once it is closed, improve there)
 #     --max-degree N
 #     --blind N         ignore shipped entries at degree N and above (to time a rediscovery)
 #     --hours H         wall-clock limit (default: none; a file named STOP in the root, or in

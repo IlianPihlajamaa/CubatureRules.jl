@@ -409,6 +409,15 @@ function target_degree(w, mode, lo, hi, maxdeg)
     best = refresh_best!(w)
     top = maximum(keys(best))
     step = degree_step(w.d)
+    if mode == "fill"                    # close a gap in the table, from --from up to --to
+        lo_ = something(lo, minimum(keys(best)))
+        hi_ = something(hi, top)
+        for n in lo_:step:hi_
+            haskey(best, n) || return n  # the lowest missing degree, grown from the one below
+            get(w.excess, n, 0) > FINISH_EXCESS && get(w.worked, (n, best[n]), 0.0) < 3600PATIENCE && return n
+        end
+        return rand(w.rng, lo_:step:hi_) # the gap is closed: improve within it
+    end
     if mode == "extend"
         for n in (w.shipped_top + step):step:top
             haskey(best, n) || continue

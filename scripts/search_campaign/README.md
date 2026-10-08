@@ -1,7 +1,7 @@
 # Pooled search for fully symmetric rules
 
-A long-running search for new and smaller seeded rules on the triangle, tetrahedron, square
-and cube. Many single-threaded workers share one pool of exact rules on disk, instead of each
+A long-running search for new and smaller seeded rules on the triangle, tetrahedron, square,
+cube and sphere. Many single-threaded workers share one pool of exact rules on disk, instead of each
 running its own chains of eliminations. This follows the procedure that took the octahedral
 sphere rules from degree 191 to 201, generalized to any domain with an adapter.
 
@@ -39,6 +39,10 @@ julia --project --heap-size-hint=2G scripts/search_campaign/campaign.jl triangle
   but with 673 points at degree 58 against 576 at degree 57.
 - `improve` works at degrees between `--from` and `--to` (default: the top four of the best
   table), looking for rules with fewer points.
+- `fill` closes a gap in a table, working upwards from `--from` to `--to`: at the lowest
+  missing degree (grown from the one below) or the lowest unsettled one, as extend does; once
+  the gap is closed, it improves within it. It is what the sphere uses for degrees 19–131 (see
+  [The sphere](#the-sphere)).
 - `--blind N` makes a worker ignore the shipped entries from degree `N` up. That's how the
   benchmarks below time a rediscovery.
 
@@ -224,7 +228,7 @@ campaign/pooled/
 |---|---|
 | `campaign.jl` | one worker: options, then `run_worker` |
 | `engine.jl` | the pool, the five tasks, the positive-weight solve, candidates |
-| `domains.jl` | one adapter per domain, over the package's orbit machinery |
+| `domains.jl` | one adapter per domain (triangle, tetrahedron, square, cube, sphere), over the package's orbit machinery |
 | `launch.jl`, `status.jl` | start workers; summarise a campaign |
 
 The engine is domain-independent. Each domain is an adapter in `domains.jl` of about 35 lines,
@@ -236,6 +240,39 @@ covering:
 - the orbit-type counts used for balancing;
 - wrappers for the package's fit, moment system, moves, orbit growth, chain, margins and
   100-digit refinement.
+
+## The sphere
+
+The package's own O_h-symmetric sphere rules stop at degree 17 and resume at 133: Lebedev's
+published rules cover the degrees between, but only through Lebedev.jl, whose licence the
+package cannot pass on. Everything from 19 to 131 was answered by the 6000-point degree-133
+rule. `sphere:fill:1:19-131` grows in-house rules through that gap from the degree-17 rule.
+
+Two things had kept the package's own search (`grow_and_eliminate_octahedral`) at degree 17,
+where `notes/v0.4-spheres.md` records a stall at degree 19 with a residual near 3e-6:
+
+- **The fit was ill-conditioned.** `fit_octahedral` solves the moment equations in the
+  invariants p₄ᵃp₆ᵇ, whose Jacobian has condition number 6e5 at the degree-17 rule, about 1e19
+  one orbit later and 1e48 at degree 133. Float64 cannot solve that. In the orthonormal
+  invariant harmonics (`OctahedralHarmonicSystem`, which the 100-digit refinement already uses)
+  it is 23 at degree 17 and 2.6e3 at degree 133. The sphere adapter fits in those.
+- **Every rule of degree 18 or more needs a d orbit**, the only kind with points off the nine
+  mirror planes of O_h. The product of the planes' linear forms, xyz(x²−y²)(y²−z²)(z²−x²), has
+  degree 9 and changes sign under the group; its square is an invariant of degree 18 that is
+  zero, with zero gradient, at every point of every other orbit kind, and has a positive
+  integral, so no rule without a d orbit can integrate it. From the degree-17 rule, every
+  growth without a d orbit stalls at the same residual (2.2 in the harmonics) and every one with
+  it can converge. Lebedev's 146-point degree-19 rule is a₁, a₂, a₃, three 24-point orbits and
+  one d orbit. The adapter's chain always adds a d orbit first.
+
+A first 15-minute run from degree 17 reached degree 77, matching Lebedev's counts at degrees
+19, 21 and 23 (146, 170 and 194 points) and 2–16% above them higher up, where the fill mode had
+moved on as soon as each degree was near square:
+
+| Degree | 19 | 21 | 23 | 25 | 31 | 41 | 53 | 65 | 77 |
+|---|---|---|---|---|---|---|---|---|---|
+| Found | 146 | 170 | 194 | 266 | 362 | 638 | 1034 | 1518 | 2094 |
+| Lebedev | 146 | 170 | 194 | 230 | 350 | 590 | 974 | 1454 | 2030 |
 
 ## Extending it to wedges and pyramids
 
