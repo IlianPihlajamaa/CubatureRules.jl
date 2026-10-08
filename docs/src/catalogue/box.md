@@ -61,6 +61,17 @@ to 75 on the square and 41 on the cube; there the counts are the smallest the se
 reached, not proven minima. Only odd degrees are tabulated: every orbit is centrally
 symmetric, so a rule of degree `2k` is one of degree `2k + 1`.
 
+The same orbits and moment system work in any dimension, and the 4-cube, the domain of
+space–time elements over hexahedra, has a table as well (384 symmetries). There the saving
+over the tensor rule is larger still:
+
+```@example box
+top4 = last(CubatureRules.degree_range(FullySymmetric(), Orthotope{4}()))
+[(d, npoints(rule(FullySymmetric(), Orthotope{4}(); degree = d)), cld(d + 1, 2)^4) for d in 1:2:top4]
+```
+
+(degree, fully symmetric points, tensor Gauss points).
+
 ## Tensor product
 
 ```@docs

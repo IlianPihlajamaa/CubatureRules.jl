@@ -23,14 +23,21 @@ Seeded: available at the degrees in the shipped seed tables.
 - On the tetrahedron (`Simplex{3}()`), the 24 permutations of the barycentric coordinates
   (`S₄`). Point counts agree with Witherden & Vincent (2015) for degrees 1–10 and are smaller
   than Zhang, Cui & Liu (2009) at degrees 7, 9 and 11–14.
-- On the square and the cube (`Orthotope{2}()`, `Orthotope{3}()`), the 8 or 48 signed
-  permutations of the coordinates. At the same total degree they need far fewer points than
-  the tensor Gauss rule, most of all on the cube; the tensor rule remains the one for
-  tensor-product (`Q_k`) integrands, which it integrates exactly with fewer points.
+- On the 4-simplex (`Simplex{4}()`), the 120 permutations of the barycentric coordinates
+  (`S₅`).
+- On the square, the cube and the 4-cube (`Orthotope{D}()`, `D = 2, 3, 4`), the 8, 48 or 384
+  signed permutations of the coordinates. At the same total degree they need far fewer
+  points than the tensor Gauss rule, the more so the higher the dimension; the tensor rule
+  remains the one for tensor-product (`Q_k`) integrands, which it integrates exactly with
+  fewer points.
+- On the disk and the ball (`Disk()`, `Ball{3}()`), the same signed permutations, 8 or 48.
+- On the pyramid (`Pyramid()`), the 8 symmetries of its square base (`C₄ᵥ`).
+- On the wedge (`Wedge()`), the permutations of the triangle's barycentric coordinates and
+  the reflection `z ↦ −z`, 12 in all (`D₃ₕ`).
 
 Point counts are the smallest found by the in-house search, not proven minima. Keyword
-`seed` of [`rule`](@ref) selects the seed source on the tetrahedron, as for
-[`XiaoGimbutas`](@ref).
+`seed` of [`rule`](@ref) selects the seed source on the tetrahedron and the 4-simplex, as
+for [`XiaoGimbutas`](@ref).
 """
 struct FullySymmetric <: RuleFamily end
 
@@ -47,40 +54,49 @@ const ZHANG_CUI_LIU_2009 = Citation(
     journal = "Journal of Computational Mathematics", year = 2009, volume = "27", pages = "89--96")
 
 const TETRAHEDRON_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "tetrahedron_s4_seeds.toml")
+const SIMPLEX4_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "simplex4_s5_seeds.toml")
 isfile(TETRAHEDRON_SEED_FILE) && include_dependency(TETRAHEDRON_SEED_FILE)
+isfile(SIMPLEX4_SEED_FILE) && include_dependency(SIMPLEX4_SEED_FILE)
 const TETRAHEDRON_SEEDS = load_symmetric_seeds(TETRAHEDRON_SEED_FILE, 4)
+const SIMPLEX4_SEEDS = load_symmetric_seeds(SIMPLEX4_SEED_FILE, 5)
 
-tet_entries() = filter(e -> e.status == "ok", TETRAHEDRON_SEEDS)
+simplex_entries(D::Integer) = filter(e -> e.status == "ok", D == 3 ? TETRAHEDRON_SEEDS : D == 4 ? SIMPLEX4_SEEDS :
+                                                          empty(TETRAHEDRON_SEEDS))
+tet_entries() = simplex_entries(3)
 tet_entry_for(degree::Integer) = seed_entry_for(tet_entries(), degree)
+simplex_table(D) = D == 3 ? "src/data/tetrahedron_s4_seeds.toml" : "src/data/simplex4_s5_seeds.toml"
 
-function candidates(::Type{FullySymmetric}, dom::Simplex{3}, c::PolynomialDegree)
-    (isreference(dom) && tet_entry_for(c.d) !== nothing) || return FullySymmetric[]
+function candidates(::Type{FullySymmetric}, dom::Simplex{D}, c::PolynomialDegree) where {D}
+    (D in (3, 4) && isreference(dom) && seed_entry_for(simplex_entries(D), c.d) !== nothing) || return FullySymmetric[]
     return [FullySymmetric()]
 end
 
-function _tet_entry(degree)
-    e = tet_entry_for(degree)
-    e === nothing && throw(ArgumentError("no FullySymmetric tetrahedron seed covers degree $degree " *
-                                         "(shipped range $(degree_range(FullySymmetric(), Simplex{3}())))"))
+function _simplex_entry(D, degree)
+    e = seed_entry_for(simplex_entries(D), degree)
+    e === nothing && throw(ArgumentError("no FullySymmetric seed on the $(D)-simplex covers degree $degree " *
+                                         "(shipped range $(degree_range(FullySymmetric(), Simplex{D}())))"))
     return e
 end
 
-npoints(::FullySymmetric, dom, degree::Integer) = _tet_entry(degree).npoints
-claimed_degree(::FullySymmetric, dom, degree) = _tet_entry(degree).degree
-function degree_range(::FullySymmetric, dom::Simplex{3})
-    es = tet_entries()
+npoints(::FullySymmetric, ::Simplex{D}, degree::Integer) where {D} = _simplex_entry(D, degree).npoints
+claimed_degree(::FullySymmetric, ::Simplex{D}, degree) where {D} = _simplex_entry(D, degree).degree
+function degree_range(::FullySymmetric, ::Simplex{D}) where {D}
+    es = simplex_entries(D)
     isempty(es) ? (1:0) : (0:maximum(e -> e.degree, es))
 end
 degree_range(::FullySymmetric, dom) = 1:0
-properties(::FullySymmetric, dom, degree) = (positive = true, interior = true, symmetry = :S4, nested = false)
-cost_estimate(f::FullySymmetric, dom, degree, T) =
-    float(npoints(f, dom, degree)) * tet_length(claimed_degree(f, dom, degree)) / 10 * _precision_factor(T)
+properties(::FullySymmetric, ::Simplex{D}, degree) where {D} =
+    (positive = true, interior = true, symmetry = Symbol("S", D + 1), nested = false)
+cost_estimate(f::FullySymmetric, dom::Simplex{D}, degree, T) where {D} =
+    float(npoints(f, dom, degree)) * simplex_basis_length(D, claimed_degree(f, dom, degree)) / 10 * _precision_factor(T)
 
-function build(f::FullySymmetric, dom::Simplex{3}, degree::Int, ctx::BuildContext; seed::SeedSource = TableSeed())
-    e = _tet_entry(degree)
-    return build_symmetric("FullySymmetric", e, ctx; seed, lower = seed_entry_below(tet_entries(), e.degree),
-                           table = "src/data/tetrahedron_s4_seeds.toml",
-                           citations = [WITHERDEN_VINCENT_2015, ZHANG_CUI_LIU_2009],
-                           license = "MIT (seeds and point counts generated in-house; the citations are the " *
-                                     "published rules of the same class, for comparison, not a source)")
+function build(f::FullySymmetric, dom::Simplex{D}, degree::Int, ctx::BuildContext;
+               seed::SeedSource = TableSeed()) where {D}
+    e = _simplex_entry(D, degree)
+    return build_symmetric("FullySymmetric", e, ctx; seed, lower = seed_entry_below(simplex_entries(D), e.degree),
+                           table = simplex_table(D),
+                           citations = D == 3 ? [WITHERDEN_VINCENT_2015, ZHANG_CUI_LIU_2009] : Citation[],
+                           license = D == 3 ? "MIT (seeds and point counts generated in-house; the citations are " *
+                                              "the published rules of the same class, for comparison, not a source)" :
+                                              "MIT (seeds and point counts generated in-house)")
 end

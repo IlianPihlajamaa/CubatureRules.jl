@@ -611,7 +611,7 @@ them.
       degree 2m − 1. Both at every degree and precision, with mesh integration and
       `map_to`. Verified against an orthonormal Dubiner × Legendre basis on the wedge, and
       on the pyramid against bounding-box Legendre polynomials integrated slice by slice.
-      Symmetric rules with fewer points are not shipped)*
+      Symmetric rules with fewer points followed, below)*
 - [x] Fully symmetric rules on the square and the cube
       *(`FullySymmetric` on `Orthotope{2}()` and `Orthotope{3}()`: positive, interior rules
       invariant under the 8 and 48 signed permutations of the coordinates. The symmetrised
@@ -627,6 +627,32 @@ them.
       degree 29: 1280 against 3375. The selector now prefers them on total degree;
       tensor rules stay the ones for Q_k integrands, and are taken by naming
       `TensorProduct`)*
+- [x] Orbit machinery for the 4-cube, the disk, the ball, the pyramid, the wedge and the
+      4-simplex
+      *(`FullySymmetric` on `Orthotope{4}()`, `Disk()`, `Ball{3}()`, `Pyramid()`, `Wedge()`
+      and `Simplex{4}()`. The 4-cube reuses the box orbits and moment system unchanged (B₄,
+      384 symmetries). The disk and the ball reuse the box orbits with orthonormal invariant
+      polynomials of their own, Zernike on the disk and radial Jacobi × O_h-invariant
+      harmonics on the ball (`RoundMomentSystem`). The pyramid's orbits are square orbits in
+      the collapsed coordinates at a free height (C₄ᵥ, `PyramidMomentSystem`); the wedge's
+      are triangle orbits at z = 0 or ±z (D₃ₕ, `WedgeMomentSystem`, the triangle's
+      invariants times even Legendre polynomials). The 4-simplex uses the simplex machinery
+      with N = 5, on an orthonormal basis built the same way in every dimension and checked
+      against the Molien series. A generic orbit search (refine/orbit_search.jl) serves the
+      pyramid and the wedge. Symmetry checks for B₄, C₄ᵥ and D₃ₕ; exact monomial moments on
+      the wedge and the pyramid. Tables at low degree only, from short runs that check the
+      machinery — 4-cube odd degrees 1–17, disk 1–21, ball 1–13, pyramid 1–9, wedge 1–6,
+      4-simplex 1–6, all certified — to be extended by scripts/generate_box_seeds.jl,
+      generate_orbit_seeds.jl (which takes a degree range and keeps the stored entries
+      outside it) and generate_simplex4_seeds.jl. The wedge agrees with Witherden & Vincent
+      (2015) at every degree 1–6; the pyramid at 1–5 and 8, has 3 points fewer at 9 (59
+      against 62) and 1–2 more at 6 and 7. Growing the 20-point degree-4 rule on the
+      4-simplex failed with only the triangle's and tetrahedron's recipes: with 7
+      equations, fits with a large surplus of unknowns landed outside or on negative
+      weights. Both `grow` and `orbit_grow` now end with single small orbits and one
+      unknown to spare, which grows it to 30 points at degree 5. The exactly determined
+      59-point degree-9 pyramid rule still does not grow to degree 10 by any recipe; that
+      degree needs a multistart or a looser degree-9 rule)*
 - [ ] Stroud $T_n$ in closed form for arbitrary $d$, carried from v0.4. Low priority while
       `ConicalProduct` covers every degree and `GrundmannMöller` is exactly rational: it
       buys smaller point counts at fixed low degree, not new capability

@@ -1,0 +1,57 @@
+# Fully symmetric (S₅), positive-weight, interior rules on the 4-simplex, generated in-house
+# by scripts/generate_simplex4_seeds.jl. `structure` lists the orbits by the multiplicities of
+# their distinct barycentric coordinates; `seed` holds per orbit the weight of each point, then
+# all but the last distinct value.
+#
+# `residual` is the defining-equation residual of the stored seed at `residual_bits`, recorded by
+# scripts/certify_tables.jl, which also checks that each seed is the correctly rounded Float64
+# value of the rule refined to 160 bits.
+
+[[rule]]
+degree = 1
+npoints = 1
+residual = 1.1331166295920986e-17
+residual_bits = 256
+seed = [0.041666666666666664]
+status = "ok"
+structure = [[5]]
+[[rule]]
+degree = 2
+npoints = 5
+residual = 4.024788615675589e-17
+residual_bits = 256
+seed = [0.008333333333333333, 0.1183503419072274]
+status = "ok"
+structure = [[4, 1]]
+[[rule]]
+degree = 3
+npoints = 15
+residual = 1.190647479362453e-17
+residual_bits = 256
+seed = [0.0032979455071595067, 0.08411593573404708, 0.00173744231901432, 0.08660903125849523]
+status = "ok"
+structure = [[3, 2], [4, 1]]
+[[rule]]
+degree = 4
+npoints = 20
+residual = 1.16169174617312e-16
+residual_bits = 256
+seed = [0.0019447406520667352, 0.06557983092771043, 0.001587777060711433, 0.07855056121231264, 0.0028560749684884298, 0.24499231530109108]
+status = "ok"
+structure = [[3, 2], [4, 1], [4, 1]]
+[[rule]]
+degree = 5
+npoints = 30
+residual = 1.6816385745793096e-16
+residual_bits = 256
+seed = [0.0009607122912686698, 0.05016571190651858, 0.0011528402055503968, 0.30692767897255685, 0.0019913376383662753, 0.08461810974865676, 0.0021148907013289245, 0.2375558053703344]
+status = "ok"
+structure = [[3, 2], [3, 2], [4, 1], [4, 1]]
+[[rule]]
+degree = 6
+npoints = 65
+residual = 1.0245236645231864e-16
+residual_bits = 256
+seed = [0.00019015618513962477, 0.0005947866015873159, 0.17360627842744744, 0.0009854596527033384, 0.06173909572512664, 0.0008518057286812703, 0.29855273594351367, 3.861244503855809e-5, 0.013263062156480664, 0.0016677909594709204, 0.1063088219719205, 0.0018114620552168886, 0.240595842978443]
+status = "ok"
+structure = [[2, 2, 1], [3, 2], [3, 2], [4, 1], [4, 1], [4, 1]]

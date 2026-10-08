@@ -56,7 +56,7 @@ example 139 instead of 141 at degree 27 and 412 instead of 423 at degree 48. Deg
 proven minima. Rules with the minimal number of points are not unique; the table contains
 the one with the largest smallest barycentric coordinate among those found.
 
-## Fully symmetric tetrahedron rules
+## Fully symmetric tetrahedron and 4-simplex rules
 
 ```@docs
 FullySymmetric
@@ -66,6 +66,22 @@ Fully symmetric (`S₄`), positive-weight tetrahedron rules with interior nodes.
 triangle rules, these point counts are not taken from a paper: they are the smallest found by
 the package's own search, starting from a number of points below which no fully symmetric
 rule can exist, and they go up to degree 30. They are not proven to be minimal.
+
+On the 4-simplex, the domain of space–time elements over tetrahedra, the same machinery
+gives `S₅`-symmetric rules: orbits are patterns of equal barycentric coordinates, and the
+moment equations are taken in the invariant subspace of an orthonormal basis on the
+4-simplex. That basis is built the same way in every dimension (the Proriol–Koornwinder–
+Dubiner construction, one homogenised Jacobi factor per coordinate), and the invariant
+subspace is checked against the Molien series `Π_{j=2}^{5} 1/(1 − tʲ)`. The shipped table
+covers low degrees only, as a check of the machinery:
+
+```@example simplex
+[(d, npoints(rule(FullySymmetric(), Simplex{4}(); degree = d)), npoints(rule(ConicalProduct(), Simplex{4}(); degree = d)))
+ for d in 1:last(CubatureRules.degree_range(FullySymmetric(), Simplex{4}()))]
+```
+
+(degree, fully symmetric points, conical product points). The seeds are extended by
+`scripts/generate_simplex4_seeds.jl`.
 
 ## Grundmann–Möller
 

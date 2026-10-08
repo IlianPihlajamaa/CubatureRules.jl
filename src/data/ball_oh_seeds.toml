@@ -1,0 +1,71 @@
+# Fully symmetric, positive-weight, interior rules on the unit ball, generated in-house by scripts/generate_box_seeds.jl.
+# `structure` lists the orbits by the sizes of their groups of equal nonzero coordinates;
+# `seed` holds per orbit the weight of each point, then the distinct coordinate values.
+#
+# `residual` is the defining-equation residual of the stored seed at `residual_bits`, recorded by
+# scripts/certify_tables.jl, which also checks that each seed is the correctly rounded Float64
+# value of the rule refined to 160 bits.
+
+[[rule]]
+degree = 1
+note = ""
+npoints = 1
+residual = 2.0952873762132903e-16
+residual_bits = 256
+seed = [4.188790204786391]
+status = "ok"
+structure = [[]]
+[[rule]]
+degree = 3
+note = ""
+npoints = 6
+residual = 3.2985137561465796e-16
+residual_bits = 256
+seed = [0.6981317007977318, 0.7745966692414834]
+status = "ok"
+structure = [[1]]
+[[rule]]
+degree = 5
+note = ""
+npoints = 15
+residual = 3.678247950558958e-16
+residual_bits = 256
+seed = [0.6699618829019224, 0.23938688858755267, 0.8408723097340591, 0.26031337379489405, 0.48961929504857343]
+status = "ok"
+structure = [[], [1], [3]]
+[[rule]]
+degree = 7
+note = ""
+npoints = 32
+residual = 3.737648028637053e-16
+residual_bits = 256
+seed = [0.24099362849430828, 0.5088219505178829, 0.10316473528910089, 0.9193913932091725, 0.15306861348772519, 0.4705802036764667, 0.07494092618201122, 0.6678385748518539]
+status = "ok"
+structure = [[1], [1], [3], [2]]
+[[rule]]
+degree = 9
+note = ""
+npoints = 56
+residual = 9.54008772512177e-16
+residual_bits = 256
+seed = [0.04607910702763872, 0.19914515642478556, 0.08271788636625042, 0.7588797280414737, 0.0819412075627673, 0.5222329678670935, 0.1313058842652348, 0.443993953540409, 0.04936699886408752, 0.8454749367190368, 0.4229882922776677]
+status = "ok"
+structure = [[1], [1], [3], [2], [1, 1]]
+[[rule]]
+degree = 11
+note = ""
+npoints = 99
+residual = 5.986140441234222e-16
+residual_bits = 256
+seed = [0.09316222532603798, 0.07039820760811101, 0.4462561020908725, 0.0651552077931374, 0.43557948331238877, 0.06491831487188411, 0.4003645276963182, 0.05265633499979349, 0.7597846073123663, 0.3202094960823883, 0.014999370820463298, 0.23417664096761887, 0.9236907004449596, 0.031218348054908977, 0.6466465746086915, 0.25938534021598003]
+status = "ok"
+structure = [[], [1], [3], [2], [1, 1], [2, 1], [2, 1]]
+[[rule]]
+degree = 13
+note = ""
+npoints = 149
+residual = 1.1557395062113328e-15
+residual_bits = 256
+seed = [0.08901759705155156, 0.04934555412472183, 0.5922470253014084, 0.023868201260939994, 0.9483569550309351, 0.048844746622012304, 0.4184961055330176, 0.020104537987296448, 0.5453190937145737, 0.06638478995060901, 0.338304149193279, 0.03876505602109011, 0.5693360677259053, 0.04052445957488894, 0.23334928583532433, 0.7382812104744048, 0.014141522056271776, 0.6547082881005583, 0.2357023845826703, 0.011148210161211496, 0.8585309180743681, 0.41569033763657964, 0.16840304246583698]
+status = "ok"
+structure = [[], [1], [1], [3], [3], [2], [2], [2, 1], [2, 1], [1, 1, 1]]

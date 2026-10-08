@@ -1,0 +1,63 @@
+# Fully symmetric, positive-weight, interior rules on the wedge, the triangle (0,0), (1,0), (0,1) times [-1, 1], generated in-house by scripts/generate_orbit_seeds.jl.
+# `structure` lists the orbits by the multiplicities of the triangle orbit's distinct
+# barycentric values, then 0 for an orbit at z = 0 or 2 for the pair ±z; `seed` holds per
+# orbit the weight of each point, the free barycentric values, then z for a pair.
+#
+# `residual` is the defining-equation residual of the stored seed at `residual_bits`, recorded by
+# scripts/certify_tables.jl, which also checks that each seed is the correctly rounded Float64
+# value of the rule refined to 160 bits.
+
+[[rule]]
+degree = 1
+note = ""
+npoints = 1
+residual = 8.636168555094445e-78
+residual_bits = 256
+seed = [1.0]
+status = "ok"
+structure = [[3, 0]]
+[[rule]]
+degree = 2
+note = ""
+npoints = 5
+residual = 1.8675762103403407e-17
+residual_bits = 256
+seed = [0.2157911682987062, 0.8788353988255952, 0.1894725544675292, 0.11227088935462105]
+status = "ok"
+structure = [[3, 2], [2, 1, 0]]
+[[rule]]
+degree = 3
+note = ""
+npoints = 8
+residual = 5.551115123125783e-17
+residual_bits = 256
+seed = [0.17847980784745562, 0.9663397177704431, 0.10717339738418147, 0.030820928464084046, 0.23769406413576602]
+status = "ok"
+structure = [[3, 2], [1, 1, 1, 0]]
+[[rule]]
+degree = 4
+note = ""
+npoints = 11
+residual = 3.171250066127101e-16
+residual_bits = 256
+seed = [0.10791197481553551, 0.8668619740090348, 0.13641461260547763, 0.46865580986199523, 0.062488702092082675, 0.10074040579891064, 0.6756398236822597]
+status = "ok"
+structure = [[3, 2], [2, 1, 0], [2, 1, 2]]
+[[rule]]
+degree = 5
+note = ""
+npoints = 16
+residual = 4.3920824080712566e-16
+residual_bits = 256
+seed = [0.17786388898287173, 0.056177516807066716, 0.48729996455024566, 0.06251857143694849, 0.10085894598270853, 0.5704269807051593, 0.04641535532903954, 0.44559810467037203, 0.871002934865444]
+status = "ok"
+structure = [[3, 0], [2, 1, 0], [2, 1, 2], [2, 1, 2]]
+[[rule]]
+degree = 6
+note = ""
+npoints = 28
+residual = 2.00242475277497e-16
+residual_bits = 256
+seed = [0.0603028607228112, 0.04893693123567847, 0.4724152021308738, 0.02290215450659641, 0.0035405400262217657, 0.2045240834368698, 0.019016445934803183, 0.06422935074257688, 0.7392451658324136, 0.07236942732643692, 0.20823171323135364, 0.6189008844780222, 0.017859696493855725, 0.47635586654278494, 0.9882687278168288]
+status = "ok"
+structure = [[3, 0], [2, 1, 0], [1, 1, 1, 0], [2, 1, 2], [2, 1, 2], [2, 1, 2]]

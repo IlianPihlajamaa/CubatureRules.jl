@@ -150,3 +150,137 @@ checked = """
 scripts/certify_tables.jl, 2026-10-02 (degrees 13-41 on 2026-10-03): every seed is the
 correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
 residual at 256 bits is recorded in the table. scripts/verify_tables.jl at 60 digits."""
+
+[[file]]
+path = "hypercube_b4_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the 4-cube [-1, 1]^4, invariant under its 384 symmetries (the signed
+permutations of the coordinates), at odd degrees 1-17."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_box_seeds.jl (2026-10-08): up to degree 5, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination. A short run that
+checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
+point counts were taken from any publication."""
+license = "MIT"
+retrieved = "2026-10-08"
+citation = "none (generated in-house)"
+generator = "scripts/generate_box_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+
+[[file]]
+path = "disk_d4_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the unit disk, invariant under the 8 symmetries of the square, at odd
+degrees 1-21."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_box_seeds.jl (2026-10-08): up to degree 13, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination. A short run that
+checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
+point counts were taken from any publication."""
+license = "MIT"
+retrieved = "2026-10-08"
+citation = "none (generated in-house)"
+generator = "scripts/generate_box_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+
+[[file]]
+path = "ball_oh_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the unit ball in three dimensions, invariant under the 48 symmetries of
+the cube, at odd degrees 1-13."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_box_seeds.jl (2026-10-08): up to degree 7, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination. A short run that
+checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
+point counts were taken from any publication."""
+license = "MIT"
+retrieved = "2026-10-08"
+citation = "none (generated in-house)"
+generator = "scripts/generate_box_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+
+[[file]]
+path = "pyramid_c4v_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the pyramid with base [-1, 1]^2 at z = 0 and apex (0, 0, 1), invariant
+under the 8 symmetries of its base, at degrees 1-9."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_orbit_seeds.jl (2026-10-08): up to degree 6, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination. A short run that
+checks the machinery, not a campaign. Neither numbers nor point counts were taken from any
+publication. The counts were compared afterwards with Witherden & Vincent (2015), who
+tabulate this class to degree 10: they agree at degrees 1-5 and 8; this table has 1 and 2
+points more at degrees 6 and 7, and 3 fewer at degree 9 (59 against 62)."""
+license = "MIT"
+retrieved = "2026-10-08"
+citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
+generator = "scripts/generate_orbit_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+
+[[file]]
+path = "wedge_d3h_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the wedge, the triangle (0,0), (1,0), (0,1) times [-1, 1], invariant
+under its 12 symmetries, at degrees 1-6."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_orbit_seeds.jl (2026-10-08): a walk upwards in point
+count with random starts on every orbit structure of each count. A short run that checks
+the machinery, not a campaign. Neither numbers nor point counts were taken from any
+publication. The counts were compared afterwards with Witherden & Vincent (2015), who
+tabulate this class to degree 10: they agree at every degree 1-6."""
+license = "MIT"
+retrieved = "2026-10-08"
+citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
+generator = "scripts/generate_orbit_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+
+[[file]]
+path = "simplex4_s5_seeds.toml"
+description = """
+Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
+interior rules on the reference 4-simplex, invariant under the 120 permutations of the
+barycentric coordinates, at degrees 1-6."""
+authors = "CubatureRules.jl contributors"
+source = """
+Generated in-house by scripts/generate_simplex4_seeds.jl (2026-10-08): up to degree 4, a walk
+upwards in point count with random starts on every orbit structure of each count; above it,
+each degree grown from the one below and thinned by node elimination. A short run that
+checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
+point counts were taken from any publication."""
+license = "MIT"
+retrieved = "2026-10-08"
+citation = "none (generated in-house)"
+generator = "scripts/generate_simplex4_seeds.jl"
+checked = """
+scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
+the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
+the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""

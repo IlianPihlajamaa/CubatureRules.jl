@@ -49,8 +49,11 @@ end
     @test npoints(r) == 5 * 38
     @test occursin("Lebedev", CR.describe_family(BallProduct(LebedevRule())))
     @test npoints(r) < npoints(rule(BallProduct(SphereProduct()), Ball{3}(); degree = 9))
-    # the selector ranks the combinations for you
-    @test first(available(Ball{3}(); degree = 9)).family == "BallProduct(Lebedev)"
+    # the selector ranks the combinations for you: Lebedev the best angular factor, and the
+    # fully symmetric rules smaller still
+    avail = available(Ball{3}(); degree = 9)
+    @test first(avail).family == "FullySymmetric"
+    @test first(a.family for a in avail if startswith(a.family, "BallProduct")) == "BallProduct(Lebedev)"
     # the disk
     rd = rule(Disk(); degree = 5)
     @test passed(check(rd))

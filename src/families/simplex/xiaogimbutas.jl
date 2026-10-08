@@ -193,7 +193,7 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
         r, _ = sys(BigFloat.(θhat); jacobian = false)
         maximum(abs, r)
     end
-    group = N == 3 ? "S₃" : "S₄"
+    group = N == 3 ? "S₃" : N == 4 ? "S₄" : "S₅"
     cert = Certificate(equations = "$group-invariant moment system in orbit parameters (orthonormal Dubiner basis, degree $n)",
                        residual = BigFloat(resid; precision = 64), residual_bits = rbits,
                        digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)),
@@ -234,7 +234,7 @@ function ship_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{T
         resid, rbits = maximum(abs, sys(Float64.(θhat); jacobian = false)[1]), 53
         how = "rounded to $T from the stored Float64 rule, without refinement; residual evaluated in Float64"
     end
-    group = N == 3 ? "S₃" : "S₄"
+    group = N == 3 ? "S₃" : N == 4 ? "S₄" : "S₅"
     cert = Certificate(equations = "$group-invariant moment system in orbit parameters (orthonormal Dubiner basis, degree $n)",
                        residual = BigFloat(resid; precision = 64), residual_bits = rbits,
                        digits = target_digits(ctx), guard_digits = 0, cond = e.cond, iterations = 0)

@@ -4,14 +4,14 @@ const CR = CubatureRules
 # Float64 requests for the seeded families are served from the stored tables without
 # refinement, so the tables themselves must be right. scripts/certify_tables.jl records each
 # entry's residual; here every recorded residual is recomputed from scratch — in the full
-# sweep (CUBATURERULES_FULL_SWEEP=1) for every entry, and per commit for the simplex and box
-# entries of at most 650 points, as in the other table sweeps. Above that the tetrahedron
+# sweep (CUBATURERULES_FULL_SWEEP=1) for every entry, and per commit for the simplex, box,
+# disk, ball, pyramid and wedge entries of at most 650 points, as in the other table sweeps. Above that the tetrahedron
 # entries need invariant bases that take a minute each to build (70 s at degree 30).
 stored_per_commit(e) = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1" || e.npoints <= 650
 
 @testset "every stored seed has a recorded residual, and it is reproduced" begin
     tables = [(3, filter(stored_per_commit, CR.xg_entries())), (4, filter(stored_per_commit, CR.tet_entries())),
-              (0, CR.lebedev_entries())]
+              (5, filter(stored_per_commit, CR.simplex_entries(4))), (0, CR.lebedev_entries())]
     for (N, entries) in tables, e in entries
         @test isfinite(e.residual) && e.residual < 1e-14 && e.residual_bits >= 256
         r = CR.with_bits(128) do
@@ -22,10 +22,15 @@ stored_per_commit(e) = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1" || e.npo
         end
         @test isapprox(r, e.residual; rtol = 1e-6, atol = 1e-30)
     end
-    for D in (2, 3), e in filter(stored_per_commit, CR.box_entries(D))
+    # the orbit tables, each with its own moment system
+    orbit_tables = vcat([(e, s -> CR.BoxMomentSystem(s, e.degree, BigFloat)) for D in (2, 3, 4) for e in CR.box_entries(D)],
+                        [(e, s -> CR.RoundMomentSystem(s, e.degree, BigFloat)) for D in (2, 3) for e in CR.round_entries(D)],
+                        [(e, s -> CR.PyramidMomentSystem(s, e.degree, BigFloat)) for e in CR.pyramid_entries()],
+                        [(e, s -> CR.WedgeMomentSystem(s, e.degree, BigFloat)) for e in CR.wedge_entries()])
+    for (e, system) in filter(t -> stored_per_commit(t[1]), orbit_tables)
         @test isfinite(e.residual) && e.residual < 1e-14 && e.residual_bits >= 256
         r = CR.with_bits(128) do
-            Float64(maximum(abs, CR.BoxMomentSystem(e.structure, e.degree, BigFloat)(BigFloat.(e.seed); jacobian = false)[1]))
+            Float64(maximum(abs, system(e.structure)(BigFloat.(e.seed); jacobian = false)[1]))
         end
         @test isapprox(r, e.residual; rtol = 1e-6, atol = 1e-30)
     end

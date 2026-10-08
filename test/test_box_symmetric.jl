@@ -41,10 +41,10 @@ function box_sweep(es)
     return filter(e -> e.degree in keep, affordable)
 end
 
-@testset "shipped square and cube rules" begin
-    for D in (2, 3)
+@testset "shipped square, cube and 4-cube rules" begin
+    for D in (2, 3, 4)
         es = CR.box_entries(D)
-        @test length(es) >= 6
+        @test length(es) >= (D == 4 ? 4 : 6)
         for e in box_sweep(es)
             r = rule(FullySymmetric(), Orthotope{D}(); degree = e.degree)
             @test npoints(r) == e.npoints && degree(r) == e.degree

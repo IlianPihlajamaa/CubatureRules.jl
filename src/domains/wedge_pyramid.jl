@@ -119,6 +119,21 @@ function measure(d::WedgeOrPyramid)
     return _reference_measure(d) * abs(det(affine_frame(d, S)[1]))
 end
 
+# Exact ∫ x^α dx on the reference shapes: on the wedge the triangle's Dirichlet moment times
+# that of [-1, 1]; on the pyramid, with x = ξ(1 − z) and y = η(1 − z),
+# ∫ ξ^a dξ ∫ η^b dη ∫ z^c (1 − z)^(a+b+2) dz.
+function monomial_moment(d::Wedge, α)
+    isreference(d) || throw(ArgumentError("exact moments are provided on the reference wedge; map the rule instead"))
+    a, b, c = α
+    return barycentric_moment((0, a, b)) * (isodd(c) ? big(0) // 1 : big(2) // (c + 1))
+end
+function monomial_moment(d::Pyramid, α)
+    isreference(d) || throw(ArgumentError("exact moments are provided on the reference pyramid; map the rule instead"))
+    a, b, c = α
+    (isodd(a) || isodd(b)) && return big(0) // 1
+    return big(4) // ((a + 1) * (b + 1)) * factorial(big(c)) * factorial(big(a + b + 2)) // factorial(big(a + b + c + 3))
+end
+
 # reference coordinates of a point, in the arithmetic of the point and the vertices
 function _reference_point(d::WedgeOrPyramid, x)
     S = _frametype(promote_type(eltype(x), eltype(eltype(d.vertices))))

@@ -1,11 +1,12 @@
 # Check the shipped Float64 seed tables so that Float64 requests can be served from them
 # without refinement (see `build_symmetric` and the Lebedev `build`).
 #
-#     julia --project scripts/certify_tables.jl [triangle|tetrahedron|lebedev|square|cube ...]
+#     julia --project scripts/certify_tables.jl [table ...]
 #     julia --project scripts/certify_tables.jl triangle:51,52,53 tetrahedron:17,21,22
 #
-# A table name alone checks every entry; `name:degrees` only those degrees, which is what
-# newly merged entries need. Entries are refined one at a time: BigFloat precision is global
+# The tables are those of TABLES below. A table name alone checks every entry;
+# `name:degrees` only those degrees, which is what newly merged entries need. Entries are
+# refined one at a time: BigFloat precision is global
 # in Julia 1.11 (`setprecision(f, BigFloat, bits)` is not task-local), so threads refining at
 # different working precisions change each other's precision. To use more cores, run one
 # process per table; each writes only its own file.
@@ -20,12 +21,18 @@ using CubatureRules, Printf, TOML
 const CR = CubatureRules
 
 const DATA = joinpath(@__DIR__, "..", "src", "data")
-# file, kind of moment system, and its N (simplex), D (box) or nothing (sphere)
+# file, kind of moment system, and its N (simplex), D (box, disk, ball) or nothing
 const TABLES = Dict("triangle" => ("triangle_s3_seeds.toml", :simplex, 3),
                     "tetrahedron" => ("tetrahedron_s4_seeds.toml", :simplex, 4),
+                    "simplex4" => ("simplex4_s5_seeds.toml", :simplex, 5),
                     "lebedev" => ("lebedev_seeds.toml", :octahedral, nothing),
                     "square" => ("square_d4_seeds.toml", :box, 2),
-                    "cube" => ("cube_oh_seeds.toml", :box, 3))
+                    "cube" => ("cube_oh_seeds.toml", :box, 3),
+                    "hypercube" => ("hypercube_b4_seeds.toml", :box, 4),
+                    "disk" => ("disk_d4_seeds.toml", :round, 2),
+                    "ball" => ("ball_oh_seeds.toml", :round, 3),
+                    "pyramid" => ("pyramid_c4v_seeds.toml", :pyramid, nothing),
+                    "wedge" => ("wedge_d3h_seeds.toml", :wedge, nothing))
 const REFINE_BITS = 160
 const RESIDUAL_BITS = 256
 const NOTE = "# `residual` is the defining-equation residual of the stored seed at `residual_bits`, " *
@@ -38,6 +45,18 @@ function refine_and_residual(e, kind, N)
         s = CR.BoxStructure([Int[x for x in m] for m in e["structure"]], N)
         θ, res, _ = CR.refine_box(s, n, θ64, REFINE_BITS)
         system = (θ) -> CR.BoxMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
+    elseif kind === :round
+        s = CR.BoxStructure([Int[x for x in m] for m in e["structure"]], N)
+        θ, res, _ = CR.refine_round(s, n, θ64, REFINE_BITS)
+        system = (θ) -> CR.RoundMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
+    elseif kind === :pyramid
+        s = CR.PyramidStructure([Int[x for x in m] for m in e["structure"]])
+        θ, res, _ = CR.refine_pyramid(s, n, θ64, REFINE_BITS)
+        system = (θ) -> CR.PyramidMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
+    elseif kind === :wedge
+        s = CR.WedgeStructure([Int[x for x in m] for m in e["structure"]])
+        θ, res, _ = CR.refine_wedge(s, n, θ64, REFINE_BITS)
+        system = (θ) -> CR.WedgeMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
     elseif kind === :octahedral
         s = CR.OctahedralStructure(Symbol.(e["structure"]))
         θ, res, _ = CR.refine_octahedral(s, n, θ64, REFINE_BITS)
@@ -93,7 +112,7 @@ function certify(name, degrees = nothing)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    for arg in (isempty(ARGS) ? ["lebedev", "tetrahedron", "triangle", "square", "cube"] : ARGS)
+    for arg in (isempty(ARGS) ? ["lebedev", "tetrahedron", "simplex4", "triangle", "square", "cube", "hypercube", "disk", "ball", "pyramid", "wedge"] : ARGS)
         name, sel = occursin(":", arg) ? split(arg, ":"; limit = 2) : (arg, nothing)
         certify(String(name), sel === nothing ? nothing : parse.(Int, split(sel, ",")))
     end

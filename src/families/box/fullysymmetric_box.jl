@@ -11,10 +11,11 @@
 # is what the mass and stiffness matrices of tensor-product (Q_k) elements need; these are for
 # total-degree integrands.
 
-struct BoxSeedEntry
+"A stored seed of a fully symmetric rule: its orbit structure (a `BoxStructure`, `PyramidStructure`, ...) and parameters."
+struct OrbitSeedEntry{S}
     degree::Int
     npoints::Int
-    structure::BoxStructure
+    structure::S
     seed::Vector{Float64}
     status::String
     note::String
@@ -24,36 +25,48 @@ end
 
 const SQUARE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "square_d4_seeds.toml")
 const CUBE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "cube_oh_seeds.toml")
+const HYPERCUBE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "hypercube_b4_seeds.toml")
 isfile(SQUARE_SEED_FILE) && include_dependency(SQUARE_SEED_FILE)
 isfile(CUBE_SEED_FILE) && include_dependency(CUBE_SEED_FILE)
+isfile(HYPERCUBE_SEED_FILE) && include_dependency(HYPERCUBE_SEED_FILE)
 
-function load_box_seeds(path, D)
-    isfile(path) || return BoxSeedEntry[]
-    out = BoxSeedEntry[]
+"""
+    load_orbit_seeds(path, S, structure) -> Vector{OrbitSeedEntry{S}}
+
+The seeds stored in the TOML table at `path`; `structure` makes an `S` from the orbits' lists
+of multiplicities as stored.
+"""
+function load_orbit_seeds(path, ::Type{S}, structure) where {S}
+    isfile(path) || return OrbitSeedEntry{S}[]
+    out = OrbitSeedEntry{S}[]
     for e in get(TOML.parsefile(path), "rule", Any[])
-        s = BoxStructure([Int[x for x in m] for m in e["structure"]], D)
-        push!(out, BoxSeedEntry(e["degree"], e["npoints"], s, Float64.(e["seed"]), get(e, "status", "ok"),
-                                get(e, "note", ""), Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0))))
+        s = structure([Int[x for x in m] for m in e["structure"]])
+        push!(out, OrbitSeedEntry{S}(e["degree"], e["npoints"], s, Float64.(e["seed"]), get(e, "status", "ok"),
+                                     get(e, "note", ""), Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0))))
     end
     return sort!(out; by = e -> e.degree)
 end
+load_box_seeds(path, D) = load_orbit_seeds(path, BoxStructure, m -> BoxStructure(m, D))
 
 # static package data, parsed once at precompile time
 const SQUARE_SEEDS = load_box_seeds(SQUARE_SEED_FILE, 2)
 const CUBE_SEEDS = load_box_seeds(CUBE_SEED_FILE, 3)
+const HYPERCUBE_SEEDS = load_box_seeds(HYPERCUBE_SEED_FILE, 4)
 
-box_entries(D::Integer) = filter(e -> e.status == "ok", D == 2 ? SQUARE_SEEDS : D == 3 ? CUBE_SEEDS : BoxSeedEntry[])
+box_entries(D::Integer) = filter(e -> e.status == "ok", D == 2 ? SQUARE_SEEDS : D == 3 ? CUBE_SEEDS :
+                                                      D == 4 ? HYPERCUBE_SEEDS : OrbitSeedEntry{BoxStructure}[])
 box_entry_for(D::Integer, degree::Integer) = seed_entry_for(box_entries(D), degree)
 function _box_entry(D, degree)
     e = box_entry_for(D, degree)
     e === nothing && throw(ArgumentError("no FullySymmetric seed on the $(D)-cube covers degree $degree"))
     return e
 end
-box_table(D) = D == 2 ? "src/data/square_d4_seeds.toml" : "src/data/cube_oh_seeds.toml"
-box_symmetry(D) = D == 2 ? :D4 : :Oh
+box_table(D) = D == 2 ? "src/data/square_d4_seeds.toml" : D == 3 ? "src/data/cube_oh_seeds.toml" :
+               "src/data/hypercube_b4_seeds.toml"
+box_symmetry(D) = D == 2 ? :D4 : D == 3 ? :Oh : :B4
 
 function candidates(::Type{FullySymmetric}, dom::Orthotope{D}, c::PolynomialDegree) where {D}
-    (D in (2, 3) && isreference(dom) && box_entry_for(D, c.d) !== nothing) || return FullySymmetric[]
+    (D in (2, 3, 4) && isreference(dom) && box_entry_for(D, c.d) !== nothing) || return FullySymmetric[]
     return [FullySymmetric()]
 end
 npoints(::FullySymmetric, dom::Orthotope{D}, degree::Integer) where {D} = _box_entry(D, degree).npoints

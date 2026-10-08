@@ -56,12 +56,12 @@ end
     invariant_basis(N, n)
 
 The invariant basis for `S_N` on the `(N-1)`-simplex up to degree `n`, for the triangle
-(`N = 3`) and the tetrahedron (`N = 4`). The dimension of every degree block is checked
+(`N = 3`), the tetrahedron (`N = 4`) and the 4-simplex (`N = 5`). The dimension of every degree block is checked
 against the Molien series; a mismatch is an error, not a warning.
 """
 function invariant_basis(N::Integer, n::Integer)
     D = N - 1
-    D in (2, 3) || throw(NotYetImplemented("invariant bases for S_$N", "a later release"))
+    D in (2, 3, 4) || throw(NotYetImplemented("invariant bases for S_$N", "a later release"))
     # A deterministic Float64 matrix that takes seconds at high degree (3 s for the
     # tetrahedron at degree 20) and is needed by every refinement at that degree, so it is
     # kept. This caches an intermediate, not a rule; see "No caching" in the design notes.

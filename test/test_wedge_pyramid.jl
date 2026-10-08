@@ -41,11 +41,15 @@ end
 
 @testset "wedge rules" begin
     for d in 0:12
-        r = rule(Wedge(); degree = d)
+        r = rule(WedgeProduct(), Wedge(); degree = d)
         @test degree(r) >= d && family(r) == "WedgeProduct"
         v = verify(r)
         @test passed(v) && v.positive && v.interior
+        @test npoints(rule(Wedge(); degree = d)) <= npoints(r)
     end
+    # the symmetric rules where they have fewer points (on a tie, at degrees 0, 1 and 3, the
+    # derived product wins)
+    @test all(d -> family(rule(Wedge(); degree = d)) == "FullySymmetric", (2, 4, 5, 6))
     @test monomial_error(rule(Wedge(); degree = 8), wedge_moment, 8) < 1e-14
     r = rule(Wedge(); degree = 10, digits = 40)
     @test passed(verify(r)) && monomial_error(r, wedge_moment, 10) < 1e-39
@@ -60,10 +64,12 @@ end
 
 @testset "pyramid rules" begin
     for d in 0:12
-        r = rule(Pyramid(); degree = d)
+        r = rule(ConicalProduct(), Pyramid(); degree = d)
         @test degree(r) >= d && family(r) == "ConicalProduct" && npoints(r) == cld(d + 1, 2)^3 || d == 0
         v = verify(r)
         @test passed(v) && v.positive && v.interior
+        top = last(CR.degree_range(FullySymmetric(), Pyramid()))
+        @test family(rule(Pyramid(); degree = d)) == (2 <= d <= top ? "FullySymmetric" : "ConicalProduct")
     end
     @test monomial_error(rule(Pyramid(); degree = 8), pyramid_moment, 8) < 1e-14
     r = rule(Pyramid(); degree = 11, digits = 40)

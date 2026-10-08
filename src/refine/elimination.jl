@@ -187,7 +187,8 @@ Turn a rule of degree `< n` into a valid degree-`n` rule by adding orbits with s
 weights until the system has comfortably more unknowns than equations, then refitting from
 `ntries` random placements of the new orbits. Several recipes for the added orbits are
 tried in turn (one of each smaller type plus general orbits; general orbits only; a larger
-surplus), since which one works depends on the degree.
+surplus; last, a single smaller orbit with one unknown to spare), since which one works
+depends on the degree.
 """
 function grow(s::SymmetricStructure, θ::Vector{Float64}, n::Integer;
               basis::InvariantBasis = invariant_basis(s.N, n), ntries::Int = 64, rng_seed::Integer = 0x9e0)
@@ -197,6 +198,10 @@ function grow(s::SymmetricStructure, θ::Vector{Float64}, n::Integer;
     general, small = types[1], types[2:(end - 1)]            # never a second centroid
     recipes = [(small, m + max(2, m ÷ 4)), (OrbitPattern[], m + max(2, m ÷ 4)),
                (small, m + max(4, m ÷ 2)), (vcat(small, small), m + max(4, m ÷ 2))]
+    # With few equations (the 4-simplex at low degree: 7 at degree 5) those surpluses leave the
+    # fit so free that it lands outside or on negative weights; one small orbit, smallest
+    # first, and just one unknown to spare is what works there.
+    append!(recipes, [([t], m + 1) for t in sort(small; by = orbit_size)])
     for (k, (extra, target)) in enumerate(recipes)
         added = copy(extra)
         unknowns = nunknowns(s) + sum(nunknowns, added; init = 0)

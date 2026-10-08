@@ -228,7 +228,7 @@ end
 """
     SimplexBasis{D,S}(n; normalize = true)
 
-The orthonormal Dubiner basis of degree `≤ n` on the reference `D`-simplex (`D = 2, 3`), in
+The orthonormal Dubiner basis of degree `≤ n` on the reference `D`-simplex (`D ≥ 2`), in
 type `S`. `evaluate!(b, x)` fills and returns `(φ, G)`, the values and the `L × D` gradient.
 """
 struct SimplexBasis{D,S,W}
@@ -244,7 +244,8 @@ function SimplexBasis{D,S}(n::Int; normalize::Bool = true) where {D,S}
     L = simplex_basis_length(D, n)
     ws = D == 2 ? DubinerWorkspace{S}(n; normalize) :
          D == 3 ? TetWorkspace{S}(n; normalize) :
-         throw(NotYetImplemented("orthonormal bases on $D-simplices", "a later release"))
+         D >= 4 ? SimplexWorkspace{S}(D, n; normalize) :
+         throw(ArgumentError("no simplex of dimension $D"))
     return SimplexBasis{D,S,typeof(ws)}(n, ws, zeros(S, L), zeros(S, L, D), zeros(S, L), zeros(S, L))
 end
 
@@ -256,7 +257,7 @@ basis_length(b::SimplexBasis{D}) where {D} = simplex_basis_length(D, b.n)
 function degree_block(D::Int, k::Int)
     D == 2 && return dubiner_index(0, k):dubiner_index(k, 0)
     D == 3 && return tet_block(k)
-    throw(NotYetImplemented("orthonormal bases on $D-simplices", "a later release"))
+    return (simplex_basis_length(D, k - 1) + 1):simplex_basis_length(D, k)
 end
 degree_blocks(b::SimplexBasis{D}) where {D} = [degree_block(D, k) for k in 0:(b.n)]
 
@@ -276,5 +277,135 @@ function evaluate!(b::SimplexBasis{3}, x; gradient::Bool = true)
     return b.φ, b.G
 end
 
+function evaluate!(b::SimplexBasis{D}, x; gradient::Bool = true) where {D}
+    simplex_dubiner!(b.φ, gradient ? b.G : nothing, b.ws, x)
+    return b.φ, b.G
+end
+
 "`∫ φ₁` over the reference simplex: `c₀ / D!` (all other basis functions integrate to 0)."
 simplex_basis_mass(b::SimplexBasis{D,S}) where {D,S} = b.ws.c[1] / S(factorial(D))
+
+# ---------------------------------------------------------------------------------------
+# The basis on the D-simplex for D ≥ 4, by the same construction in every dimension:
+#
+#     φ_α = c_α Π_{i=1}^{D} t_i^{α_i} P_{α_i}^{(a_i, 0)}(s_i / t_i),
+#     t_i = 1 − x_{i+1} − ⋯ − x_D,  s_i = 2x_i − t_i,  a_i = 2(α_1 + ⋯ + α_{i−1}) + i − 1,
+#
+# which is the tetrahedral one above for D = 3. In the collapsed coordinates u_i = s_i/t_i
+# the Jacobian is 2^(−D) Π_j ((1 − u_j)/2)^(j−1), so ∫ φ_α² = c_α² / Π_j (2(α_1 + ⋯ + α_j) + j),
+# and c_α makes it 1; at α = 0 the norm is 1/D!, the volume. Each factor is the homogenised
+# Jacobi polynomial, evaluated by its three-term recurrence in (s, t). Ordering: by total
+# degree, then lexicographically in (α_1, …, α_{D−1}).
+
+"Indices `α` of the basis on the `D`-simplex up to degree `n`, in basis order."
+function simplex_indices(D::Int, n::Int)
+    out = Vector{Int}[]
+    function rec(prefix, left)
+        if length(prefix) == D - 1
+            push!(out, vcat(prefix, left))
+            return
+        end
+        for a in 0:left
+            rec(vcat(prefix, a), left - a)
+        end
+    end
+    for k in 0:n
+        rec(Int[], k)
+    end
+    return out
+end
+
+"""
+    SimplexWorkspace{S}(D, n; normalize = true)
+
+Scratch space for the degree-`n` orthonormal basis on the `D`-simplex and its gradient, for
+`D ≥ 4` (the triangle and the tetrahedron have their own faster kernels).
+"""
+struct SimplexWorkspace{S}
+    D::Int
+    n::Int
+    idx::Vector{Vector{Int}}
+    c::Vector{S}
+    # recurrence coefficients of t^k P_k^(a,0)(s/t): H_{k+1} = (A s + B t) H_k − C t² H_{k−1},
+    # indexed [k + 1, m + 1] for the factor i with a = 2m + i − 1
+    A::Vector{Matrix{S}}; B::Vector{Matrix{S}}; C::Vector{Matrix{S}}
+end
+
+function SimplexWorkspace{S}(D::Int, n::Int; normalize::Bool = true) where {S}
+    idx = simplex_indices(D, n)
+    c = [normalize ? sqrt(S(prod(2sum(α[1:j]) + j for j in 1:D))) : one(S) for α in idx]
+    A = [zeros(S, n + 1, n + 1) for _ in 1:D]
+    B = [zeros(S, n + 1, n + 1) for _ in 1:D]
+    C = [zeros(S, n + 1, n + 1) for _ in 1:D]
+    for i in 1:D, m in 0:n, k in 0:(n - m - 1)
+        a = 2m + i - 1
+        if k == 0                                   # P₁^(a,0)(x) = ((a + 2) x + a) / 2
+            A[i][1, m + 1], B[i][1, m + 1] = S(a + 2) / 2, S(a) / 2
+        else
+            den = S(2 * (k + 1) * (k + a + 1) * (2k + a))
+            A[i][k + 1, m + 1] = S((2k + a + 1) * (2k + a + 2) * (2k + a)) / den
+            B[i][k + 1, m + 1] = S((2k + a + 1) * a^2) / den
+            C[i][k + 1, m + 1] = S(2k * (k + a) * (2k + a + 2)) / den
+        end
+    end
+    return SimplexWorkspace{S}(D, n, idx, c, A, B, C)
+end
+
+function simplex_dubiner!(φ, G, ws::SimplexWorkspace{S}, x) where {S}
+    D, n = ws.D, ws.n
+    t = [one(S) - sum((S(x[j]) for j in (i + 1):D); init = zero(S)) for i in 1:D]
+    s = [2 * S(x[i]) - t[i] for i in 1:D]
+    # H[i][k + 1, m + 1] and its derivatives in s and t
+    H = [zeros(S, n + 1, n + 1) for _ in 1:D]
+    Hs = [zeros(S, n + 1, n + 1) for _ in 1:D]
+    Ht = [zeros(S, n + 1, n + 1) for _ in 1:D]
+    for i in 1:D, m in 0:n
+        H[i][1, m + 1] = one(S)
+        for k in 0:(n - m - 1)
+            a_, b_, c_ = ws.A[i][k + 1, m + 1], ws.B[i][k + 1, m + 1], ws.C[i][k + 1, m + 1]
+            lin = a_ * s[i] + b_ * t[i]
+            h = H[i][k + 1, m + 1]
+            H[i][k + 2, m + 1] = lin * h
+            Hs[i][k + 2, m + 1] = a_ * h + lin * Hs[i][k + 1, m + 1]
+            Ht[i][k + 2, m + 1] = b_ * h + lin * Ht[i][k + 1, m + 1]
+            if k >= 1
+                hm = H[i][k, m + 1]
+                H[i][k + 2, m + 1] -= c_ * t[i]^2 * hm
+                Hs[i][k + 2, m + 1] -= c_ * t[i]^2 * Hs[i][k, m + 1]
+                Ht[i][k + 2, m + 1] -= c_ * (2t[i] * hm + t[i]^2 * Ht[i][k, m + 1])
+            end
+        end
+    end
+    f = Vector{S}(undef, D)
+    for (row, α) in enumerate(ws.idx)
+        m = 0
+        for i in 1:D
+            f[i] = H[i][α[i] + 1, m + 1]
+            m += α[i]
+        end
+        φ[row] = ws.c[row] * prod(f)
+        G === nothing && continue
+        for l in 1:D
+            g = zero(S)
+            m = 0
+            for i in 1:D
+                # ∂s_i/∂x_l = 2 [l = i] + [l > i], ∂t_i/∂x_l = −[l > i]
+                ds = l == i ? 2 : l > i ? 1 : 0
+                dt = l > i ? -1 : 0
+                if ds != 0 || dt != 0
+                    d = ds * Hs[i][α[i] + 1, m + 1] + dt * Ht[i][α[i] + 1, m + 1]
+                    rest = one(S)
+                    mm = 0
+                    for j in 1:D
+                        j == i || (rest *= H[j][α[j] + 1, mm + 1])
+                        mm += α[j]
+                    end
+                    g += d * rest
+                end
+                m += α[i]
+            end
+            G[row, l] = ws.c[row] * g
+        end
+    end
+    return φ
+end

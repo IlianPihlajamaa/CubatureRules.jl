@@ -70,6 +70,41 @@ polynomials on its bounding box, integrated over the pyramid slice by slice with
 closed form of `∫ P_a` over each slice and a Gauss–Legendre rule in `z`, which shares
 nothing with the collapsed construction but one-dimensional Gauss nodes.
 
-Rules with fewer points, symmetric under the wedge's or the pyramid's own symmetry group,
-are not shipped yet; they would come from the same orbit search as the triangle and
-tetrahedron tables.
+## Fully symmetric rules
+
+[`FullySymmetric`](@ref) gives positive-weight rules with interior nodes that are invariant
+under the shape's own symmetry group: on the wedge the 12 symmetries of the prism (`D₃ₕ`,
+the permutations of the triangle's barycentric coordinates and `z ↦ −z`), on the pyramid the
+8 symmetries of its square base (`C₄ᵥ`).
+
+An orbit of the wedge is an orbit of the triangle, at `z = 0` or at the pair `±z`. The group
+acts on `(x, y)` and on `z` separately, so its invariant polynomials are the triangle's
+invariants times even polynomials in `z`; with orthonormal Legendre polynomials in `z` the
+products are orthonormal on the wedge, and they are the moment equations.
+
+An orbit of the pyramid is an orbit of the square in the collapsed coordinates
+`(ξ, η) = (x, y)/(1 − z)`, at a free height `z`. The moment equations are in the invariant
+polynomials `S_ij(ξ, η) (1 − z)^(i+j) q_k(z)`, with `S_ij` symmetrised products of even
+Legendre polynomials and `q_k` orthonormal on `[0, 1]` for the weight `(1 − z)^(2(i+j)+2)`;
+these are polynomials in `x, y, z` of degree `i + j + k`, and orthonormal on the pyramid.
+
+The seeds were found in-house, by random starts on the orbit structures of each point count
+at low degree and node elimination above (`scripts/generate_orbit_seeds.jl`). Point counts
+against the product rules, and against Witherden & Vincent (2015), who tabulate the same
+class to degree 10:
+
+```@example wp
+published = (wedge = [1, 5, 8, 11, 16, 28, 35, 46, 60, 85], pyramid = [1, 5, 6, 10, 15, 24, 31, 47, 62, 83])
+rows = ["| Degree | Wedge: symmetric | Wedge: XG × Gauss | W&V | Pyramid: symmetric | Pyramid: conical | W&V |",
+        "|---|---|---|---|---|---|---|"]
+top(dom) = last(CubatureRules.degree_range(FullySymmetric(), dom))
+for d in 1:max(top(Wedge()), top(Pyramid()))
+    w = d <= top(Wedge()) ? npoints(rule(FullySymmetric(), Wedge(); degree = d)) : "—"
+    p = d <= top(Pyramid()) ? npoints(rule(FullySymmetric(), Pyramid(); degree = d)) : "—"
+    push!(rows, "| $d | $w | $(npoints(rule(WedgeProduct(), Wedge(); degree = d))) | " *
+                "$(get(published.wedge, d, "—")) | $p | $(cld(d + 1, 2)^3) | $(get(published.pyramid, d, "—")) |")
+end
+Markdown.parse(join(rows, "\n"))
+```
+
+The counts are the smallest the searches reached, not proven minima.

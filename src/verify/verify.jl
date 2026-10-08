@@ -1138,16 +1138,93 @@ end
 
 Whether the rule is invariant under the symmetry group it claims: `:S_N` permutes the
 barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the reference interval,
-`:Oh` is the 48 signed permutations of Cartesian coordinates (the sphere or the cube), `:D4`
-the 8 of the square. `nothing` when no
-symmetry is claimed.
+`:Oh` is the 48 signed permutations of Cartesian coordinates (the sphere, the cube or the
+ball), `:D4` the 8 of the square or the disk, `:B4` the 384 of the 4-cube, `:C4v` the 8 of the
+pyramid's square base and `:D3h` the 12 of the wedge. `nothing` when no symmetry is claimed.
 """
 check_symmetry(group::Symbol, xs, ws, tol) =
     group === :none ? nothing :
     group === :reflection ? check_reflection_symmetry(xs, ws, tol) :
     group === :Oh ? check_octahedral_symmetry(xs, ws, tol) :
     group === :D4 ? check_square_symmetry(xs, ws, tol) :
+    group === :B4 ? check_signed_permutation_symmetry(xs, ws, tol) :
+    group === :C4v ? check_pyramid_symmetry(xs, ws, tol) :
+    group === :D3h ? check_wedge_symmetry(xs, ws, tol) :
     check_simplex_symmetry(xs, ws, tol)
+
+"Whether the nodes and weights are invariant under the permutations of the triangle's barycentric coordinates on `(x, y)` and under `z ↦ −z` (the wedge's group D₃ₕ)."
+function check_wedge_symmetry(xs, ws, tol)
+    wscale = maximum(abs, ws)
+    λs = [SVector(1 - x[1] - x[2], x[1], x[2], x[3]) for x in xs]
+    for (λ, w) in zip(λs, ws), σ in permutations_of(3), sz in (1, -1)
+        μ = SVector(λ[σ[1]], λ[σ[2]], λ[σ[3]], sz * λ[4])
+        any(j -> maximum(abs, λs[j] - μ) <= tol && abs(ws[j] - w) <= tol * wscale, eachindex(λs)) || return false
+    end
+    return true
+end
+
+"Whether the nodes and weights are invariant under the symmetries of the square on `(x, y)`, slab by slab in `z` (the pyramid's group C₄ᵥ)."
+function check_pyramid_symmetry(xs, ws, tol)
+    zs = [x[3] for x in xs]
+    order = sortperm(zs)
+    i = 1
+    while i <= length(order)
+        j = i
+        while j < length(order) && zs[order[j + 1]] - zs[order[i]] <= tol
+            j += 1
+        end
+        slab = order[i:j]
+        check_signed_permutation_symmetry([SVector(xs[k][1], xs[k][2]) for k in slab], ws[slab], tol) || return false
+        i = j + 1
+    end
+    return true
+end
+
+"""
+    check_signed_permutation_symmetry(xs, ws, tol)
+
+Whether the node/weight set is invariant under every signed permutation of the coordinates,
+the symmetry group of the hypercube, in any dimension. The orbit of a point is the set of
+points with the same sorted absolute coordinates, so the nodes are grouped by that key (to
+`tol`), and each group must hold exactly as many distinct nodes as the orbit has points, all
+with one weight. `O(N log N)`, where matching all `2ᴰ D!` images would cost `O(2ᴰ D! N²)`.
+"""
+function check_signed_permutation_symmetry(xs, ws, tol)
+    D = length(first(xs))
+    wscale = maximum(abs, ws)
+    keys = [sort(abs.(collect(x))) for x in xs]
+    order = sortperm(keys)
+    i = 1
+    while i <= length(order)
+        j = i
+        while j < length(order) && maximum(abs, keys[order[j + 1]] - keys[order[i]]) <= tol
+            j += 1
+        end
+        group = order[i:j]
+        # the orbit's size from its key: zeros, and runs of equal nonzero values
+        k = keys[order[i]]
+        nz = count(>(tol), k)
+        runs, r = Int[], 1
+        for l in (D - nz + 2):D
+            if k[l] - k[l - 1] <= tol
+                r += 1
+            else
+                push!(runs, r)
+                r = 1
+            end
+        end
+        nz > 0 && push!(runs, r)
+        size = factorial(D) ÷ (factorial(D - nz) * prod(factorial, runs; init = 1)) * 2^nz
+        length(group) == size || return false
+        all(g -> abs(ws[g] - ws[group[1]]) <= tol * wscale, group) || return false
+        # the group's nodes are distinct
+        for a in group, b in group
+            a < b && maximum(abs, collect(xs[a]) - collect(xs[b])) <= tol && return false
+        end
+        i = j + 1
+    end
+    return true
+end
 
 """
     check_octahedral_symmetry(xs, ws, tol)
