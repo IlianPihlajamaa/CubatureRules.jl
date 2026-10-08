@@ -31,14 +31,14 @@ abstract type CampaignDomain end
 struct SimplexDomain <: CampaignDomain
     N::Int
 end
-domain_name(d::SimplexDomain) = d.N == 3 ? "triangle" : "tetrahedron"
-table_file(d::SimplexDomain) = d.N == 3 ? "triangle_s3_seeds.toml" : "tetrahedron_s4_seeds.toml"
+domain_name(d::SimplexDomain) = ("triangle", "tetrahedron", "simplex4")[d.N - 2]
+table_file(d::SimplexDomain) = ("triangle_s3_seeds.toml", "tetrahedron_s4_seeds.toml", "simplex4_s5_seeds.toml")[d.N - 2]
 degree_step(::SimplexDomain) = 1
 n_equations(d::SimplexDomain, n) = CR.n_invariants(d.N, n)
 structure(d::SimplexDomain, mults) = CR.SymmetricStructure([Int.(m) for m in mults], d.N)
 orbit_mults(::SimplexDomain, s) = [o.mult for o in s.orbits]
 # general orbit first, centroid last, as the package's own grow orders them
-const _SIMPLEX_TYPES = Dict(N => sort(CR.orbit_pattern_types(N); by = p -> (-length(p.mult), p.mult)) for N in (3, 4))
+const _SIMPLEX_TYPES = Dict(N => sort(CR.orbit_pattern_types(N); by = p -> (-length(p.mult), p.mult)) for N in (3, 4, 5))
 family(d::SimplexDomain, s) = Tuple(count(o -> o.mult == t.mult, s.orbits) for t in _SIMPLEX_TYPES[d.N])
 basis(d::SimplexDomain, n) = CR.invariant_basis(d.N, n)
 
@@ -77,31 +77,38 @@ function entry(d::SimplexDomain, n, s, θr, cond, note)
                             "min_weight" => wmin, "min_barycentric" => λmin, "cond" => cond)
 end
 
-# --- boxes: square (D₄) and cube (O_h) on [-1, 1]^D ---------------------------------------------
+# --- boxes and balls: hyperoctahedral orbits ([-1, 1]^D for D = 2, 3, 4; the disk and the ball) ----
+#
+# The same orbits and moves on the box and on the ball; the package switches the moment system,
+# margins and random values by a geometry (refine/box_search.jl).
 
 struct BoxDomain <: CampaignDomain
     D::Int
+    round::Bool
 end
-domain_name(d::BoxDomain) = d.D == 2 ? "square" : "cube"
-table_file(d::BoxDomain) = d.D == 2 ? "square_d4_seeds.toml" : "cube_oh_seeds.toml"
+BoxDomain(D) = BoxDomain(D, false)
+geom(d::BoxDomain) = d.round ? CR.RoundGeometry() : CR.BoxGeometry()
+domain_name(d::BoxDomain) = d.round ? ("disk", "ball")[d.D - 1] : ("square", "cube", "hypercube4")[d.D - 1]
+table_file(d::BoxDomain) = d.round ? ("disk_d4_seeds.toml", "ball_oh_seeds.toml")[d.D - 1] :
+                           ("square_d4_seeds.toml", "cube_oh_seeds.toml", "hypercube_b4_seeds.toml")[d.D - 1]
 degree_step(::BoxDomain) = 2
-n_equations(d::BoxDomain, n) = length(CR.box_exponents(d.D, n))
+n_equations(d::BoxDomain, n) = CR.orbit_equations(geom(d), d.D, n)
 structure(d::BoxDomain, mults) = CR.BoxStructure(d.D, [CR.BoxOrbit(Int.(m), d.D) for m in mults])
 orbit_mults(::BoxDomain, s) = [o.mult for o in s.orbits]
-const _BOX_TYPES = Dict(D => CR.box_orbit_types(D) for D in (2, 3))
+const _BOX_TYPES = Dict(D => CR.box_orbit_types(D) for D in (2, 3, 4))
 family(d::BoxDomain, s) = Tuple(count(o -> o.mult == t.mult, s.orbits) for t in _BOX_TYPES[d.D])
 
-fit(::BoxDomain, s, θ0, n) = CR.box_fit(s, θ0, n)
-system(::BoxDomain, s, n) = CR.BoxMomentSystem(s, n, Float64)
+fit(d::BoxDomain, s, θ0, n) = CR.box_fit(s, θ0, n; geom = geom(d))
+system(d::BoxDomain, s, n) = CR.orbit_system(geom(d), s, n, Float64)
 weight_indices(::BoxDomain, s) = [off + 1 for off in CR.param_offsets(s)]
-inside(::BoxDomain, s, θ) = all(o_off -> all(abs(θ[o_off[2] + 1 + i]) < 1.05 for i in 1:CR.nparams(o_off[1])),
-                                zip(s.orbits, CR.param_offsets(s)))
+inside(d::BoxDomain, s, θ) = all(o_off -> CR.loosely_inside(geom(d), o_off[1], [θ[o_off[2] + 1 + i] for i in 1:CR.nparams(o_off[1])]),
+                                 zip(s.orbits, CR.param_offsets(s)))
 moves(::BoxDomain, s, θ) = [(mv[1], mv[2], mv[3], mv[4], "box move") for mv in CR.box_moves(s, θ)]
 
 general_orbit(d::BoxDomain) = last(_BOX_TYPES[d.D])
 small_orbits(d::BoxDomain) = filter(t -> !isempty(t.mult), _BOX_TYPES[d.D][1:(end - 1)])   # never a second centre
-volume(d::BoxDomain) = 2.0^d.D
-random_orbit(d::BoxDomain, o, rng) = (o, vcat(0.02 * volume(d) / CR.orbit_size(o), 0.03 .+ 0.94 .* rand(rng, CR.nparams(o))))
+volume(d::BoxDomain) = CR.orbit_volume(geom(d), d.D)
+random_orbit(d::BoxDomain, o, rng) = (o, vcat(0.02 * volume(d) / CR.orbit_size(o), CR.random_values(geom(d), o.mult, rng)))
 function with_orbits(d::BoxDomain, s, θ, new)
     blocks = [(o, θ[(off + 1):(off + CR.nunknowns(o))]) for (o, off) in zip(s.orbits, CR.param_offsets(s))]
     return CR.from_box_blocks(d.D, vcat(blocks, new))
@@ -117,6 +124,54 @@ function refine(::BoxDomain, s, n, θ64)
     return Float64.(θ), res.converged, res.cond
 end
 entry(d::BoxDomain, n, s, θr, cond, note) =
+    Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => orbit_mults(d, s),
+                     "seed" => θr, "status" => "ok", "note" => note)
+
+# --- the pyramid (C₄ᵥ) and the wedge (D₃ₕ), through the package's generic orbit search ---------
+#
+# refine/orbit_search.jl defines one interface over PyramidStructure and WedgeStructure
+# (orbit_types, orbit_fit, structure_moves, orbit_grow_and_eliminate, …); this is a thin layer
+# over it.
+
+struct OrbitDomain{T} <: CampaignDomain end
+domain_name(::OrbitDomain{CR.PyramidStructure}) = "pyramid"
+domain_name(::OrbitDomain{CR.WedgeStructure}) = "wedge"
+table_file(::OrbitDomain{CR.PyramidStructure}) = "pyramid_c4v_seeds.toml"
+table_file(::OrbitDomain{CR.WedgeStructure}) = "wedge_d3h_seeds.toml"
+degree_step(::OrbitDomain) = 1
+n_equations(::OrbitDomain{T}, n) where {T} = CR.n_moment_equations(T, n)
+structure(::OrbitDomain{T}, lists) where {T} = T([Int.(l) for l in lists])
+orbit_mults(::OrbitDomain{CR.PyramidStructure}, s) = [o.base.mult for o in s.orbits]
+orbit_mults(::OrbitDomain{CR.WedgeStructure}, s) = CR.wedge_structure_lists(s)
+family(::OrbitDomain{T}, s) where {T} = Tuple(count(==(t), s.orbits) for t in CR.orbit_types(T))
+
+fit(::OrbitDomain, s, θ0, n) = CR.orbit_fit(s, θ0, n)
+system(::OrbitDomain, s, n) = CR.orbit_system(s, n, Float64)
+weight_indices(::OrbitDomain, s) = [off + 1 for off in CR.param_offsets(s)]
+inside(::OrbitDomain, s, θ) = all(o_off -> CR.loosely_inside(o_off[1], θ[(o_off[2] + 2):(o_off[2] + CR.nunknowns(o_off[1]))]),
+                                  zip(s.orbits, CR.param_offsets(s)))
+moves(::OrbitDomain, s, θ) = [(mv[1], mv[2], mv[3], mv[4], "orbit move") for mv in CR.structure_moves(s, θ)]
+
+general_orbit(::OrbitDomain{T}) where {T} = CR.general_orbit(T)
+# orbits with a free parameter can repeat; one without (the wedge's centroid) is unique
+small_orbits(d::OrbitDomain{T}) where {T} = filter(o -> o != general_orbit(d) && CR.nparams(o) > 0, CR.orbit_types(T))
+volume(::OrbitDomain{T}) where {T} = CR.structure_volume(T)
+random_orbit(d::OrbitDomain, o, rng) = (o, vcat(0.02 * volume(d) / CR.orbit_size(o), CR.random_params(o, rng)))
+function with_orbits(::OrbitDomain{T}, s, θ, new) where {T}
+    blocks = vcat([(o, θ[(off + 1):(off + CR.nunknowns(o))]) for (o, off) in zip(s.orbits, CR.param_offsets(s))], new)
+    return CR.canonicalize(CR.make_structure(T, [b[1] for b in blocks]), reduce(vcat, (b[2] for b in blocks); init = Float64[]))
+end
+margin(::OrbitDomain, s, θ) = (m = CR.structure_margins(s, θ); (m[1], min(m[2], m[3])))
+function chain(::OrbitDomain, s, θ, n, seed)
+    r = CR.orbit_grow_and_eliminate(s, θ, n; chains = 1, rng_seed = seed)
+    return r === nothing ? nothing : (r[1], r[2])
+end
+
+function refine(::OrbitDomain{T}, s, n, θ64) where {T}
+    θ, res, _ = (T === CR.PyramidStructure ? CR.refine_pyramid : CR.refine_wedge)(s, n, θ64, BITS)
+    return Float64.(θ), res.converged, res.cond
+end
+entry(d::OrbitDomain, n, s, θr, cond, note) =
     Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => orbit_mults(d, s),
                      "seed" => θr, "status" => "ok", "note" => note)
 
@@ -207,5 +262,8 @@ function entry(d::SphereDomain, n, s, θr, cond, note)
                             "min_weight" => wmin, "min_margin" => dmin, "cond" => cond)
 end
 
-const DOMAINS = Dict("triangle" => SimplexDomain(3), "tetrahedron" => SimplexDomain(4),
-                     "square" => BoxDomain(2), "cube" => BoxDomain(3), "sphere" => SphereDomain())
+const DOMAINS = Dict("triangle" => SimplexDomain(3), "tetrahedron" => SimplexDomain(4), "simplex4" => SimplexDomain(5),
+                     "square" => BoxDomain(2), "cube" => BoxDomain(3), "hypercube4" => BoxDomain(4),
+                     "disk" => BoxDomain(2, true), "ball" => BoxDomain(3, true),
+                     "pyramid" => OrbitDomain{CR.PyramidStructure}(), "wedge" => OrbitDomain{CR.WedgeStructure}(),
+                     "sphere" => SphereDomain())

@@ -1,7 +1,8 @@
 # Pooled search for fully symmetric rules
 
-A long-running search for new and smaller seeded rules on the triangle, tetrahedron, square,
-cube and sphere. Many single-threaded workers share one pool of exact rules on disk, instead of each
+A long-running search for new and smaller seeded rules for every fully symmetric family: the
+triangle, tetrahedron and 4-simplex; the square, cube and 4-cube; the disk and ball; the pyramid
+and wedge; and the sphere. Many single-threaded workers share one pool of exact rules on disk, instead of each
 running its own chains of eliminations. This follows the procedure that took the octahedral
 sphere rules from degree 191 to 201, generalized to any domain with an adapter.
 
@@ -22,6 +23,9 @@ julia --project scripts/search_campaign/status.jl
 # stop every worker after its current task
 touch campaign/pooled/STOP          # or campaign/pooled/<domain>/STOP for one domain
 ```
+
+A DOMAIN may be a comma-separated list, `disk,ball:extend:1`: that worker takes the domains in
+turn, an hour each (`--slice H`), which keeps seven workers enough for eleven domains.
 
 To run a single worker, for testing or by hand:
 
@@ -274,7 +278,19 @@ moved on as soon as each degree was near square:
 | Found | 146 | 170 | 194 | 266 | 362 | 638 | 1034 | 1518 | 2094 |
 | Lebedev | 146 | 170 | 194 | 230 | 350 | 590 | 974 | 1454 | 2030 |
 
-## Extending it to wedges and pyramids
+## The newer domains
+
+The 4-cube, disk, ball, pyramid, wedge and 4-simplex tables (main, 74b73a9) start at low
+degree. Their adapters are thin: the 4-cube, disk and ball are the box adapter with `D = 4` or
+the package's round geometry (`refine/box_search.jl`); the pyramid and wedge go through the
+package's generic orbit search (`refine/orbit_search.jl`); the 4-simplex is the simplex adapter
+with `N = 5`. A first six-minute run of each, all six at once on a busy machine, reached: wedge
+7–14, disk 23–29, ball 15, pyramid 10 and 4-cube 19. The 4-simplex did not get past degree 6:
+grown from the degree-6 rule, the degree-7 fits converge, but to rules outside the simplex or
+with a negative weight; multistart over the structures of a point count, as
+`scripts/generate_simplex4_seeds.jl` does to degree 4, is the likelier way in.
+
+## Extending it to other domains
 
 The engine needs nothing new. A wedge or pyramid adapter does need orbit machinery the package
 doesn't have yet for those domains; at present it has only their conical and product rules.
