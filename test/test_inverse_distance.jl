@@ -132,9 +132,10 @@ end
         end
     end
     # the point count does not grow as x₀ comes closer: each radial line has the Gauss rule of
-    # its own weight
-    @test npoints(rule(WeightedDomain(T, InverseDistance((1//3, 1//4, 1//10^12))); degree = 9)) <=
-          npoints(rule(WeightedDomain(T, InverseDistance((1//3, 1//4, 1//10))); degree = 9))
+    # its own weight (and further away it falls, the angular substitution scaled to the height)
+    n12, n6, n1 = (npoints(rule(WeightedDomain(T, InverseDistance((1//3, 1//4, H))); degree = 9))
+                   for H in (1//10^12, 1//10^6, 1//10))
+    @test n12 <= n6 && n1 <= n6
     # in the plane, just outside an edge
     r = rule(WeightedDomain(TRI, InverseDistance((1//2, -1//1000))); degree = 7)
     v = check(r)

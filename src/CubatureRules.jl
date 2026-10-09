@@ -69,6 +69,7 @@ include("families/simplex/conical.jl")
 include("families/simplex/duffy_gauss.jl")
 include("families/simplex/duffy_sinh.jl")
 include("families/simplex/duffy_finitepart.jl")
+include("families/simplex/duffy_cone.jl")
 include("symmetry/orbits.jl")
 include("symmetry/box.jl")
 include("symmetry/invariant.jl")
@@ -132,7 +133,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        GaussLaguerre, GaussHermite, ExpSinh, SinhSinh,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev,
-       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct, DuffyGauss, DuffySinh, DuffyFinitePart
+       StieltjesDiscretization, SingularGauss, Filon, WedgeProduct, DuffyGauss, DuffySinh, DuffyFinitePart, DuffyCone
 export rule, available, compare, families
 export RefinementError, NoRuleError
 # application and transport
@@ -148,7 +149,7 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        christoffel, second_kind, endpoints, wheeler, MomentDomain, MomentBreakdownError,
        FunctionDomain, WeightPiece, discretize, discrete_stieltjes, verification_weight,
        SingularKernel, KernelDomain, jacobi_hilbert, kernel_moments, InverseDistanceDomain,
-       PointKernel, PointKernelDomain, FinitePartDomain,
+       PointKernel, PointKernelDomain, FinitePartDomain, InverseDistanceTetDomain,
        OscillatoryWeight, OscillatoryDomain, oscillatory_moments, spherical_bessel_up, spherical_bessel_down,
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,

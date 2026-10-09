@@ -65,8 +65,9 @@ Not listed above:
   `Filon`, which applies to intervals with an [`Oscillatory`](@ref) weight;
   `SingularGauss`, which applies to intervals with a [`PrincipalValue`](@ref) or
   [`FinitePart`](@ref) kernel; `DuffyGauss` and `DuffySinh`, which apply to triangles with an
-  [`InverseDistance`](@ref) kernel; and `DuffyFinitePart`, which applies to triangles with an
-  [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref) kernel.
+  [`InverseDistance`](@ref) kernel; `DuffyFinitePart`, which applies to triangles with an
+  [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref) kernel; and `DuffyCone`,
+  which applies to tetrahedra with an [`InverseDistance`](@ref) kernel.
 
 ## Planned domains
 

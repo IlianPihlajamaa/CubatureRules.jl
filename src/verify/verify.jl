@@ -815,6 +815,52 @@ function polar_finitepart_integrals(dom::FinitePartDomain, L::Integer, ::Type{S}
     throw(ArgumentError("the reference finite parts for $(dom) did not converge"))
 end
 
+# A tetrahedron with the kernel 1/|y − x₀| is verified against the orthonormal tetrahedral
+# Dubiner polynomials, with their weighted integrals over each cone from x₀: Gauss–Legendre in
+# the radial variable (exact, the integrand being a polynomial there) and, on the face, the
+# polar quadrature of `polar_kernel_integrals` about the face's point nearest x₀. The
+# construction shares the cones and nothing on the faces, where it uses DuffySinh.
+struct KernelTetBasis{S,B<:SimplexBasis{3,S}} <: VerificationBasis
+    basis::B
+    A::SMatrix{3,3,S,9}             # reference coordinates ξ = A (y − v₀)
+    v0::SVector{3,S}
+    integrals::Vector{S}
+end
+function evaluate!(B::KernelTetBasis{S}, y) where {S}
+    ξ = B.A * (SVector{3,S}(S(y[1]), S(y[2]), S(y[3])) - B.v0)
+    φ, G = evaluate!(B.basis, ξ)
+    # the gradient in y, for the tolerance on rounded nodes: Aᵀ ∇_ξ
+    return φ, [sum(abs(B.A[1, i] * G[k, 1] + B.A[2, i] * G[k, 2] + B.A[3, i] * G[k, 3]) for i in 1:3) for k in axes(G, 1)]
+end
+blocks(B::KernelTetBasis) = degree_blocks(B.basis)
+exact_integrals(B::KernelTetBasis) = B.integrals
+
+function verification_basis(dom::InverseDistanceTetDomain, n, ::Type{S}, exact) where {S}
+    exact && throw(ArgumentError("rules for the kernel 1/|y − x₀| are not exact rationals"))
+    K = maximum(_degrees(n))
+    v = [SVector{3,S}(map(S, p)) for p in vertices(dom.base)]
+    A = inv(hcat(v[2] - v[1], v[3] - v[1], v[4] - v[1]))
+    basis = SimplexBasis{3,S}(K)
+    L = basis_length(basis)
+    X0 = SVector{3,S}(map(S, tet_kernel_geometry(dom).x0))
+    sx, sw = gauss_jacobi_work(cld(K + 2, 2), 0, 0, precision(S))[1:2]   # exact to degree K + 1 in s
+    integrals = zeros(S, L)
+    for (fd, h) in cone_faces(dom, S)
+        function ψ!(out, z)
+            fill!(out, zero(S))
+            for (si, σi) in zip(sx, sw)
+                s = (1 + S(si)) / 2
+                φ, _ = evaluate!(basis, A * (X0 + s * (SVector{3,S}(z) - X0) - v[1]); gradient = false)
+                out .+= (S(σi) / 2 * s) .* φ
+            end
+        end
+        integrals .+= h .* polar_kernel_integrals(fd, L, S, ψ!; degree = K)
+    end
+    return KernelTetBasis{S,typeof(basis)}(basis, A, v[1], integrals),
+           "orthonormal tetrahedral Dubiner, against their integrals with the kernel (cones from x₀ over the faces: " *
+           "Gauss–Legendre along each cone, the face in polar coordinates about its point nearest x₀)"
+end
+
 function verification_basis(dom::FinitePartDomain, n, ::Type{S}, exact) where {S}
     exact && throw(ArgumentError("rules for the finite-part kernels are not exact rationals"))
     K = maximum(_degrees(n))

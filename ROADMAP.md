@@ -568,7 +568,18 @@ gaining enough breadth for the selector to be genuinely discriminating.
       ray); against the closed forms `⨎ 1/r³ = −Σ (sin ψ_q − sin ψ_p)/h` and
       `PV ∫ (y − x₀)·e/r³ = −∮ (n·e)/r ds` to 1e-36; additive over a triangle cut through
       `x₀`. Signed weights, `Σ|w|/|Σw|` about 2000 for `1/r³` at degree 9. Helmholtz: the same
-      weights with `f e^{ikr}(1 − ikr)` as the integrand. Next: tetrahedra, curved elements)*
+      weights with `f e^{ikr}(1 − ikr)` as the integrand.
+      **Tetrahedra done:** `∫_K f/|y − x₀| dy` with `x₀` in a tetrahedron (inside, on a face,
+      edge or vertex), the weakly singular kernel of volume integral equations, by
+      `DuffyCone`: the cones from `x₀` over the faces, Gauss–Legendre along each (exact) and
+      `DuffySinh` on each face, where `x₀` is off the plane. Exact and sharp to degree 7,
+      positive, interior, verified against the tetrahedral Dubiner polynomials (radially
+      exact, the faces by the verifier's polar quadrature) and against spherical coordinates
+      about `x₀`. Large at `Float64` (about 2300 points at degree 3), since the faces' angular
+      direction is analytic, not polynomial; smaller at lower precision. On the way,
+      `DuffySinh`'s angular substitution is scaled to the height of `x₀` above the plane,
+      `κ = √(η² + h²/|d|²)` rather than `η`, which keeps the near limit and cut the lines a
+      face needs from 32 to 21 when `x₀` stands well off it. Next: curved elements)*
 
 **Removed in this stage**
 

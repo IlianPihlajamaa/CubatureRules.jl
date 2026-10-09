@@ -147,6 +147,7 @@ PointKernel
 InverseDistanceDomain
 PointKernelDomain
 FinitePartDomain
+InverseDistanceTetDomain
 ```
 
 ## Verification

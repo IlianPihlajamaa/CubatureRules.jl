@@ -212,7 +212,12 @@ of it: `estimate_cond` indexed past
 4. Galerkin pairs: interop with SauterSchwabQuadrature.jl, or own pair rules.
 5. Strongly singular and hypersingular kernels. *Done, 2026-10-09:* `InverseDistanceCubed`
    and `InverseDistanceGradient` with `DuffyFinitePart`; see "Stage 5" below.
-6. Tetrahedra; curved elements.
+6. Tetrahedra; curved elements. *Tetrahedra done, 2026-10-09* (`DuffyCone`): the cone from
+   `x₀` over a face `F` at the height `h`, `y = x₀ + s (z − x₀)`, has `dy = h s² ds dA_z` and
+   `r = s |z − x₀|`, so `f/r dy = h s f ds · dA_z/|z − x₀|`: polynomial in `s`, and on the
+   face the near-singular kernel with `x₀` off the plane, which `DuffySinh` already does. The
+   cost is in the faces' angular direction, about twenty lines per piece at `Float64`; plain
+   Gauss–Legendre there (measured) needs more, not fewer, even with `x₀` well off the face.
 
 ## Stage 5: finite parts on a flat panel
 

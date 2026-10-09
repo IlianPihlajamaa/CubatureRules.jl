@@ -254,3 +254,75 @@ The finite part of `∫_T K(y) dy` for the kernel of a [`FinitePartDomain`](@ref
 `BigFloat` precision (see `polar_finitepart_integrals`).
 """
 measure(d::FinitePartDomain) = only(polar_finitepart_integrals(d, 1, BigFloat, (out, y) -> (out[1] = one(BigFloat))))
+
+# ---- the volume kernel on a tetrahedron ---------------------------------------------------------
+
+"""
+    InverseDistanceTetDomain
+
+A tetrahedron (a `Simplex{3}` with three-dimensional vertices) carrying an
+[`InverseDistance`](@ref) kernel: the weakly singular volume integral
+`∫_K f(y)/|y − x₀| dy` of volume integral equations, with `x₀` in the closed tetrahedron.
+"""
+const InverseDistanceTetDomain = WeightedDomain{3,<:Any,<:Simplex{3},<:InverseDistance{3}}
+
+isreference(::InverseDistanceTetDomain) = true
+reference(d::InverseDistanceTetDomain) = d
+
+"""
+    tet_kernel_geometry(dom) -> (; x0, inside, cones, moved)
+
+How a rule for the tetrahedron `dom` is built, decided in exact arithmetic. The barycentric
+coordinates `λᵢ` of `x₀` are exact; one whose face plane `x₀` is within 64 units in the last
+place of is set to zero, moving `x₀` onto that face (by `moved`). `inside` is whether `x₀` then
+lies in the closed tetrahedron. `cones` are the faces whose planes do not contain `x₀`, as
+`(face vertices, λᵢ)`: the tetrahedron is the union of the cones from `x₀` over them, the one
+over the face opposite vertex `i` having the volume fraction `λᵢ`.
+"""
+function tet_kernel_geometry(dom::InverseDistanceTetDomain)
+    V = [SVector{3,Rational{BigInt}}(map(_exact, p)) for p in vertices(dom.base)]
+    given = SVector{3,Rational{BigInt}}(map(_exact, dom.weight.x0))
+    vol6 = det(hcat(V[2] - V[1], V[3] - V[1], V[4] - V[1]))
+    iszero(vol6) && throw(ArgumentError("the tetrahedron $(dom.base) is degenerate"))
+    faces = ((2, 3, 4), (1, 3, 4), (1, 2, 4), (1, 2, 3))           # the face opposite vertex i
+    # barycentric: the volume with vertex i replaced by x, over the whole
+    λ = map(1:4) do i
+        P = [j == i ? given : V[j] for j in 1:4]
+        det(hcat(P[2] - P[1], P[3] - P[1], P[4] - P[1])) / vol6
+    end
+    tol2 = (64 * maximum(_ulp, vcat(collect(dom.weight.x0), (collect(p) for p in vertices(dom.base))...)))^2
+    for i in 1:4
+        # the distance from the plane of face i is λᵢ |vol6| / |2 × its area|
+        a, b, c = (V[j] for j in faces[i])
+        n = cross(b - a, c - a)
+        λ[i]^2 * vol6^2 <= tol2 * dot(n, n) && (λ[i] = zero(λ[i]))
+    end
+    inside = all(>=(0), λ)
+    x0 = inside ? sum(λ[i] * V[i] for i in 1:4) / sum(λ) : given
+    cones = inside ? [(Tuple(V[j] for j in faces[i]), λ[i] / sum(λ)) for i in 1:4 if λ[i] > 0] : []
+    return (; x0, inside, cones, moved = sqrt(Float64(dot(x0 - given, x0 - given))))
+end
+
+"""
+    cone_faces(dom, S) -> [(face domain, h)]
+
+For each cone of [`tet_kernel_geometry`](@ref), the face as a `SurfaceTriangle` carrying the
+kernel `1/|z − x₀|` (with `x₀` off its plane: near-singular) and the distance `h` of `x₀` from
+its plane, in `S`.
+"""
+function cone_faces(dom::InverseDistanceTetDomain, ::Type{S}) where {S}
+    g = tet_kernel_geometry(dom)
+    V = [SVector{3,Rational{BigInt}}(map(_exact, p)) for p in vertices(dom.base)]
+    vol6 = abs(det(hcat(V[2] - V[1], V[3] - V[1], V[4] - V[1])))
+    return map(g.cones) do (F, λ)
+        n = cross(F[2] - F[1], F[3] - F[1])
+        (WeightedDomain(SurfaceTriangle(Tuple(F[1]), Tuple(F[2]), Tuple(F[3])), InverseDistance(Tuple(g.x0))),
+         S(λ * vol6) / sqrt(S(dot(n, n))))
+    end
+end
+
+"""
+`∫_K 1/|y − x₀| dy` in the ambient `BigFloat` precision: over each cone, `h/2` times the face's
+`∫_F dA/|z − x₀|` (see [`cone_faces`](@ref)).
+"""
+measure(d::InverseDistanceTetDomain) = sum(h / 2 * measure(fd) for (fd, h) in cone_faces(d, BigFloat))

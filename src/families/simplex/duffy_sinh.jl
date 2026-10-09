@@ -10,8 +10,10 @@
 # with q(t) = |e(t)|² and ℓ(t) = e(t)·(c − x₀). For each t, s/√Q is a weight on [0, 1] whose
 # moments ∫ sᵏ/√Q ds follow a three-term recurrence from a closed form; its Gauss rule makes
 # the s-direction exact for polynomials, however close x₀ is. What is left in t is analytic
-# but not polynomial, and behaves like 1/√q(t) as x₀ approaches the triangle: t = t* + η sinh v,
-# with q's roots t* ± iη, takes that out, and Gauss–Legendre in v is refined until the rule's
+# but not polynomial, and behaves like 1/√q(t) as x₀ approaches the triangle: t = t* + κ sinh v,
+# with q's roots t* ± iη and κ = √(η² + h²/|d|²) for x₀ at the height h above the plane (the
+# distance of the integrand's singularities from t*), takes that out without treating a point
+# well above the triangle as a near one, and Gauss–Legendre in v is refined until the rule's
 # integrals of every polynomial of its degree agree between two resolutions to the target
 # precision. So the rule is exact to working precision, like every other rule here, but its
 # size grows with that precision.
@@ -137,6 +139,14 @@ function build(f::DuffySinh, dom::InverseDistanceDomain, degree::Int, ctx::Build
         a, b = p - g.c, q - g.c
         (a, b, b - a)
     end
+    # x₀'s height above the triangle's plane (zero in the plane)
+    h2 = if D == 3
+        P = [SVector{3,Rational{BigInt}}(map(_exact, p)) for p in vertices(dom.base)]
+        n = cross(P[2] - P[1], P[3] - P[1])
+        dot(n, SVector{3,Rational{BigInt}}(g.x0) - P[1])^2 / dot(n, n)
+    else
+        zero(Rational{BigInt})
+    end
     # the rule with nt Gauss–Legendre points in v on each sub-triangle
     function assemble(nt)
         xs, ws = SVector{D,BigFloat}[], BigFloat[]
@@ -148,15 +158,21 @@ function build(f::DuffySinh, dom::InverseDistanceDomain, degree::Int, ctx::Build
                 a, b, d = SVector{D,BigFloat}(ar), SVector{D,BigFloat}(br), SVector{D,BigFloat}(dr)
                 dd = dot(d, d)
                 ts, η = -dot(a, d) / dd, _area2(a, b) / dd    # q(t) = |d|² ((t − t*)² + η²)
-                v0, v1 = asinh(-ts / η), asinh((1 - ts) / η)
+                # The angular integrand is singular where |y − x₀|² = 0 for complex t: at least
+                # √(η² + h²/|d|²) from t*, h the height above the plane (exactly so when the
+                # apex is the foot of the perpendicular). Scaling the substitution by that
+                # rather than by η alone keeps the near-singular limit (h → 0) and spends far
+                # fewer points when x₀ stands well above the plane.
+                κ = sqrt(η^2 + BigFloat(h2) / dd)
+                v0, v1 = asinh(-ts / κ), asinh((1 - ts) / κ)
                 vm, hv = (v0 + v1) / 2, (v1 - v0) / 2
                 J = _area2(a, b)
                 for (vk, wk) in zip(v, wv)
-                    t = ts + η * sinh(vm + hv * vk)
+                    t = ts + κ * sinh(vm + hv * vk)
                     e = a + t * d
                     qt, ℓt = dot(e, e), dot(e, c - x0)
                     s, ω = radial_kernel_rule(qt, ℓt, H2, m, wbits)
-                    dtdv = hv * sqrt(qt / dd)                 # dt = η cosh v dv = √(q/|d|²) dv
+                    dtdv = hv * κ * cosh(vm + hv * vk)      # dt = κ cosh v dv
                     for (si, ωi) in zip(s, ω)
                         push!(xs, c + si * e)
                         push!(ws, wk * dtdv * ωi * J)

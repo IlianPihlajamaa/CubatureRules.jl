@@ -298,6 +298,32 @@ For Helmholtz, both kernels arise multiplied by `e^{ikr}(1 − ikr) = 1 + k²r²
 panel: pass `f(y) e^{ikr}(1 − ikr)` as the integrand. The linear term in `r` cancels, which
 is what keeps the finite part well defined (`notes/singular-bem.md`).
 
+## The kernel 1/|y − x₀| on a tetrahedron
+
+```@docs
+DuffyCone
+```
+
+Volume integral equations need `∫_K f(y)/|y − x₀| dy` over a tetrahedron with `x₀` in it,
+the same [`InverseDistance`](@ref) weight on a `Simplex` with three-dimensional vertices. The
+tetrahedron is cut into the cones from `x₀` over its faces; along each cone the integrand is a
+polynomial in the radial variable, and across it the near-singular kernel `1/|z − x₀|` on the
+face, with `x₀` off the face's plane: the case of [`DuffySinh`](@ref). So the rules are exact
+to working precision for every polynomial of their degree, wherever `x₀` lies in the
+tetrahedron, and their size is set by that precision:
+
+```@example simplex
+K = Simplex((0, 0, 0), (1, 0, 0), (3 // 10, 9 // 10, 0), (1 // 5, 1 // 4, 4 // 5))
+dom = WeightedDomain(K, InverseDistance((3 // 10, 3 // 10, 1 // 5)))
+r = rule(dom; degree = 3)
+v = check(r)
+npoints(r), v.exact, v.sharp, npoints(rule(dom; degree = 3, T = Float32))
+```
+
+The points go mostly to the angular direction on the faces, where the integrand after the
+radial integration is analytic but not polynomial: about twenty lines per piece of a face for
+`Float64`, wherever `x₀` stands.
+
 ## Galerkin pairs
 
 A Galerkin discretisation needs `∫_{T₁} ∫_{T₂} φ(x) ψ(y) G(x, y) dy dx` over pairs of
