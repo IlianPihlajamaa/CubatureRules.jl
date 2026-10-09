@@ -579,7 +579,17 @@ gaining enough breadth for the selector to be genuinely discriminating.
       direction is analytic, not polynomial; smaller at lower precision. On the way,
       `DuffySinh`'s angular substitution is scaled to the height of `x₀` above the plane,
       `κ = √(η² + h²/|d|²)` rather than `η`, which keeps the near limit and cut the lines a
-      face needs from 32 to 21 when `x₀` stands well off it. Next: curved elements)*
+      face needs from 32 to 21 when `x₀` stands well off it.
+      **Curved elements done:** `QuadraticTriangle` (the six-node isoparametric element) and
+      `CurvedInverseDistance(Γ, ξ₀)`, the weight `J(ξ)/|χ(ξ) − χ(ξ₀)|` on the reference
+      triangle, where shape functions are polynomials; `DuffyCurved` gives each ray from `ξ₀`
+      the Gauss rule of its own weight (smooth after the Duffy map, the second-order term of
+      a quadratic map taken exactly so nothing cancels near `x₀`) and refines the angle as
+      `DuffySinh` does. Exact and sharp to degree 7 at a vertex, on an edge and inside an
+      octant of the sphere, against Dubiner polynomials integrated in polar coordinates about
+      `ξ₀`; a straight-sided element agrees with `DuffyGauss` on its flat triangle to 3e-15.
+      27–576 points at `Float64`, 1–6 s to build. Next: near-singular points for the
+      finite-part kernels and for curved elements)*
 
 **Removed in this stage**
 

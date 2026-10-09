@@ -66,8 +66,9 @@ Not listed above:
   `SingularGauss`, which applies to intervals with a [`PrincipalValue`](@ref) or
   [`FinitePart`](@ref) kernel; `DuffyGauss` and `DuffySinh`, which apply to triangles with an
   [`InverseDistance`](@ref) kernel; `DuffyFinitePart`, which applies to triangles with an
-  [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref) kernel; and `DuffyCone`,
-  which applies to tetrahedra with an [`InverseDistance`](@ref) kernel.
+  [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref) kernel; `DuffyCone`,
+  which applies to tetrahedra with an [`InverseDistance`](@ref) kernel; and `DuffyCurved`, which
+  applies to the reference triangle with a [`CurvedInverseDistance`](@ref) kernel.
 
 ## Planned domains
 

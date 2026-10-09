@@ -324,6 +324,37 @@ The points go mostly to the angular direction on the faces, where the integrand 
 radial integration is analytic but not polynomial: about twenty lines per piece of a face for
 `Float64`, wherever `x₀` stands.
 
+## Curved triangles
+
+```@docs
+QuadraticTriangle
+CurvedInverseDistance
+DuffyCurved
+```
+
+On a curved boundary element `Γ = χ(T̂)`, the six-node quadratic triangle of isoparametric
+methods, the weakly singular integral is taken where the shape functions are polynomials, on
+the reference triangle: `∫_Γ f/|y − x₀| dS = ∫_T̂ f(χ(ξ)) J(ξ)/|χ(ξ) − χ(ξ₀)| dξ`. The weight
+`J/|χ − χ(ξ₀)|` is singular at `ξ₀` but not of the flat form, so `DuffyCurved` gives each ray
+from `ξ₀` the Gauss rule of its own weight — smooth after the Duffy map, since
+`χ(ξ₀ + s v) − χ(ξ₀) = s (Dχ(ξ₀) v + s ½ vᵀD²χ v)` exactly for a quadratic map — and refines the
+angular direction until every polynomial of the degree is integrated to the precision asked
+for. An octant of the unit sphere as one element, with the shape function of its first vertex:
+
+```@example simplex
+s = 1 / sqrt(2)
+Γ = QuadraticTriangle((1, 0, 0), (0, 1, 0), (0, 0, 1), (s, s, 0), (0, s, s), (s, 0, s))
+dom = WeightedDomain(Simplex{2}(), CurvedInverseDistance(Γ, (1 // 5, 3 // 10)))
+r = rule(dom; degree = 5)
+N₁(ξ) = (1 - ξ[1] - ξ[2]) * (1 - 2ξ[1] - 2ξ[2])
+v = check(r)
+npoints(r), integrate(N₁, r), v.exact, v.sharp
+```
+
+The nodes are in `ξ`; `Γ.(nodes(r))` are the points on the surface, for kernels such as
+Helmholtz's `e^{ik|y − x₀|}` factor. A straight-sided element is a flat triangle, and there the
+rules agree with [`DuffyGauss`](@ref) to rounding.
+
 ## Galerkin pairs
 
 A Galerkin discretisation needs `∫_{T₁} ∫_{T₂} φ(x) ψ(y) G(x, y) dy dx` over pairs of

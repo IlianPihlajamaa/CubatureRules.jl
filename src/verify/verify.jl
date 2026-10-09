@@ -815,6 +815,73 @@ function polar_finitepart_integrals(dom::FinitePartDomain, L::Integer, ::Type{S}
     throw(ArgumentError("the reference finite parts for $(dom) did not converge"))
 end
 
+"""
+    polar_curved_integrals(dom, L, S, φ!; degree) -> Vector{S}
+
+`∫_T̂ φᵢ(ξ) J(ξ)/|χ(ξ) − χ(ξ₀)| dξ` for the [`CurvedInverseDistance`](@ref) weight of `dom`,
+for `L` functions written by `φ!(out, ξ)`, in polar coordinates about `ξ₀` in arithmetic `S`:
+`ρ dρ dθ · J/|χ(ξ₀ + ρ ê) − χ(ξ₀)| = J dρ dθ/|Dχ(ξ₀) ê + ρ Q(ê)|`, smooth in `ρ` (Gauss–Legendre
+on each ray) and in the angle (taken along each edge as `τ = h sinh v`, as in
+[`polar_kernel_integrals`](@ref)), both refined until two resolutions agree. Independent of the
+construction, which works in Duffy coordinates with a Gauss rule of each ray's weight.
+"""
+function polar_curved_integrals(dom::CurvedKernelDomain, L::Integer, ::Type{S}, φ!; degree::Integer = 0) where {S}
+    g = curved_geometry(dom)
+    g.place === :near && throw(ArgumentError("the curved kernel needs ξ₀ on the reference triangle"))
+    el = dom.weight.element
+    X0 = SVector{2,S}(map(S, g.x0))
+    A = jacobian_matrix(el, X0)
+    vals = zeros(S, L)
+    function integrals(n)
+        total = zeros(S, L)
+        x, w = gauss_jacobi_work(n, 0, 0, precision(S))[1:2]
+        for (p, q) in g.patches
+            f, u, h, τp, τq = patch_frame(X0, p, q, S)
+            va, vb = asinh(τp / h), asinh(τq / h)
+            vm, hv = (va + vb) / 2, (vb - va) / 2
+            for (xk, wk) in zip(x, w)
+                vv = vm + hv * xk
+                e = f + h * sinh(vv) * u
+                R = norm(e - X0)
+                ê = (e - X0) / R
+                Ae, Qe = A * ê, second_term(el, ê)
+                for (xj, wj) in zip(x, w)
+                    ρ = R * (1 + xj) / 2
+                    ξ = X0 + ρ * ê
+                    φ!(vals, ξ)
+                    total .+= (hv * wk / cosh(vv) * R / 2 * wj * area_element(el, ξ) / norm(Ae + ρ * Qe)) .* vals
+                end
+            end
+        end
+        return total
+    end
+    n = 2degree + 24
+    prev = integrals(n)
+    tol = ldexp(one(S), -(precision(S) - 16))
+    while n <= 2048
+        n *= 2
+        cur = integrals(n)
+        maximum(abs, cur - prev) <= tol * max(one(S), maximum(abs, cur)) && return cur
+        prev = cur
+    end
+    throw(ArgumentError("the reference integrals for $(dom) did not converge"))
+end
+
+function verification_basis(dom::CurvedKernelDomain, n, ::Type{S}, exact) where {S}
+    exact && throw(ArgumentError("rules for the curved kernel are not exact rationals"))
+    K = maximum(_degrees(n))
+    dub = DubinerBasis{S}(K; normalize = true)
+    function φ!(out, ξ)
+        dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
+        out .= dub.φ
+    end
+    integrals = polar_curved_integrals(dom, dubiner_length(K), S, φ!; degree = K)
+    A = SMatrix{2,2,S,4}(1, 0, 0, 1)
+    return KernelTriangleBasis{S,2,4}(dub, A, SVector{2,S}(0, 0), integrals),
+           "orthonormal Dubiner in ξ, against their integrals with the weight (polar coordinates about ξ₀, " *
+           "Gauss–Legendre along each ray and each edge)"
+end
+
 # A tetrahedron with the kernel 1/|y − x₀| is verified against the orthonormal tetrahedral
 # Dubiner polynomials, with their weighted integrals over each cone from x₀: Gauss–Legendre in
 # the radial variable (exact, the integrand being a polynomial there) and, on the face, the

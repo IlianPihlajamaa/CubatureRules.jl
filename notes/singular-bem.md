@@ -218,6 +218,14 @@ of it: `estimate_cond` indexed past
    face the near-singular kernel with `x₀` off the plane, which `DuffySinh` already does. The
    cost is in the faces' angular direction, about twenty lines per piece at `Float64`; plain
    Gauss–Legendre there (measured) needs more, not fewer, even with `x₀` well off the face.
+   *Curved elements done, 2026-10-09* (`DuffyCurved`), not by Montanelli–Aussal–Haddar's
+   singularity subtraction but in the spirit of `DuffySinh`: on the reference triangle the
+   weight `J(ξ)/|χ(ξ) − χ(ξ₀)|` becomes, after the Duffy map from `ξ₀`, `|a × b| J/|W(s, t)|`
+   with `W = Dχ(ξ₀) v + s ½ vᵀD²χ v` exactly for a quadratic map; each ray gets the Gauss rule
+   of `s ↦ J/|W|` by the Stieltjes procedure, so the radial direction is exact for polynomials
+   in `ξ`, and the angle has the sinh substitution of the flat-case `|Dχ(ξ₀) v(t)|²`, refined
+   to the target. A spike matched polar-coordinate integrals about `ξ₀` to 1e-29–1e-40 at
+   degrees 3–9 on an octant of the sphere.
 
 ## Stage 5: finite parts on a flat panel
 

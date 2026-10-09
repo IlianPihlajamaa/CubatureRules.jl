@@ -17,6 +17,7 @@ const CR = CubatureRules
     @testset "Galerkin pairs through SauterSchwabQuadrature.jl" include("test_galerkin.jl")
     @testset "finite parts of 1/r³ and its gradient on triangles" include("test_finitepart_triangle.jl")
     @testset "the kernel 1/|y − x₀| on tetrahedra" include("test_tetrahedron_kernel.jl")
+    @testset "the kernel 1/|y − x₀| on curved triangles" include("test_curved_triangle.jl")
     @testset "oscillatory weights" include("test_oscillatory.jl")
     @testset "wedges and pyramids" include("test_wedge_pyramid.jl")
     @testset "fully symmetric square and cube rules" include("test_box_symmetric.jl")

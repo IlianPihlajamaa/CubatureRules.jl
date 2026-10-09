@@ -148,6 +148,7 @@ InverseDistanceDomain
 PointKernelDomain
 FinitePartDomain
 InverseDistanceTetDomain
+CurvedKernelDomain
 ```
 
 ## Verification
