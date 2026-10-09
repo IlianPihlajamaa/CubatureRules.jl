@@ -192,9 +192,27 @@ family(::SphereDomain, s) = Tuple(count(o -> o.kind === k, s.orbits) for k in _O
 # fit_octahedral does: in Float64 the monomial system is hopeless above degree 17 (condition
 # number 6e5 at the degree-17 rule, 1e19 one orbit later, 1e48 at degree 133), the harmonic
 # one is not (23 and 2.6e3).
+# A b orbit needs l < 1/√2 and a d orbit r² + s² < 1; a solve or a perturbation can step past
+# that, where the system throws a DomainError. Answered with a huge residual instead, a solve
+# steps back rather than failing the whole task.
+struct SafeSphereSystem{T}
+    sys::T
+end
+function (w::SafeSphereSystem)(θ; jacobian::Bool = true)
+    try
+        return w.sys(θ; jacobian)
+    catch e
+        e isa DomainError || rethrow()
+        m, u = CR.n_equations(w.sys), CR.n_unknowns(w.sys)
+        return fill(1e10, m), jacobian ? zeros(m, u) : zeros(0, 0)
+    end
+end
+sphere_inside(s, θ) = try CR.octahedral_margins(s, θ)[2] > -0.02 catch e; e isa DomainError || rethrow(); false end
+
 function fit(::SphereDomain, s, θ0, n)
-    sys = CR.OctahedralHarmonicSystem(s, n, Float64)
-    θ, nr = CR.levenberg_marquardt(sys, θ0; maxiter = 400, tol = 1e-13, accept = x -> CR.octahedral_margins(s, x)[2] > -0.02)
+    sphere_inside(s, θ0) || return nothing             # a start outside an orbit's domain is no start
+    sys = SafeSphereSystem(CR.OctahedralHarmonicSystem(s, n, Float64))
+    θ, nr = CR.levenberg_marquardt(sys, θ0; maxiter = 400, tol = 1e-13, accept = x -> sphere_inside(s, x))
     nr <= 1e-10 || return nothing
     res = CR.gauss_newton(sys, θ; step_tol = 1e-15, res_floor = 1e-13, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
@@ -202,9 +220,9 @@ function fit(::SphereDomain, s, θ0, n)
     (wmin > 0 && dmin > 1e-6 && CR.node_separation(s, res.θ) > 1e-6) || return nothing
     return s, CR.canonical_octahedral(s, res.θ)
 end
-system(::SphereDomain, s, n) = CR.OctahedralHarmonicSystem(s, n, Float64)
+system(::SphereDomain, s, n) = SafeSphereSystem(CR.OctahedralHarmonicSystem(s, n, Float64))
 weight_indices(::SphereDomain, s) = [off + 1 for off in CR.param_offsets(s)]
-inside(::SphereDomain, s, θ) = CR.octahedral_margins(s, θ)[2] > -0.02
+inside(::SphereDomain, s, θ) = sphere_inside(s, θ)
 moves(::SphereDomain, s, θ) = [(mv.structure, mv.θ0, mv.removed, 0.0, mv.what) for mv in CR.octahedral_elimination_moves(s, θ)]
 
 general_orbit(::SphereDomain) = CR.OctahedralOrbit(:d)
