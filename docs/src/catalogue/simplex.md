@@ -253,6 +253,51 @@ mesh = [SurfaceTriangle((0, 0, 0), (1, 0, 1), (0, 1, 1)), SurfaceTriangle((1, 0,
 integrate(y -> y[3]^2, r, mesh)
 ```
 
+## Strongly singular and hypersingular kernels
+
+```@docs
+DuffyFinitePart
+InverseDistanceCubed
+InverseDistanceGradient
+```
+
+Collocation at a point `x₀` of a panel meets, besides `1/r`, the kernels `1/r³` (the
+hypersingular operator on a flat panel) and `(y − x₀)·e/r³` (the adjoint double layer at an
+edge or vertex shared with a panel at an angle), `r = |y − x₀|`. Neither is integrable at `x₀`;
+the rules compute the finite part with respect to `r`, the integral outside the disk `r < ε`
+less its terms in `1/ε` and `ln ε`. That is additive over the panels around `x₀`, and for the
+gradient kernel with `x₀` inside a panel it is the principal value. Here the principal value
+of `(y − x₀)·e/r³` over a triangle with `x₀` inside, against the divergence theorem,
+`−∮ (n·e)/r ds`, which is closed form along each edge:
+
+```@example simplex
+T = Simplex((0, 0), (1, 0), (3 // 10, 8 // 10))
+x0, e = (2 // 5, 3 // 10), (3 // 5, 4 // 5)
+r = rule(WeightedDomain(T, InverseDistanceGradient(x0, e)); degree = 6, digits = 40)
+V = [big.(collect(v)) for v in CubatureRules.vertices(T)]
+X0 = big.(collect(x0))
+pv = -sum(zip(V, circshift(V, -1))) do (p, q)
+    u = (q - p) / sqrt(sum(abs2, q - p))
+    f = p + sum((X0 - p) .* u) * u
+    h = sqrt(sum(abs2, X0 - f))
+    (u[2] * e[1] - u[1] * e[2]) * (asinh(sum((q - f) .* u) / h) - asinh(sum((p - f) .* u) / h))
+end
+npoints(r), Float64(abs(integrate(y -> 1, r) - pv))
+```
+
+With the Duffy map `y = x₀ + s v(t)` on each piece of the triangle cut at `x₀`, `r = s √q(t)`,
+so excluding `r < ε` excludes `s < ε/√q(t)`: the finite part in `r` is the finite part in `s`
+plus terms in `ln √q(t)` times `φ(x₀)` or `∇φ(x₀)·v(t)` (Guiggiani's correction). The rule is
+interpolatory in `s` on Gauss–Legendre nodes, weighted for the finite part; the logarithmic
+terms are folded into its weights through the values along each ray, so no node sits at `x₀`;
+the angular direction has the Gauss rule of `q(t)^{-3/2}`. The weights are signed and grow with
+the degree — `Σ|w|/|Σw|` is about 2000 for `1/r³` at degree 9 — so a `Float64` rule loses up to
+three digits to cancellation; ask for more digits where that matters.
+
+For Helmholtz, both kernels arise multiplied by `e^{ikr}(1 − ikr) = 1 + k²r²/2 + ⋯` on a flat
+panel: pass `f(y) e^{ikr}(1 − ikr)` as the integrand. The linear term in `r` cancels, which
+is what keeps the finite part well defined (`notes/singular-bem.md`).
+
 ## Galerkin pairs
 
 A Galerkin discretisation needs `∫_{T₁} ∫_{T₂} φ(x) ψ(y) G(x, y) dy dx` over pairs of

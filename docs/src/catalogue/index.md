@@ -64,8 +64,9 @@ Not listed above:
   `StieltjesDiscretization`, which applies to domains with a [`FunctionWeight`](@ref);
   `Filon`, which applies to intervals with an [`Oscillatory`](@ref) weight;
   `SingularGauss`, which applies to intervals with a [`PrincipalValue`](@ref) or
-  [`FinitePart`](@ref) kernel; and `DuffyGauss` and `DuffySinh`, which apply to triangles with an
-  [`InverseDistance`](@ref) kernel.
+  [`FinitePart`](@ref) kernel; `DuffyGauss` and `DuffySinh`, which apply to triangles with an
+  [`InverseDistance`](@ref) kernel; and `DuffyFinitePart`, which applies to triangles with an
+  [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref) kernel.
 
 ## Planned domains
 

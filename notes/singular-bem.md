@@ -210,8 +210,31 @@ of it: `estimate_cond` indexed past
    (`test/test_galerkin.jl`); no pair rules of our own.
 3. Near-singular collocation.
 4. Galerkin pairs: interop with SauterSchwabQuadrature.jl, or own pair rules.
-5. Strongly singular and hypersingular kernels.
+5. Strongly singular and hypersingular kernels. *Done, 2026-10-09:* `InverseDistanceCubed`
+   and `InverseDistanceGradient` with `DuffyFinitePart`; see "Stage 5" below.
 6. Tetrahedra; curved elements.
+
+## Stage 5: finite parts on a flat panel
+
+Collocation with `x₀` on a flat panel needs, besides `1/r`, only two kernels. The
+hypersingular operator is `(n_x·n_y)/r³ − 3 (n_x·(x − y))(n_y·(x − y))/r⁵`, and `n_y·(y − x₀)`
+vanishes when `x₀` lies on the panel, also where it meets a panel at an angle: a constant
+times `1/r³`. The adjoint double layer is `(y − x₀)·n_x/r³`, zero on the panel of `x₀` and not
+on its neighbours at an edge or vertex. For Helmholtz both carry the factor
+`e^{ikr}(1 − ikr) = 1 + k²r²/2 + ⋯`, whose linear term cancels, so the same rules serve with
+that factor in the integrand.
+
+The finite part is taken with respect to `r` (the disk `r < ε` excluded, the `1/ε` and `ln ε`
+terms dropped): additive over panels, and the principal value for the gradient kernel inside a
+panel. With the Duffy map, `r = s √q(t)`, and excluding `s < ε/√q(t)` instead leaves, from the
+expansions of `∫_{ε/√q}^1 f/s² ds` and `∫_{ε/√q}^1 f/s ds`, the corrections `c₁ ln √q` and
+`c₀ ln √q` (`f = Σ c_k sᵏ` along the ray): Guiggiani's point that the finite parts in a local
+variable and in the distance differ. They depend on `f` only through `φ(x₀)` and `∇φ(x₀)·v(t)`,
+which the values along any ray determine for a polynomial `f`; so the rule folds them into its
+weights (extrapolation and differentiation weights at the ray's nodes) and needs no node at
+`x₀`. The spike (2026-10-09) matched finite parts taken in polar coordinates about `x₀` — where
+the radial variable is `r` and no correction is needed — to 1e-75 for every monomial to degree
+`d`, at a vertex, on an edge and inside, and missed degree `d + 1`.
 
 ## Open questions
 

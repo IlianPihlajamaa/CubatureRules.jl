@@ -742,6 +742,98 @@ function polar_kernel_integrals(dom::InverseDistanceDomain, L::Integer, ::Type{S
     throw(ArgumentError("the reference integrals for $(dom) did not converge"))
 end
 
+"""
+    polar_finitepart_integrals(dom, L, S, φ!; degree) -> Vector{S}
+
+The finite parts with respect to `r = |y − x₀|` of `∫_T φᵢ(y) K(y) dy` for the kernel `K` of
+a [`FinitePartDomain`](@ref), for `L` functions written by `φ!(out, y)` that are polynomials
+of degree at most `degree`; in polar coordinates about `x₀`, in arithmetic `S`.
+
+Along the ray to the edge point at distance `R`, `φ(x₀ + ρ ê) = Σ a_k (ρ/R)^k`, with the
+`a_k` from the values at `degree + 1` points. The radial variable is `r` itself, so the
+finite part along the ray is closed form: `FP ∫₀^R ρ^(k−2) dρ = R^(k−1)/(k − 1)`, and `ln R`
+at `k = 1`, for `1/r³` (whose polar Jacobian leaves `ρ⁻²`); `FP ∫₀^R ρ^(k−1) dρ = R^k/k`, and
+`ln R` at `k = 0`, times `ê·e` for the gradient kernel. The terms dropped (`1/ε`, `ln ε`) are
+the ones the finite part drops. The angle is taken along each edge as `τ = h sinh v`, as in
+[`polar_kernel_integrals`](@ref), and refined until two resolutions agree.
+
+Independent of the construction, which works in the Duffy variable `s = r/√q(t)` and so
+needs the `ln √q` corrections that the radial variable here does not.
+"""
+function polar_finitepart_integrals(dom::FinitePartDomain, L::Integer, ::Type{S}, φ!; degree::Integer = 0) where {S}
+    g = kernel_geometry(dom)
+    g.place === :near && throw(ArgumentError("the finite parts are defined here for x₀ on the triangle; $(dom) has it off"))
+    D = length(g.x0)
+    x0 = SVector{D,S}(g.x0)
+    hyper = dom.weight isa InverseDistanceCubed
+    e = hyper ? nothing : SVector{D,S}(map(S, dom.weight.e))
+    K = Int(degree)
+    σx = gauss_jacobi_work(K + 1, 0, 0, precision(S))[1]
+    σ = (1 .+ S.(σx)) ./ 2
+    Vinv = inv([σ[i]^k for i in 1:(K + 1), k in 0:K])
+    vals = zeros(S, L)
+    G = zeros(S, L, K + 1)
+    function integrals(level)
+        total = zeros(S, L)
+        x, w = gauss_jacobi_work((2K + 16) * 2^level, 0, 0, precision(S))[1:2]
+        for (p, q) in g.patches
+            f, u, h, τp, τq = patch_frame(x0, p, q, S)
+            va, vb = asinh(τp / h), asinh(τq / h)
+            vm, hv = (va + vb) / 2, (vb - va) / 2
+            for (xk, wk) in zip(x, w)
+                v = vm + hv * xk
+                edge = f + h * sinh(v) * u
+                R = norm(edge - x0)
+                ê = (edge - x0) / R
+                for i in 1:(K + 1)
+                    φ!(vals, x0 + σ[i] * R * ê)
+                    G[:, i] .= vals .+ zero(S)          # new numbers: the evaluator updates its BigFloats in place
+                end
+                a = G * transpose(Vinv)                      # a[l, k + 1]: coefficient of (ρ/R)^k
+                dθ = hv * wk / cosh(v)                       # dθ = dv/cosh v along the edge
+                c = hyper ? one(S) : dot(ê, e)
+                for l in 1:L
+                    acc = if hyper
+                        -a[l, 1] + (K >= 1 ? a[l, 2] * log(R) : zero(S)) +
+                        sum((a[l, k + 1] / (k - 1) for k in 2:K); init = zero(S))
+                    else
+                        a[l, 1] * log(R) + sum((a[l, k + 1] / k for k in 1:K); init = zero(S))
+                    end
+                    total[l] += dθ * c * (hyper ? acc / R : acc)
+                end
+            end
+        end
+        return total
+    end
+    prev = integrals(0)
+    tol = ldexp(one(S), -(precision(S) - 16))
+    for level in 1:6
+        cur = integrals(level)
+        maximum(abs, cur - prev) <= tol * max(one(S), maximum(abs, cur)) && return cur
+        prev = cur
+    end
+    throw(ArgumentError("the reference finite parts for $(dom) did not converge"))
+end
+
+function verification_basis(dom::FinitePartDomain, n, ::Type{S}, exact) where {S}
+    exact && throw(ArgumentError("rules for the finite-part kernels are not exact rationals"))
+    K = maximum(_degrees(n))
+    D = length(dom.weight.x0)
+    v = [SVector{D,S}(map(S, p)) for p in vertices(dom.base)]
+    E = hcat(v[2] - v[1], v[3] - v[1])
+    A = inv(E' * E) * E'
+    dub = DubinerBasis{S}(K; normalize = true)
+    function φ!(out, y)
+        ξ = A * (y - v[1])
+        dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
+        out .= dub.φ
+    end
+    integrals = polar_finitepart_integrals(dom, dubiner_length(K), S, φ!; degree = K)
+    return KernelTriangleBasis{S,D,2D}(dub, A, v[1], integrals),
+           "orthonormal Dubiner, against their finite parts with the kernel (polar coordinates about x₀, " *
+           "the finite part along each ray in closed form)"
+end
+
 function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) where {S}
     exact && throw(ArgumentError("rules for the kernel 1/|y − x₀| are not exact rationals"))
     K = maximum(_degrees(n))

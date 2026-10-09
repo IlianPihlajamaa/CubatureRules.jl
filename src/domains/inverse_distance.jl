@@ -8,6 +8,15 @@
 # 1/|y − x₀|, exact on polynomials f up to its degree.
 
 """
+    PointKernel{D}
+
+A kernel on a triangle in `D` dimensions that is singular at one point `x0`:
+[`InverseDistance`](@ref), [`InverseDistanceCubed`](@ref) and
+[`InverseDistanceGradient`](@ref).
+"""
+abstract type PointKernel{D} end
+
+"""
     InverseDistance(x₀)
 
 The weight `1 / |y − x₀|` on a triangle, the weakly singular kernel of boundary-element
@@ -34,7 +43,7 @@ units in the last place (of the largest coordinate) of the triangle's plane, or 
 boundary, is moved onto it, and the rule is built for that point; the provenance says how
 far it moved. A point further off is taken as given, as a near-singular point.
 """
-struct InverseDistance{D,P<:Real}
+struct InverseDistance{D,P<:Real} <: PointKernel{D}
     x0::SVector{D,P}
     function InverseDistance{D,P}(x0::SVector{D,P}) where {D,P<:Real}
         all(isfinite, x0) || throw(ArgumentError("the singular point must be finite, got $(Tuple(x0))"))
@@ -47,6 +56,75 @@ InverseDistance(x0::Union{Tuple,AbstractVector}) = InverseDistance(SVector{lengt
 Base.show(io::IO, w::InverseDistance) = print(io, "InverseDistance(", Tuple(w.x0), ")")
 
 """
+    InverseDistanceCubed(x₀)
+
+The hypersingular kernel `1 / |y − x₀|³` on a triangle, as the weight of a
+[`WeightedDomain`](@ref) on a triangle in the plane or in space with `x₀` on it. The integral
+does not exist; what the rule computes is its Hadamard finite part with respect to the
+distance `r = |y − x₀|`: the integral over the triangle outside the disk `r < ε`, less its
+terms in `1/ε` and `ln ε`, as `ε → 0`. That is additive over triangles, so the finite parts
+over the triangles around a collocation point add up to the finite part over their union.
+
+On a flat panel it is the Laplace hypersingular kernel, `∂²/∂n_x∂n_y (1/r) = (n_x·n_y)/r³`,
+also at an edge or vertex shared with a panel at an angle (the term in `n_y·(y − x₀)` is zero
+on the panel). For Helmholtz, `∂²/∂n_x∂n_y (e^{ikr}/r) = e^{ikr}(1 − ikr)/r³` on a flat panel:
+integrate `f(y) e^{ikr}(1 − ikr)`, which is smooth along every ray from `x₀` with no linear
+term in `r` to spoil the finite part.
+
+```julia
+dom = WeightedDomain(Simplex((0, 0), (1, 0), (0, 1)), InverseDistanceCubed((1//4, 1//4)))
+r = rule(dom; degree = 6)
+integrate(y -> 1 + y[1], r)                 # ⨎_T (1 + y₁)/|y − x₀|³ dy
+```
+
+Rules come from [`DuffyFinitePart`](@ref); their weights are signed. `x₀` is read as for
+[`InverseDistance`](@ref).
+"""
+struct InverseDistanceCubed{D,P<:Real} <: PointKernel{D}
+    x0::SVector{D,P}
+    function InverseDistanceCubed{D,P}(x0::SVector{D,P}) where {D,P<:Real}
+        all(isfinite, x0) || throw(ArgumentError("the singular point must be finite, got $(Tuple(x0))"))
+        return new{D,P}(x0)
+    end
+end
+InverseDistanceCubed(x0::SVector{D,P}) where {D,P<:Real} = InverseDistanceCubed{D,P}(x0)
+InverseDistanceCubed(x0::Union{Tuple,AbstractVector}) = InverseDistanceCubed(SVector{length(x0)}(promote(x0...)))
+Base.show(io::IO, w::InverseDistanceCubed) = print(io, "InverseDistanceCubed(", Tuple(w.x0), ")")
+
+"""
+    InverseDistanceGradient(x₀, e)
+
+The strongly singular kernel `(y − x₀)·e / |y − x₀|³ = e·∇_{x₀}(1/|y − x₀|)` on a triangle,
+as the weight of a [`WeightedDomain`](@ref) on a triangle in the plane or in space with `x₀`
+on it. The rule computes its finite part with respect to `r = |y − x₀|`, as for
+[`InverseDistanceCubed`](@ref) (here only a `ln ε` term is dropped); for `x₀` inside the
+triangle that is the Cauchy principal value.
+
+With `e` the normal at the collocation point it is the Laplace adjoint double-layer kernel,
+`n_x·∇_x (1/r)`: zero on the panel of `x₀`, nonzero on a panel meeting it at an edge or vertex
+at an angle (only the component of `e` in the triangle's plane matters). For Helmholtz,
+`n_x·∇_x (e^{ikr}/r)` is this kernel times `e^{ikr}(1 − ikr)`: integrate `f(y) e^{ikr}(1 − ikr)`.
+
+Rules come from [`DuffyFinitePart`](@ref); their weights are signed.
+"""
+struct InverseDistanceGradient{D,P<:Real} <: PointKernel{D}
+    x0::SVector{D,P}
+    e::SVector{D,P}
+    function InverseDistanceGradient{D,P}(x0::SVector{D,P}, e::SVector{D,P}) where {D,P<:Real}
+        all(isfinite, x0) || throw(ArgumentError("the singular point must be finite, got $(Tuple(x0))"))
+        all(isfinite, e) || throw(ArgumentError("the direction must be finite, got $(Tuple(e))"))
+        return new{D,P}(x0, e)
+    end
+end
+function InverseDistanceGradient(x0::Union{Tuple,AbstractVector,SVector}, e::Union{Tuple,AbstractVector,SVector})
+    length(x0) == length(e) || throw(DimensionMismatch("x₀ and e need the same dimension"))
+    v = promote(x0..., e...)
+    D = length(x0)
+    return InverseDistanceGradient{D,eltype(v)}(SVector{D}(v[1:D]), SVector{D}(v[(D + 1):end]))
+end
+Base.show(io::IO, w::InverseDistanceGradient) = print(io, "InverseDistanceGradient(", Tuple(w.x0), ", ", Tuple(w.e), ")")
+
+"""
     InverseDistanceDomain
 
 A triangle in the plane (`Simplex{2}`) or in space ([`SurfaceTriangle`](@ref)) carrying an
@@ -55,10 +133,19 @@ A triangle in the plane (`Simplex{2}`) or in space ([`SurfaceTriangle`](@ref)) c
 const InverseDistanceDomain = Union{WeightedDomain{2,<:Any,<:Simplex{2},<:InverseDistance{2}},
                                     WeightedDomain{3,<:Any,<:SurfaceTriangle,<:InverseDistance{3}}}
 
-# The kernel is not invariant under affine maps (only under similarities), so the rule is
+"A triangle in the plane or in space carrying a [`PointKernel`](@ref)."
+const PointKernelDomain = Union{WeightedDomain{2,<:Any,<:Simplex{2},<:PointKernel{2}},
+                                WeightedDomain{3,<:Any,<:SurfaceTriangle,<:PointKernel{3}}}
+
+"A triangle carrying one of the finite-part kernels, [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref)."
+const FinitePartDomain = Union{
+    WeightedDomain{2,<:Any,<:Simplex{2},<:Union{InverseDistanceCubed{2},InverseDistanceGradient{2}}},
+    WeightedDomain{3,<:Any,<:SurfaceTriangle,<:Union{InverseDistanceCubed{3},InverseDistanceGradient{3}}}}
+
+# The kernels are not invariant under affine maps (only under similarities), so the rule is
 # built where it is asked for: such a domain is its own reference.
-isreference(::InverseDistanceDomain) = true
-reference(d::InverseDistanceDomain) = d
+isreference(::PointKernelDomain) = true
+reference(d::PointKernelDomain) = d
 
 _exact(x::Integer) = Rational{BigInt}(x)
 _exact(x::Rational) = Rational{BigInt}(x)
@@ -85,7 +172,7 @@ the triangle, and otherwise the point of the triangle nearest to it, at the dist
 `√H2 > 0`. `patches` are the sub-triangles `(c, p, q)` of positive area, as pairs `(p, q)` in
 the triangle's orientation. Throws if the triangle is degenerate.
 """
-function kernel_geometry(dom::InverseDistanceDomain)
+function kernel_geometry(dom::PointKernelDomain)
     D = length(dom.weight.x0)
     V = [SVector{D,Rational{BigInt}}(map(_exact, p)) for p in vertices(dom.base)]
     given = SVector{D,Rational{BigInt}}(map(_exact, dom.weight.x0))
@@ -132,7 +219,7 @@ function kernel_geometry(dom::InverseDistanceDomain)
 end
 
 "The number of sub-triangles the triangle is cut into at the apex: 1, 2 or 3."
-npatches(dom::InverseDistanceDomain) = length(kernel_geometry(dom).patches)
+npatches(dom::PointKernelDomain) = length(kernel_geometry(dom).patches)
 
 # On the sub-triangle (x₀, p, q) in polar coordinates about x₀ the kernel cancels the
 # Jacobian, ∫∫ f (1/r) r dr dψ, and along the edge pq, at the foot f of the perpendicular from
@@ -161,3 +248,9 @@ function measure(d::InverseDistanceDomain)
         h * (asinh(τq / h) - asinh(τp / h))
     end
 end
+
+"""
+The finite part of `∫_T K(y) dy` for the kernel of a [`FinitePartDomain`](@ref), in the ambient
+`BigFloat` precision (see `polar_finitepart_integrals`).
+"""
+measure(d::FinitePartDomain) = only(polar_finitepart_integrals(d, 1, BigFloat, (out, y) -> (out[1] = one(BigFloat))))

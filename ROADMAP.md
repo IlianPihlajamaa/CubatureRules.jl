@@ -553,8 +553,22 @@ gaining enough breadth for the selector to be genuinely discriminating.
       as an argument and computes in its arithmetic: with this package's Gauss–Legendre rules
       at 60 digits the common-face Laplace integral reaches the closed form to 6e-33 at 40
       points per axis, and the common edge and vertex converge as fast in the vertex order it
-      expects. Documented in the catalogue and tested; no pair rules of our own. Next:
-      strongly singular and hypersingular kernels — principal values and finite parts)*
+      expects. Documented in the catalogue and tested; no pair rules of our own.
+      **Strongly singular and hypersingular kernels done:** `InverseDistanceCubed(x₀)`
+      (`1/r³`, the flat-panel hypersingular operator) and `InverseDistanceGradient(x₀, e)`
+      (`(y − x₀)·e/r³`, the adjoint double layer at an edge or vertex shared at an angle),
+      with `x₀` on the triangle, by `DuffyFinitePart`: the finite part with respect to `r`,
+      additive over panels and the principal value for the gradient kernel inside. In the
+      Duffy variable `s = r/√q(t)` the finite part differs from the one in `r` by
+      `ln √q(t)` terms in `φ(x₀)` and `∇φ(x₀)·v(t)`; the rule is interpolatory in `s` on
+      Gauss–Legendre nodes, with those terms folded into its weights by extrapolation and
+      differentiation along the rays (no node at `x₀`), and the Gauss rule of `q^{-3/2}` in
+      `t`. Verified exact and sharp to degree 9 at vertices, on edges, inside and in space,
+      against finite parts taken in polar coordinates about `x₀` (closed form along each
+      ray); against the closed forms `⨎ 1/r³ = −Σ (sin ψ_q − sin ψ_p)/h` and
+      `PV ∫ (y − x₀)·e/r³ = −∮ (n·e)/r ds` to 1e-36; additive over a triangle cut through
+      `x₀`. Signed weights, `Σ|w|/|Σw|` about 2000 for `1/r³` at degree 9. Helmholtz: the same
+      weights with `f e^{ikr}(1 − ikr)` as the integrand. Next: tetrahedra, curved elements)*
 
 **Removed in this stage**
 

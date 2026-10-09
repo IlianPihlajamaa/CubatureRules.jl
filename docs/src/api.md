@@ -140,10 +140,13 @@ jacobi_hilbert
 kernel_moments
 ```
 
-## The kernel 1/|y − x₀| on triangles
+## Kernels singular at a point of a triangle
 
 ```@docs
+PointKernel
 InverseDistanceDomain
+PointKernelDomain
+FinitePartDomain
 ```
 
 ## Verification
