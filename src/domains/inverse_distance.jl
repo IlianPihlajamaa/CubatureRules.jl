@@ -77,8 +77,12 @@ r = rule(dom; degree = 6)
 integrate(y -> 1 + y[1], r)                 # ⨎_T (1 + y₁)/|y − x₀|³ dy
 ```
 
-Rules come from [`DuffyFinitePart`](@ref); their weights are signed. `x₀` is read as for
-[`InverseDistance`](@ref).
+With `x₀` off the triangle the integral is an ordinary one, nearly singular as `x₀` comes
+close: above a flat triangle at the height `H` it is `Ω/H`, `Ω` the solid angle the triangle
+subtends.
+
+Rules come from [`DuffyFinitePart`](@ref) for `x₀` on the triangle (signed weights) and
+[`DuffySinh`](@ref) off it. `x₀` is read as for [`InverseDistance`](@ref).
 """
 struct InverseDistanceCubed{D,P<:Real} <: PointKernel{D}
     x0::SVector{D,P}
@@ -105,7 +109,13 @@ With `e` the normal at the collocation point it is the Laplace adjoint double-la
 at an angle (only the component of `e` in the triangle's plane matters). For Helmholtz,
 `n_x·∇_x (e^{ikr}/r)` is this kernel times `e^{ikr}(1 − ikr)`: integrate `f(y) e^{ikr}(1 − ikr)`.
 
-Rules come from [`DuffyFinitePart`](@ref); their weights are signed.
+With `x₀` off the triangle the integral is an ordinary one; with `e` the triangle's normal it
+is then the double-layer potential, `−Ω` for `x₀` at the height `H > 0` above it (`Ω` the solid
+angle), which tends to `−2π` as `x₀` comes down onto the inside of the triangle and to `+2π`
+from below: the jump that makes evaluation near the surface hard.
+
+Rules come from [`DuffyFinitePart`](@ref) for `x₀` on the triangle and [`DuffySinh`](@ref)
+off it; their weights are signed.
 """
 struct InverseDistanceGradient{D,P<:Real} <: PointKernel{D}
     x0::SVector{D,P}
@@ -253,7 +263,11 @@ end
 The finite part of `∫_T K(y) dy` for the kernel of a [`FinitePartDomain`](@ref), in the ambient
 `BigFloat` precision (see `polar_finitepart_integrals`).
 """
-measure(d::FinitePartDomain) = only(polar_finitepart_integrals(d, 1, BigFloat, (out, y) -> (out[1] = one(BigFloat))))
+function measure(d::FinitePartDomain)
+    one!(out, y) = (out[1] = one(BigFloat))
+    return only(kernel_geometry(d).place === :near ? polar_kernel_integrals(d, 1, BigFloat, one!) :
+                polar_finitepart_integrals(d, 1, BigFloat, one!))
+end
 
 # ---- the volume kernel on a tetrahedron ---------------------------------------------------------
 

@@ -193,8 +193,8 @@ A point computed in floating point, like this centroid, is on the triangle only 
 here it is 1.7e-17 off the plane. `x₀` within 64 units in the last place of the triangle's
 plane or boundary is moved onto it and the rule is built for that point, as the provenance
 says; exact coordinates are never moved. A point further off is near-singular, the next
-section. The stronger singularities of double-layer and hypersingular kernels are not
-covered yet.
+section. The stronger singularities of double-layer and hypersingular kernels are further
+down, under strongly singular and hypersingular kernels.
 
 Reference: M. G. Duffy, *SIAM J. Numer. Anal.* 19 (1982) 1260–1262, doi:10.1137/0719090.
 
@@ -298,6 +298,26 @@ For Helmholtz, both kernels arise multiplied by `e^{ikr}(1 − ikr) = 1 + k²r²
 panel: pass `f(y) e^{ikr}(1 − ikr)` as the integrand. The linear term in `r` cancels, which
 is what keeps the finite part well defined (`notes/singular-bem.md`).
 
+With `x₀` off the triangle both are ordinary integrals, near-singular when `x₀` is close, and
+go to [`DuffySinh`](@ref) like `1/r`: each radial line gets the Gauss rule of `s/|y − x₀|³`,
+whose moments follow from those of `s/|y − x₀|`, and the gradient kernel's numerator is linear
+along the line. With `e` the normal the gradient kernel is the double layer, whose integral is
+minus the solid angle `Ω` of the triangle seen from `x₀` (A. van Oosterom and J. Strackee,
+*IEEE Trans. Biomed. Eng.* 30 (1983) 125–126, doi:10.1109/TBME.1983.325207). Here `x₀` is 1e-6
+above the triangle:
+
+```@example simplex
+E = SurfaceTriangle((0, 0, 0), (1, 0, 0), (3 // 10, 8 // 10, 0))
+x0 = (1 // 3, 1 // 4, 1 // 10^6)
+r = rule(WeightedDomain(E, InverseDistanceGradient(x0, (0, 0, 1))); degree = 5)
+inner(u, v) = sum(u .* v)
+A, B, C = ([big(v[i] - x0[i]) for i in 1:3] for v in E.vertices)
+a, b, c = sqrt(inner(A, A)), sqrt(inner(B, B)), sqrt(inner(C, C))
+det = A[1] * (B[2] * C[3] - B[3] * C[2]) - A[2] * (B[1] * C[3] - B[3] * C[1]) + A[3] * (B[1] * C[2] - B[2] * C[1])
+Ω = 2atan(abs(det), a * b * c + inner(A, B) * c + inner(A, C) * b + inner(B, C) * a)
+family(r), npoints(r), Float64(sum(weights(r)) + Ω)
+```
+
 ## The kernel 1/|y − x₀| on a tetrahedron
 
 ```@docs
@@ -354,6 +374,27 @@ npoints(r), integrate(N₁, r), v.exact, v.sharp
 The nodes are in `ξ`; `Γ.(nodes(r))` are the points on the surface, for kernels such as
 Helmholtz's `e^{ik|y − x₀|}` factor. A straight-sided element is a flat triangle, and there the
 rules agree with [`DuffyGauss`](@ref) to rounding.
+
+A point given in space, `CurvedInverseDistance(Γ; x0)`, may be off the surface: a potential
+evaluated close to the boundary, or collocation at a node of a nearby element. The rule is then
+built about the point `χ(ξc)` of the element nearest `x₀`, found by Newton's method inside the
+element, along its edges and at its vertices. After the Duffy map from `ξc`,
+`χ(ξ) − x₀ = D₀ + s Dχ(ξc) v + s² Q(v)` with `D₀ = χ(ξc) − x₀`, and each ray's weight
+`s J/|χ − x₀|`, near-singular at `s = 0`, is discretised after a sinh substitution from its
+quadratic part, scaled to `x₀`'s distance, before the Stieltjes procedure gives its Gauss rule;
+the angle is widened by the same distance. So the rule does not grow as `x₀` approaches: 369
+points at degree 5 from 1e-1 to 1e-6 above the octant. Here `x₀` is about 1e-6 above the point
+of the example before, and the integral moves from the one there by less than that distance:
+
+```@example simplex
+x0 = Γ((1 // 5, 3 // 10)) * (1 + 1e-6)
+rn = rule(WeightedDomain(Simplex{2}(), CurvedInverseDistance(Γ; x0)); degree = 5)
+npoints(rn), integrate(N₁, rn) - integrate(N₁, r)
+```
+
+On a straight-sided element these rules agree with [`DuffySinh`](@ref) on the flat triangle to
+rounding. `check` integrates the Dubiner polynomials in polar coordinates about `ξc`, with the
+same sinh substitution along each ray.
 
 ## Galerkin pairs
 

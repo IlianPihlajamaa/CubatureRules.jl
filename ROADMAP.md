@@ -588,8 +588,24 @@ gaining enough breadth for the selector to be genuinely discriminating.
       `DuffySinh` does. Exact and sharp to degree 7 at a vertex, on an edge and inside an
       octant of the sphere, against Dubiner polynomials integrated in polar coordinates about
       `ξ₀`; a straight-sided element agrees with `DuffyGauss` on its flat triangle to 3e-15.
-      27–576 points at `Float64`, 1–6 s to build. Next: near-singular points for the
-      finite-part kernels and for curved elements)*
+      27–576 points at `Float64`, 1–6 s to build.
+      **Near-singular finite parts and curved elements done:** with `x₀` off a flat triangle,
+      `1/r³` and `(y − x₀)·e/r³` are ordinary integrals and go to `DuffySinh`, each radial
+      line with the Gauss rule of `s/|y − x₀|³` (moments from those of `s/|y − x₀|` through
+      `s² = (Q − 2ℓs − H²)/q`; the gradient kernel's numerator, linear along the line, takes
+      one degree more). Against the solid angle, `∫ 1/r³ = Ω/H` and the double layer `−Ω`,
+      to 1e-16 at heights 1e-1 to 1e-9: 168–384 points at degree 5, 0.1–0.2 s.
+      `CurvedInverseDistance(Γ; x0)` takes `x₀` in space, on the surface or off it: off it,
+      the rule is built about the nearest point `χ(ξc)` (Newton inside, along the edges, and
+      the vertices), each ray's weight `s J/|D₀ + s Dχ v + s² Q(v)|` discretised after a sinh
+      substitution from its quadratic part and given its Gauss rule by the Stieltjes
+      procedure, the angle widened by the distance. 369 points at degree 5 from 1e-1 to 1e-6
+      above an octant of the sphere, 6–9 s to build (57 s before the Gauss–Legendre nodes
+      were shared between rays); exact and sharp against polar integrals about `ξc`, above,
+      below, beyond an edge and beyond a vertex; `I(H) − I(0) = O(H)`; a straight-sided
+      element agrees with `DuffySinh` to 4e-16. The verifiers' angular substitution along
+      each edge is now scaled to `x₀`'s distance as well, which halved the cost of checking
+      a point near an edge)*
 
 **Removed in this stage**
 

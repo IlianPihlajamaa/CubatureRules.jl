@@ -208,7 +208,17 @@ of it: `estimate_cond` indexed past
    (a common vertex first in both triangles; a common edge at positions 1 and 3 of both, in
    the same order), algebraically otherwise. Documented in the catalogue and tested
    (`test/test_galerkin.jl`); no pair rules of our own.
-3. Near-singular collocation.
+3. Near-singular collocation. *Done for `1/r`* (`DuffySinh`, above). *Extended 2026-10-11*
+   to the finite-part kernels off a flat triangle, where they are ordinary integrals: along a
+   line `1/r³` has the weight `s/Q^{3/2}`, whose moments follow from those of `s/√Q` through
+   `s² = (Q − 2ℓs − H²)/q`, and the gradient kernel's numerator is linear along the line. And
+   to curved elements, `x₀` given in space: the nearest point `χ(ξc)`, then the Duffy map from
+   `ξc` with `χ(ξ) − x₀ = D₀ + s Dχ v + s² Q(v)` exactly; each ray's weight is discretised
+   after `s = s* + κ sinh z`, `s* ± iκ` the roots of the quadratic part `|D₀ + s Dχ v|²`
+   (the curvature terms are smooth at that scale), and gets its Gauss rule by the Stieltjes
+   procedure; the angular `κ` is widened by the distance as in `DuffySinh`. No closed-form
+   moments here, so the cost is in the per-ray discretisations (128–256 points per ray at
+   heights 1e-1 to 1e-6); sharing the Gauss–Legendre nodes between rays keeps it to seconds.
 4. Galerkin pairs: interop with SauterSchwabQuadrature.jl, or own pair rules.
 5. Strongly singular and hypersingular kernels. *Done, 2026-10-09:* `InverseDistanceCubed`
    and `InverseDistanceGradient` with `DuffyFinitePart`; see "Stage 5" below.

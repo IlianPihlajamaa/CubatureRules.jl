@@ -31,8 +31,8 @@ end
     end
     r = rule(WeightedDomain(T, InverseDistanceCubed((2 // 5, 3 // 10))); degree = 6, digits = 40)
     @test passed(check(r)) && eltype(weights(r)) == BigFloat
-    # x₀ off the triangle is not a finite part
-    @test_throws NoRuleError rule(WeightedDomain(T, InverseDistanceCubed((2, 2))); degree = 3)
+    # x₀ off the triangle: an ordinary (near-singular) integral, for DuffySinh
+    @test family(rule(WeightedDomain(T, InverseDistanceCubed((2, 2))); degree = 3)) == "DuffySinh"
 end
 
 @testset "closed forms" begin
@@ -72,5 +72,34 @@ end
         r1 = rule(WeightedDomain(T1, w); degree = 4, digits = 30)
         r2 = rule(WeightedDomain(T2, w); degree = 4, digits = 30)
         @test abs(integrate(f, rT) - integrate(f, r1) - integrate(f, r2)) < 1e-26
+    end
+end
+
+@testset "near-singular: x₀ off the triangle" begin
+    # above a flat triangle at the height H: ∫ 1/r³ = Ω/H and the double layer
+    # ∫ (y − x₀)·n/r³ = −Ω, Ω the solid angle (Van Oosterom & Strackee), however close x₀ is
+    V = ((0, 0, 0), (1, 0, 0), (3 // 10, 8 // 10, 0))
+    S3 = SurfaceTriangle(V...)
+    function solid_angle(x0)
+        R = [big.(collect(v)) .- big.(collect(x0)) for v in V]
+        r = norm.(R)
+        num = abs(dot(R[1], cross(R[2], R[3])))
+        den = r[1] * r[2] * r[3] + dot(R[1], R[2]) * r[3] + dot(R[1], R[3]) * r[2] + dot(R[2], R[3]) * r[1]
+        return 2 * atan(num, den)
+    end
+    for foot in ((1 // 3, 1 // 4), (1 // 2, -1 // 10)), H in (1 // 10, 1 // 10^4, 1 // 10^9)
+        x0 = (foot..., H)
+        Ω = solid_angle(x0)
+        r3 = rule(WeightedDomain(S3, InverseDistanceCubed(x0)); degree = 5)
+        rg = rule(WeightedDomain(S3, InverseDistanceGradient(x0, (0, 0, 1))); degree = 5)
+        @test family(r3) == "DuffySinh" && degree(r3) >= 5 && degree(rg) >= 5
+        @test sum(weights(r3)) ≈ Ω / H rtol = 1e-14
+        @test sum(weights(rg)) ≈ -Ω rtol = 1e-14
+    end
+    # against the polar reference, with e tilted, and in the plane outside the triangle
+    for dom in (WeightedDomain(S3, InverseDistanceGradient((1 // 3, 1 // 4, 1 // 1000), (3 // 5, 0, 4 // 5))),
+                WeightedDomain(T, InverseDistanceCubed((1 // 2, -1 // 100))))
+        v = check(rule(dom; degree = 4))
+        @test passed(v) && v.interior
     end
 end

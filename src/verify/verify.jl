@@ -684,17 +684,27 @@ exact; off it, `ρ = ρ* + κ sinh z` about the point of the ray nearest `x₀` 
 factor into `h ρ dz`, entire in `z`. The angular integrand is entire in `v`. Both are refined
 until two resolutions agree to the precision of `S`.
 
+With `x₀` off the triangle the other point kernels are ordinary integrals too: the radial
+factor `h ρ dz` is then multiplied by the kernel times `r`, `1/r²` for `1/r³` and
+`(y − x₀)·e/r²` for the gradient kernel, with `r = R κ cosh z` along the ray.
+
 How independent this is of the constructions: the radial direction is (they use Gauss rules
 of the radial weight, from its moments), and so are the coordinates, polar about `c` against
 Duffy's. The angular substitution is the one `DuffySinh` makes in its angular direction, set
 up separately, along the edge, at its own resolution.
 """
-function polar_kernel_integrals(dom::InverseDistanceDomain, L::Integer, ::Type{S}, φ!; degree::Integer = 0) where {S}
+function polar_kernel_integrals(dom::PointKernelDomain, L::Integer, ::Type{S}, φ!; degree::Integer = 0) where {S}
     g = kernel_geometry(dom)
     D = length(g.x0)
     x0, c = SVector{D,S}(g.x0), SVector{D,S}(g.c)
     H2 = S(g.H2)
     near = !iszero(g.H2)
+    kernel = dom.weight              # not `w`: integrals() below assigns its Gauss weights to w
+    kernel isa InverseDistance || near ||
+        throw(ArgumentError("with x₀ on the triangle $(kernel) is a finite part: see polar_finitepart_integrals"))
+    edir = kernel isa InverseDistanceGradient ? SVector{D,S}(map(S, kernel.e)) : nothing
+    # the kernel times r, at the point y at distance r
+    kr(y, r) = kernel isa InverseDistance ? one(S) : kernel isa InverseDistanceCubed ? 1 / r^2 : dot(y - x0, edir) / r^2
     nr = cld(degree + 1, 2) + 1                             # exact in ρ to degree 2nr − 1 > degree
     vals = zeros(S, L)
     function integrals(level)
@@ -703,10 +713,15 @@ function polar_kernel_integrals(dom::InverseDistanceDomain, L::Integer, ::Type{S
         ρg, wg = gauss_jacobi_work(near ? (2degree + 16) * 2^level : nr, 0, 0, precision(S))[1:2]
         for (p, q) in g.patches
             f, u, h, τp, τq = patch_frame(c, p, q, S)
-            va, vb = asinh(τp / h), asinh(τq / h)
+            # along the edge τ = τ* + κ sinh v: κ = h for x₀ on the triangle; off it τ* ± iκ are
+            # the roots of |f + τ u − x₀|², which keeps the substitution to x₀'s distance
+            ts = near ? -dot(f - x0, u) : zero(S)
+            κa = near ? sqrt(max(dot(f - x0, f - x0) - ts^2, zero(S))) : h
+            va, vb = asinh((τp - ts) / κa), asinh((τq - ts) / κa)
             vm, hv = (va + vb) / 2, (vb - va) / 2
             for (xk, wk) in zip(x, w)
-                e = f + h * sinh(vm + hv * xk) * u           # where the ray meets the edge
+                vv = vm + hv * xk
+                e = f + (ts + κa * sinh(vv)) * u             # where the ray meets the edge
                 if !near                                    # the radial factor is h: exact in ρ
                     for (ρj, wj) in zip(ρg, wg)
                         φ!(vals, c + (1 + ρj) / 2 * (e - c))
@@ -715,8 +730,10 @@ function polar_kernel_integrals(dom::InverseDistanceDomain, L::Integer, ::Type{S
                     continue
                 end
                 # |c + ρ(e − c) − x₀|² = R²((ρ − ρ*)² + κ²): ρ = ρ* + κ sinh z turns the radial
-                # factor h ρ R/√(…) dρ into h ρ dz, entire in z (ρ − ρ* = exp z when κ = 0)
+                # factor h ρ R/√(…) dρ into h ρ dz, entire in z (ρ − ρ* = exp z when κ = 0);
+                # dτ = R dv when κa = h, else κa cosh v dv
                 R = norm(e - c)
+                dτR = κa * cosh(vv) / R
                 β = dot(e - c, c - x0) / R
                 ρs = -β / R
                 κ = sqrt(max(H2 - β^2, zero(S))) / R
@@ -725,8 +742,10 @@ function polar_kernel_integrals(dom::InverseDistanceDomain, L::Integer, ::Type{S
                 for (ρj, wj) in zip(ρg, wg)
                     z = zm + hz * ρj
                     ρ = iszero(κ) ? ρs + exp(z) : ρs + κ * sinh(z)
-                    φ!(vals, c + ρ * (e - c))
-                    total .+= (hv * wk * hz * wj * h * ρ) .* vals
+                    y = c + ρ * (e - c)
+                    φ!(vals, y)
+                    r = R * (iszero(κ) ? exp(z) : κ * cosh(z))
+                    total .+= (hv * wk * dτR * hz * wj * h * ρ * kr(y, r)) .* vals
                 end
             end
         end
@@ -824,33 +843,66 @@ for `L` functions written by `φ!(out, ξ)`, in polar coordinates about `ξ₀` 
 on each ray) and in the angle (taken along each edge as `τ = h sinh v`, as in
 [`polar_kernel_integrals`](@ref)), both refined until two resolutions agree. Independent of the
 construction, which works in Duffy coordinates with a Gauss rule of each ray's weight.
+
+For `x₀` off the surface, about the point `ξc` nearest it: `ρ J dρ dθ/|D₀ + ρ Dχ ê + ρ² Q(ê)|`,
+`D₀ = χ(ξc) − x₀`, with `ρ = ρ* + κ sinh z` from the quadratic part along each ray, as in
+`polar_kernel_integrals`.
 """
 function polar_curved_integrals(dom::CurvedKernelDomain, L::Integer, ::Type{S}, φ!; degree::Integer = 0) where {S}
-    g = curved_geometry(dom)
-    g.place === :near && throw(ArgumentError("the curved kernel needs ξ₀ on the reference triangle"))
+    g = curved_geometry(dom; bits = precision(S) + 64)
+    near = g.place === :near
     el = dom.weight.element
     X0 = SVector{2,S}(map(S, g.x0))
     A = jacobian_matrix(el, X0)
+    D0 = near ? el(X0) - S.(g.X) : nothing
     vals = zeros(S, L)
+    # the radial integral along one ray of length R, direction ê, with n Gauss–Legendre points
+    function ray!(total, ê, R, x, w, scale)
+        Ae, Qe = A * ê, second_term(el, ê)
+        if !near
+            for (xj, wj) in zip(x, w)
+                ρ = R * (1 + xj) / 2
+                ξ = X0 + ρ * ê
+                φ!(vals, ξ)
+                total .+= (scale * R / 2 * wj * area_element(el, ξ) / norm(Ae + ρ * Qe)) .* vals
+            end
+            return
+        end
+        q = dot(Ae, Ae)
+        ρs = -dot(D0, Ae) / q
+        κ2 = dot(D0, D0) / q - ρs^2
+        κ = sqrt(max(κ2, zero(S)))
+        z0, z1 = κ2 > 0 ? (asinh(-ρs / κ), asinh((R - ρs) / κ)) : (log(-ρs), log(R - ρs))
+        zm, hz = (z0 + z1) / 2, (z1 - z0) / 2
+        for (xj, wj) in zip(x, w)
+            z = zm + hz * xj
+            ρ, dρ = κ2 > 0 ? (ρs + κ * sinh(z), κ * cosh(z)) : (ρs + exp(z), exp(z))
+            ξ = X0 + ρ * ê
+            φ!(vals, ξ)
+            total .+= (scale * hz * wj * dρ * ρ * area_element(el, ξ) / norm(D0 + ρ * Ae + ρ^2 * Qe)) .* vals
+        end
+    end
     function integrals(n)
         total = zeros(S, L)
         x, w = gauss_jacobi_work(n, 0, 0, precision(S))[1:2]
         for (p, q) in g.patches
             f, u, h, τp, τq = patch_frame(X0, p, q, S)
-            va, vb = asinh(τp / h), asinh(τq / h)
+            # along the edge τ = τ* + κ sinh v, dθ = h dτ/(h² + τ²): on the surface κ = h; off
+            # it τ* ± iκ are the roots of the linearised |χ(e) − x₀|², x₀'s distance included
+            ts, κ = zero(S), h
+            if near
+                Dw, Au = D0 + A * (f - X0), A * u
+                ts = -dot(Dw, Au) / dot(Au, Au)
+                κ = sqrt(max(dot(Dw, Dw) / dot(Au, Au) - ts^2, zero(S)))
+            end
+            va, vb = asinh((τp - ts) / κ), asinh((τq - ts) / κ)
             vm, hv = (va + vb) / 2, (vb - va) / 2
             for (xk, wk) in zip(x, w)
                 vv = vm + hv * xk
-                e = f + h * sinh(vv) * u
+                τ = ts + κ * sinh(vv)
+                e = f + τ * u
                 R = norm(e - X0)
-                ê = (e - X0) / R
-                Ae, Qe = A * ê, second_term(el, ê)
-                for (xj, wj) in zip(x, w)
-                    ρ = R * (1 + xj) / 2
-                    ξ = X0 + ρ * ê
-                    φ!(vals, ξ)
-                    total .+= (hv * wk / cosh(vv) * R / 2 * wj * area_element(el, ξ) / norm(Ae + ρ * Qe)) .* vals
-                end
+                ray!(total, (e - X0) / R, R, x, w, hv * wk * h * κ * cosh(vv) / (h^2 + τ^2))
             end
         end
         return total
@@ -941,7 +993,8 @@ function verification_basis(dom::FinitePartDomain, n, ::Type{S}, exact) where {S
         dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
         out .= dub.φ
     end
-    integrals = polar_finitepart_integrals(dom, dubiner_length(K), S, φ!; degree = K)
+    integrals = kernel_geometry(dom).place === :near ? polar_kernel_integrals(dom, dubiner_length(K), S, φ!; degree = K) :
+                polar_finitepart_integrals(dom, dubiner_length(K), S, φ!; degree = K)
     return KernelTriangleBasis{S,D,2D}(dub, A, v[1], integrals),
            "orthonormal Dubiner, against their finite parts with the kernel (polar coordinates about x₀, " *
            "the finite part along each ray in closed form)"

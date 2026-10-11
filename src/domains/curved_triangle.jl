@@ -93,22 +93,121 @@ r = rule(dom; degree = 7)
 integrate(ξ -> 1 - ξ[1] - ξ[2], r)          # ∫_Γ N₁/|y − x₀| dS, N₁ the linear shape function
 ```
 
-`ξ₀` may be a vertex, a point of an edge or an interior point; rules come from
-[`DuffyCurved`](@ref).
+`ξ₀` may be a vertex, a point of an edge or an interior point.
+
+    CurvedInverseDistance(element; x0)
+
+The same kernel for a point `x₀` given in space, on the surface or off it: the weight
+`J(ξ)/|χ(ξ) − x₀|`. Off the surface the integral is near-singular as `x₀` comes close; the
+rule is built about the point of the element nearest `x₀`, found by Newton's method on
+`|χ(ξ) − x₀|²` (inside the element, along its edges and at its vertices). A point within
+rounding of the surface is taken as on it.
+
+Rules come from [`DuffyCurved`](@ref).
 """
-struct CurvedInverseDistance{E<:QuadraticTriangle,P<:Real}
+struct CurvedInverseDistance{E<:QuadraticTriangle,P<:Real,X}
     element::E
-    ξ0::SVector{2,P}
+    ξ0::SVector{2,P}            # the parameter point of x₀ when that is given
+    x0::X                       # x₀ in space when that is given, else nothing
 end
 CurvedInverseDistance(e::QuadraticTriangle, ξ0::Union{Tuple,AbstractVector}) =
-    CurvedInverseDistance(e, SVector{2}(promote(ξ0...)))
-Base.show(io::IO, w::CurvedInverseDistance) = print(io, "CurvedInverseDistance(", w.element, ", ", Tuple(w.ξ0), ")")
+    CurvedInverseDistance(e, SVector{2}(promote(ξ0...)), nothing)
+function CurvedInverseDistance(e::QuadraticTriangle{D}; x0) where {D}
+    length(x0) == D || throw(DimensionMismatch("x₀ needs $D coordinates, like the element"))
+    all(isfinite, x0) || throw(ArgumentError("the point must be finite, got $(Tuple(x0))"))
+    return CurvedInverseDistance(e, SVector{2,Int}(0, 0), SVector{D}(promote(x0...)))
+end
+Base.show(io::IO, w::CurvedInverseDistance) =
+    w.x0 === nothing ? print(io, "CurvedInverseDistance(", w.element, ", ", Tuple(w.ξ0), ")") :
+                       print(io, "CurvedInverseDistance(", w.element, "; x0 = ", Tuple(w.x0), ")")
 
 "The reference triangle carrying a [`CurvedInverseDistance`](@ref) kernel."
 const CurvedKernelDomain = WeightedDomain{2,<:Any,<:Simplex{2},<:CurvedInverseDistance}
 
-"How the reference triangle is cut at `ξ₀`: the geometry of the flat case (see `kernel_geometry`)."
-curved_geometry(dom::CurvedKernelDomain) = kernel_geometry(WeightedDomain(dom.base, InverseDistance(dom.weight.ξ0)))
+"""
+    nearest_point(element, X) -> (ξ, distance)
+
+The point of the reference triangle whose image is nearest `X`, in the arithmetic of `X`:
+Newton's method on `½|χ(ξ) − X|²` from the centroid and from halfway between it and each vertex
+(with the constant second derivatives of the quadratic map), Newton along each edge,
+and the vertices; the closest of the candidates inside the closed triangle.
+"""
+function nearest_point(el::QuadraticTriangle{D}, X::SVector{D,S}) where {D,S}
+    F(ξ) = (d = el(ξ) - X; dot(d, d))
+    # the Hessians of the components, from ½ vᵀ D²χ v
+    e1, e2 = SVector{2,S}(1, 0), SVector{2,S}(0, 1)
+    Q1, Q2, Q12 = second_term(el, e1), second_term(el, e2), second_term(el, e1 + e2)
+    H11, H22 = 2Q1, 2Q2
+    H12 = Q12 - Q1 - Q2
+    tol = ldexp(one(S), -(precision(S) - 8))
+    inside(ξ) = all(isfinite, ξ) && ξ[1] >= 0 && ξ[2] >= 0 && ξ[1] + ξ[2] <= 1
+    function newton2(ξ)
+        for _ in 1:80
+            d = el(ξ) - X
+            A = jacobian_matrix(el, ξ)
+            g = transpose(A) * d
+            M = transpose(A) * A + SMatrix{2,2,S,4}(dot(d, H11), dot(d, H12), dot(d, H12), dot(d, H22))
+            Δ = M \ g
+            ξ = ξ - Δ
+            (all(isfinite, ξ) && norm(ξ) < 10) || return nothing
+            norm(Δ) <= tol && return ξ
+        end
+        return ξ
+    end
+    function newton1(p, q)
+        u = q - p
+        τ = one(S) / 2
+        for _ in 1:80
+            ξ = p + τ * u
+            d = el(ξ) - X
+            Au = jacobian_matrix(el, ξ) * u
+            h = dot(Au, Au) + 2dot(d, second_term(el, u))       # second derivative in τ
+            Δ = h > 0 ? dot(Au, d) / h : (dot(Au, d) > 0 ? τ : τ - 1)
+            τ = clamp(τ - Δ, zero(S), one(S))
+            abs(Δ) <= tol && break
+        end
+        return p + τ * u
+    end
+    V = (SVector{2,S}(0, 0), SVector{2,S}(1, 0), SVector{2,S}(0, 1))
+    cands = collect(V)
+    for (p, q) in ((V[1], V[2]), (V[2], V[3]), (V[3], V[1]))
+        push!(cands, newton1(p, q))
+    end
+    for start in (SVector{2,S}(2, 2), SVector{2,S}(1, 1), SVector{2,S}(4, 1), SVector{2,S}(1, 4)) ./ 6
+        ξ = newton2(start)
+        ξ !== nothing && inside(ξ) && push!(cands, ξ)
+    end
+    best = cands[argmin(F.(cands))]
+    return best, sqrt(F(best))
+end
+
+"""
+    curved_geometry(dom; bits = 256) -> (; place, x0, patches, moved, X, H)
+
+How the reference triangle is cut, as for the flat case (see `kernel_geometry`): at `ξ₀` when
+that is given, and at the parameter point of the element nearest `x₀` when `x₀` is given in
+space, computed at `bits`. `place` is `:vertex`, `:edge` or `:interior` for `x₀` on the surface
+(within rounding: `moved` says how far), and `:near` off it; `X` is then `x₀` and `H` its
+distance from the element, as `BigFloat`s.
+"""
+function curved_geometry(dom::CurvedKernelDomain; bits::Integer = 256)
+    w = dom.weight
+    if w.x0 === nothing
+        g = kernel_geometry(WeightedDomain(dom.base, InverseDistance(w.ξ0)))
+        return (; place = g.place, x0 = g.x0, patches = g.patches, moved = g.moved, X = nothing, H = big(0.0))
+    end
+    D = length(w.x0)
+    ξc, H, X = with_bits(bits) do
+        X = SVector{D,BigFloat}(map(BigFloat, w.x0))
+        ξ, h = nearest_point(w.element, X)
+        ξ, h, X
+    end
+    g = kernel_geometry(WeightedDomain(dom.base, InverseDistance(Tuple(ξc))))
+    scale = with_bits(() -> max(one(BigFloat), maximum(abs, X)), bits)
+    tol = 64 * maximum(x -> BigFloat(value_ulp(x)), collect(w.x0)) + ldexp(scale, -(bits - 32))
+    H <= tol && return (; place = g.place, x0 = g.x0, patches = g.patches, moved = Float64(H), X = nothing, H = big(0.0))
+    return (; place = :near, x0 = g.x0, patches = g.patches, moved = 0.0, X, H)
+end
 
 """
 `∫_T̂ J(ξ)/|χ(ξ) − χ(ξ₀)| dξ`, the area-weighted `∫_Γ dS/|y − x₀|`, in the ambient `BigFloat`
