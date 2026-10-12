@@ -478,7 +478,8 @@ function run_worker(domain, root, id; mode = "extend", lo = nothing, hi = nothin
         w.worked[(n, b0)] = get(w.worked, (n, b0), 0.0) + time() - t0
         if iter % 50 == 0
             say(w, "progress: " * join(("$k=$v" for (k, v) in sort(collect(w.stats))), ", ") *
-                   @sprintf(", %.2f h", (time() - started) / 3600))
+                   @sprintf(", %.2f h, live heap %.0f MB, max RSS %.0f MB", (time() - started) / 3600,
+                            Base.gc_live_bytes() / 2^20, Sys.maxrss() / 2^20))
         end
     end
     say(w, "worker $id stopped")
