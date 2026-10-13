@@ -318,6 +318,53 @@ det = A[1] * (B[2] * C[3] - B[3] * C[2]) - A[2] * (B[1] * C[3] - B[3] * C[1]) + 
 family(r), npoints(r), Float64(sum(weights(r)) + Ω)
 ```
 
+## Fast rules for boundary-element assembly
+
+```@docs
+KernelRuleBuilder
+```
+
+A collocation code needs a rule for every pair of collocation point and nearby panel —
+hundreds of thousands of them in one assembly — and the certified constructions above take
+0.03 s (`DuffyGauss`) to a few tenths of a second (`DuffySinh`) each. `KernelRuleBuilder`
+builds the same rules in `Float64`, without allocating, in microseconds: 5–30 µs for `x₀` on
+the panel and 0.1–0.6 ms off it, for degrees up to 19.
+
+```@example simplex
+b = KernelRuleBuilder(InverseDistance, 9)
+E = SurfaceTriangle((0.1, 0.2, 0.3), (1.3, -0.4, 0.7), (0.2, 1.1, -0.5))
+c = (E.vertices[1] + E.vertices[2] + E.vertices[3]) / 3
+k = InverseDistance(Tuple(c) .+ (0.0, 1e-4, 1e-4))         # just off the panel
+x, w = b(E, k)                                              # views into b's buffers
+r = rule(WeightedDomain(E, k); degree = 9)                  # the certified rule
+length(x), npoints(r), integrate(y -> 1 + y[1], b, E, k) - integrate(y -> 1 + y[1], r)
+```
+
+The constructions are those of [`DuffyGauss`](@ref), [`DuffySinh`](@ref) and
+[`DuffyFinitePart`](@ref), with two changes. Every discretisation is sized in advance, from
+where the integrand's singularities lie after the sinh substitution, instead of refined until
+two resolutions agree; the near-singular rules come out two to four times smaller than the
+certified ones for the same accuracy, which refine for more than `Float64` needs. And the
+one-dimensional Gauss rules of the weights `s^j/((s − s₀)² + κ²)^{p/2}` come from the
+Stieltjes procedure on a sinh-substituted grid in `Float64`, with only the grid's
+`z`-coordinates and the geometry in double-double (MultiFloats.jl's `Float64x2`): measured
+against the certified rules, those are the quantities whose rounding `Float64` cannot afford.
+
+Such a rule shows nothing for itself, so the builder was validated against the certified
+rules offline, over random triangles from thin to obtuse with `x₀` at vertices, on edges,
+inside and close to edges, and at heights from `1e-12` to three diameters above and beside
+them (`scripts/validate_fast_kernel_rules.jl`). For every kernel and degree the worst error in
+the integrals of the orthonormal polynomials is within a small factor of what the certified
+rule loses by being rounded to `Float64`; `CubatureRules.validation(b)` reports it, and the
+certificate of `rule(b, T, k)` quotes it. A geometry outside the validated range — a piece of
+the panel thinner than the sweep covered, or `x₀` closer to an edge than `1e-3` of its length
+for the finite parts — is built by the certified construction instead, and `b.fallbacks`
+counts such calls.
+
+```@example simplex
+CubatureRules.validation(b)
+```
+
 ## The kernel 1/|y − x₀| on a tetrahedron
 
 ```@docs

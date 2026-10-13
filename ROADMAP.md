@@ -606,6 +606,20 @@ gaining enough breadth for the selector to be genuinely discriminating.
       element agrees with `DuffySinh` to 4e-16. The verifiers' angular substitution along
       each edge is now scaled to `x₀`'s distance as well, which halved the cost of checking
       a point near an edge)*
+- [x] Fast kernel rules for boundary-element assembly *(`KernelRuleBuilder(kernel, degree)`
+      builds the rules of `DuffyGauss`, `DuffySinh` and `DuffyFinitePart` in Float64, without
+      allocating: 5–30 µs with `x₀` on the panel, 0.1–0.6 ms off it, against 0.03–0.35 s
+      certified, degrees 0–19, triangles in space or in the plane. One primitive, the Gauss
+      rule of `s^j/((s − s₀)² + κ²)^{p/2}` by Stieltjes on a sinh-substituted grid, in Float64
+      with the grid's `z`-coordinates in double-double — measured against moments + Chebyshev
+      in Double64, Float64x2–x4, Float128 and BigFloat, which fail at high degree or cost more
+      — and the geometry in Float64x2 (MultiFloats.jl, a new dependency); every size fixed in
+      advance from where the singularities lie, the near-singular rules two to four times
+      smaller than the certified ones. No rule is verified one by one: an offline sweep against
+      the certified rules (scripts/validate_fast_kernel_rules.jl, 72 geometries per kernel and
+      degree) is recorded in src/data/fast_kernel_validation.toml and quoted by each rule's
+      certificate, and geometries outside its range go to the certified construction.
+      notes/fast-kernel-rules.md)*
 
 **Removed in this stage**
 

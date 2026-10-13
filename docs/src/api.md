@@ -151,6 +151,12 @@ InverseDistanceTetDomain
 CurvedKernelDomain
 ```
 
+The fast rules of [`KernelRuleBuilder`](@ref) report their offline validation:
+
+```@docs
+CubatureRules.validation
+```
+
 ## Verification
 
 ```@docs

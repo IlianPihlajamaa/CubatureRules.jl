@@ -13,6 +13,7 @@ integrate(x -> exp(x[1] * x[2]), r)
 module CubatureRules
 
 using LinearAlgebra
+using MultiFloats: Float64x2
 using Printf
 using Random
 using SHA: sha256
@@ -109,6 +110,9 @@ include("apply/transport.jl")
 include("apply/integrate.jl")
 include("apply/embedded.jl")
 include("verify/verify.jl")
+include("fast/doubledouble.jl")
+include("fast/quadratic_weight.jl")
+include("fast/kernel_builder.jl")
 include("emit/show.jl")
 include("emit/cite.jl")
 include("benchmark/construction.jl")
@@ -137,7 +141,7 @@ export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        GrundmannMöller, GrundmannMoeller, XiaoGimbutas, FullySymmetric, SphereProduct,
        LebedevRule, UpstreamLebedev, BallProduct, GaussianProduct, ExponentialProduct, ModifiedChebyshev,
        StieltjesDiscretization, SingularGauss, Filon, WedgeProduct, DuffyGauss, DuffySinh, DuffyFinitePart, DuffyCone, DuffyCurved
-export rule, available, compare, families
+export rule, available, compare, families, KernelRuleBuilder
 export RefinementError, NoRuleError
 # application and transport
 export integrate, map_to, subdivide, transform, duffy,
@@ -157,7 +161,7 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        Recurrence, jacobi_recurrence, laguerre_recurrence, hermite_recurrence,
        ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map, affine_frame,
-       rule_hash,
+       rule_hash, validation,
        Provenance, Certificate, Verification, Citation, Derived, Seeded,
        CombinatorFamily, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,

@@ -284,3 +284,19 @@ checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
 the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+
+[[file]]
+path = "fast_kernel_validation.toml"
+description = """
+Not a rule table: the record of the offline validation of KernelRuleBuilder, the fast
+Float64 kernel rules. For each kernel and degree, the worst relative error of the rules'
+integrals of the orthonormal Dubiner polynomials against the certified rules over a sweep of
+random triangles and points, the same for the certified rule rounded to Float64, the number
+of geometries, and the median build time. validation(b) reads it and the certificates of the
+fast rules quote it."""
+authors = "CubatureRules.jl contributors"
+source = "Generated in-house by scripts/validate_fast_kernel_rules.jl from the package's own certified rules."
+license = "MIT"
+retrieved = "2026-10-13"
+citation = "none (a validation record of this package's rules)"
+generator = "scripts/validate_fast_kernel_rules.jl"
