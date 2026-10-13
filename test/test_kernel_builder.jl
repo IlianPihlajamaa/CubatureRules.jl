@@ -78,12 +78,21 @@ end
     @test x == nodes(r) && w == weights(r)
 end
 
+# measured inside a function: at a testset's scope the returned pair of vectors escapes and is
+# boxed (32 bytes on Julia 1.11), which code that uses the rule does not pay
+first_coordinate(y) = y[1]
+function allocations(b, T, k)
+    b(T, k)
+    integrate(first_coordinate, b, T, k)
+    return @allocated(b(T, k)) + @allocated(integrate(first_coordinate, b, T, k))
+end
+
 @testset "buffers, allocations, arguments" begin
     b = KernelRuleBuilder(InverseDistanceGradient, 7)
     k1, k2 = kernel(InverseDistanceGradient, c), kernel(InverseDistanceGradient, c + 1e-4 * n)
-    b(T, k1); b(T, k2)
-    @test @allocated(b(T, k1)) == 0
-    @test @allocated(b(T, k2)) == 0
+    @test allocations(b, T, k1) == 0
+    @test allocations(b, T, k2) == 0
+    @test allocations(KernelRuleBuilder(InverseDistance, 9), T, InverseDistance(Tuple(c))) == 0
     @test_throws ArgumentError b(T, InverseDistance(Tuple(c)))
     @test_throws ArgumentError KernelRuleBuilder(InverseDistance, 20)
     @test_throws ArgumentError KernelRuleBuilder(Float64, 3)
