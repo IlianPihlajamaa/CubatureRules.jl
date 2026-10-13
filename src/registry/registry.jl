@@ -286,7 +286,7 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
                 (copyleft ? "; copyleft = true" : "")
     r = _build(chosen.family, dom, degree, Tout, bits, cancel, seed, verbosity(verbose))
     _warn_negative_weights(dom, degree, chosen, ok, r)
-    r = QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, with_selection(r.provenance, selection), r.certificate)
+    r = with_provenance(r, with_selection(r.provenance, selection))
     return isreference(dom) ? r : map_to(r, dom)
 end
 
@@ -321,8 +321,7 @@ function rule(f::RuleFamily, dom::Domain; degree = nothing, npoints = nothing, T
     (positive && !c.positive) && throw(NoRuleError("$(c.name) at degree $degree does not have positive weights"))
     (interior && !c.interior) && throw(NoRuleError("$(c.name) at degree $degree has boundary nodes"))
     r = _build(f, dom, degree, Tout, bits, cancel, seed, verbosity(verbose))
-    r = QuadratureRule(r.nodes, r.weights, r.domain, r.exactness,
-                       with_selection(r.provenance, "family chosen explicitly by the caller"), r.certificate)
+    r = with_provenance(r, with_selection(r.provenance, "family chosen explicitly by the caller"))
     return isreference(dom) ? r : map_to(r, dom)
 end
 
@@ -355,11 +354,7 @@ enough on its own; nothing further is required of the author.
 function _stamp_license(f, r::QuadratureRule)
     lic = family_license(f)
     (isempty(lic) || r.provenance.license == lic) && return r
-    p = r.provenance
-    prov = Provenance(family = p.family, derivation = p.derivation, path = p.path,
-                      seed_source = p.seed_source, citations = p.citations, license = lic,
-                      selection = p.selection, symmetry = p.symmetry)
-    return QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, prov, r.certificate)
+    return with_provenance(r, Provenance(r.provenance; license = lic))
 end
 
 # ---------------------------------------------------------------------------------------

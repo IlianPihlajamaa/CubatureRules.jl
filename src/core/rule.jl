@@ -54,6 +54,10 @@ function QuadratureRule(nodes::AbstractVector{T}, weights::AbstractVector{Comple
         nodes, weights, domain, claim, prov, cert)
 end
 
+"The rule `r` with the provenance `p`: nodes, weights, domain, claim and certificate unchanged."
+with_provenance(r::QuadratureRule, p::Provenance) =
+    QuadratureRule(r.nodes, r.weights, r.domain, r.exactness, p, r.certificate)
+
 """
     nodes(r)
 

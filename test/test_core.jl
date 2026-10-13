@@ -137,3 +137,14 @@ end
     φ, _ = CR.evaluate!(br, Rational{BigInt}[1 // 5, 1 // 7, 1 // 3])
     @test eltype(φ) == Rational{BigInt}
 end
+
+@testset "provenance copies" begin
+    r = rule(Simplex{2}(); degree = 6)
+    p = provenance(r)
+    q = CR.Provenance(p; license = "CC-BY-4.0", symmetry = CR.NoSymmetry())
+    @test q.license == "CC-BY-4.0" && q.symmetry === CR.NoSymmetry()
+    @test q.family == p.family && q.path == p.path && q.selection == p.selection && q.citations == p.citations
+    r2 = CR.with_provenance(r, q)
+    @test nodes(r2) == nodes(r) && weights(r2) == weights(r) && provenance(r2) === q && certificate(r2) === certificate(r)
+    @test last(CR.with_step(p, "a step").path) == "a step" && CR.with_selection(p, "chosen").selection == "chosen"
+end

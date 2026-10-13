@@ -55,10 +55,19 @@ Base.@kwdef struct Provenance
     symmetry::SymmetryGroup = NoSymmetry()
 end
 
-with_selection(p::Provenance, s::AbstractString) =
-    Provenance(p.family, p.derivation, p.path, p.seed_source, p.citations, p.license, String(s), p.symmetry)
+"""
+    Provenance(p::Provenance; fields...)
+
+A copy of `p` with the fields given as keywords replaced, e.g. `Provenance(p; license = l)`.
+"""
+function Provenance(p::Provenance; kw...)
+    fields = (family = p.family, derivation = p.derivation, path = p.path, seed_source = p.seed_source,
+              citations = p.citations, license = p.license, selection = p.selection, symmetry = p.symmetry)
+    return Provenance(; merge(fields, values(kw))...)
+end
+with_selection(p::Provenance, s::AbstractString) = Provenance(p; selection = String(s))
 with_step(p::Provenance, s::AbstractString; symmetry::SymmetryGroup = p.symmetry) =
-    Provenance(p.family, p.derivation, vcat(p.path, String(s)), p.seed_source, p.citations, p.license, p.selection, symmetry)
+    Provenance(p; path = vcat(p.path, String(s)), symmetry)
 
 """
     Certificate
