@@ -56,7 +56,7 @@ claimed_degree(f::ExponentialProduct, dom::ExponentialDomain{D}, degree) where {
 degree_range(f::ExponentialProduct, dom::ExponentialDomain{D}) where {D} = degree_range(f.angular, Sphere{D}())
 degree_range(::ExponentialProduct, dom) = 1:0
 properties(f::ExponentialProduct, dom::ExponentialDomain, degree) =
-    (positive = true, interior = true, symmetry = :none, nested = false)
+    (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 cost_estimate(f::ExponentialProduct, dom::ExponentialDomain{D}, degree, T) where {D} =
     float(gaussian_radial_points(degree)) * cost_estimate(f.angular, Sphere{D}(), degree, T)
 
@@ -126,7 +126,7 @@ function build(f::ExponentialProduct, dom::ExponentialDomain{D}, degree::Int, ct
                               "odd degrees vanish through the angular factor, so only even ones " *
                               "reach the radial rule"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971, WHEELER_1974]), symmetry = :none)
+                      citations = vcat(provenance(ang).citations, [STROUD_1971, WHEELER_1974]), symmetry = NoSymmetry())
     return QuadratureRule(xout, wout, ExponentialSpace(D), PolynomialDegree(claimed_degree(f, dom, degree)),
                           prov, cert)
 end

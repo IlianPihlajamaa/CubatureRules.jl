@@ -21,7 +21,7 @@ import Lebedev as LebedevPkg
 import CubatureRules: build, npoints, claimed_degree, degree_range, cost_estimate, expand,
                       upstream_lebedev_candidates, upstream_lebedev_table, classify_octahedral,
                       refine_octahedral, octahedral_margins, OctahedralMomentSystem,
-                      LebedevRule, LebedevJLSeeds, Sphere, PolynomialDegree, isreference,
+                      LebedevRule, LebedevJLSeeds, Sphere, PolynomialDegree, isreference, Oh,
                       BuildContext, Provenance, Certificate, QuadratureRule, Seeded,
                       NoRuleError, RefinementError, LEBEDEV_LAIKOV_1999,
                       UPSTREAM_LEBEDEV_LICENSE, measure, with_bits, finalize_number,
@@ -97,7 +97,7 @@ function build(f::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree::Int, ctx:
     end
     prov = Provenance(family = "Lebedev", derivation = Seeded(), path = path,
                       seed_source = "Lebedev.jl (installed by the caller, GPL-3)",
-                      citations = [LEBEDEV_LAIKOV_1999], symmetry = :Oh,
+                      citations = [LEBEDEV_LAIKOV_1999], symmetry = Oh(),
                       license = UPSTREAM_LEBEDEV_LICENSE)
     return cert === nothing ?
            QuadratureRule(xs, ws, Sphere{3}(), PolynomialDegree(ord), prov) :

@@ -58,7 +58,7 @@ end
     @test occursin("ASSERTED", last(provenance(ta).path))
     d = duffy(r)
     @test exactness(d) isa NoClaim
-    @test provenance(d).symmetry === :none
+    @test provenance(d).symmetry === CR.NoSymmetry()
     # radial grading removes the 1/|x| blow-up at the vertex (the angular dependence stays)
     sing(x) = 1 / sqrt(x[1]^2 + x[2]^2)
     exact_val = sqrt(2) * log(1 + sqrt(2))         # ∫_T 1/|x| over the reference triangle

@@ -68,7 +68,7 @@ npoints(::SingularGauss, dom, degree::Integer) = cld(degree, 2) + 1
 claimed_degree(::SingularGauss, dom, degree) = 2cld(degree, 2)
 degree_range(::SingularGauss, dom) = 0:typemax(Int)
 degree_for_npoints(::SingularGauss, dom, n::Integer) = 2(n - 1)
-properties(::SingularGauss, dom, degree) = (positive = false, interior = true, symmetry = :none, nested = false)
+properties(::SingularGauss, dom, degree) = (positive = false, interior = true, symmetry = NoSymmetry(), nested = false)
 
 # ρ_k and σ_k for k = 0 … K (index k + 1)
 function kernel_recurrence(K, t, a, b, μ, ρ0, σ0)

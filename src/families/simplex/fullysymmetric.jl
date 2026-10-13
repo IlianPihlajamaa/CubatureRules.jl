@@ -86,7 +86,7 @@ function degree_range(::FullySymmetric, ::Simplex{D}) where {D}
 end
 degree_range(::FullySymmetric, dom) = 1:0
 properties(::FullySymmetric, ::Simplex{D}, degree) where {D} =
-    (positive = true, interior = true, symmetry = Symbol("S", D + 1), nested = false)
+    (positive = true, interior = true, symmetry = SymmetricGroup{D + 1}(), nested = false)
 cost_estimate(f::FullySymmetric, dom::Simplex{D}, degree, T) where {D} =
     float(npoints(f, dom, degree)) * simplex_basis_length(D, claimed_degree(f, dom, degree)) / 10 * _precision_factor(T)
 

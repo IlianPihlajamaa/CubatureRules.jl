@@ -8,7 +8,7 @@ using StaticArrays
 # The family interface is public rather than exported, so it is imported by name — which is
 # also what a real downstream package does, and what `docs/src/extending.md` recommends.
 import CubatureRules: candidates, build, npoints, properties, degree_range, derivation,
-                      isreference, Derived, Provenance
+                      isreference, Derived, Provenance, NoSymmetry
 
 "The one-point centroid rule on any reference simplex: degree 1."
 struct CentroidRule <: RuleFamily end
@@ -16,7 +16,7 @@ struct CentroidRule <: RuleFamily end
 candidates(::Type{CentroidRule}, dom::Simplex, c::PolynomialDegree) =
     isreference(dom) && c.d <= 1 ? [CentroidRule()] : CentroidRule[]
 npoints(::CentroidRule, dom, degree) = 1
-properties(::CentroidRule, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::CentroidRule, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 degree_range(::CentroidRule, dom) = 0:1
 derivation(::Type{CentroidRule}) = Derived()
 

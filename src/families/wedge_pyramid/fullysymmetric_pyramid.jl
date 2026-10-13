@@ -32,7 +32,7 @@ function degree_range(::FullySymmetric, ::Pyramid)
     es = pyramid_entries()
     return isempty(es) ? (1:0) : (0:maximum(e -> e.degree, es))
 end
-properties(::FullySymmetric, ::Pyramid, degree) = (positive = true, interior = true, symmetry = :C4v, nested = false)
+properties(::FullySymmetric, ::Pyramid, degree) = (positive = true, interior = true, symmetry = C4v(), nested = false)
 cost_estimate(f::FullySymmetric, dom::Pyramid, degree, T) = float(npoints(f, dom, degree)) * _precision_factor(T)
 
 """
@@ -82,7 +82,7 @@ function build(f::FullySymmetric, dom::Pyramid, degree::Int, ctx::BuildContext{T
                        iterations = iters)
     prov = Provenance(family = "FullySymmetric", derivation = Seeded(),
                       path = vcat(["seed: " * seed_desc, "structure: " * string([o.base.mult for o in s.orbits])], steps),
-                      seed_source = seed_desc, symmetry = :C4v,
+                      seed_source = seed_desc, symmetry = C4v(),
                       citations = [WITHERDEN_VINCENT_2015],
                       license = "MIT (seeds generated in-house; point counts compared with Witherden & Vincent 2015)")
     return QuadratureRule(xs, wt, Pyramid(), PolynomialDegree(n), prov, cert)

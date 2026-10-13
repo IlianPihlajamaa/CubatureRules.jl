@@ -39,7 +39,7 @@ conical_points(degree) = max(1, cld(degree + 1, 2))
 npoints(::ConicalProduct, dom::Simplex{D}, degree::Integer) where {D} = conical_points(degree)^D
 claimed_degree(::ConicalProduct, dom, degree) = 2conical_points(degree) - 1
 degree_range(::ConicalProduct, dom) = 0:typemax(Int)
-properties(::ConicalProduct, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::ConicalProduct, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 const STROUD_1971 = Citation(key = "Stroud1971", authors = ["Arthur H. Stroud"],
                              title = "Approximate Calculation of Multiple Integrals",

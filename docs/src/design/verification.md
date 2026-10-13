@@ -79,7 +79,12 @@ digits the miss becomes visible and sharpness is tested normally.
 - The nodes lie in the domain, and strictly inside it if the rule claims interior nodes.
 - The weights are positive, if the rule claims positive weights.
 - The rule has its claimed symmetry exactly: applying each group element maps the node set
-  onto itself, with equal weights.
+  onto itself, with equal weights. The group is a type (`provenance(r).symmetry`, a
+  `SymmetryGroup`), and every group is checked the same way, by orbits: two nodes lie in one
+  orbit exactly when their canonical keys agree (the coordinates the group permutes, sorted;
+  those it reflects, made positive), so grouping the nodes by key finds the candidate orbits
+  in `O(N log N)`, and the rule is invariant when every group has distinct members, as many
+  as the orbit of its key, and a single weight.
 
 ## Symmetric rules on the sphere
 
@@ -88,10 +93,9 @@ spherical harmonics at each of its 5294 nodes, and its symmetry by comparing eac
 images of every node with every node. At 100 digits that takes on the order of an hour and
 a half. For a rule that claims `O_h` symmetry, `check` does two cheaper things instead.
 
-**Symmetry.** Two points of `ℝ³` lie in the same `O_h` orbit exactly when their sorted
-absolute coordinates agree. Sorting the nodes by that key groups them into candidate orbits
-in `O(N log N)`. The rule is invariant when every group has distinct members, as many as the
-orbit of its key, and a single weight.
+**Symmetry.** By orbits, as for every group: two points of `ℝ³` lie in the same `O_h` orbit
+exactly when their sorted absolute coordinates agree, and the orbits found give the
+representatives and total weights the exactness check below works on.
 
 **Exactness.** For an invariant rule, a polynomial and its group average integrate the same
 way, both under the rule and over the sphere, so only invariant test functions matter. The

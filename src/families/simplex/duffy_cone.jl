@@ -43,7 +43,7 @@ npoints(::DuffyCone, dom, degree::Integer) =
     duffy_m(degree + 1) * sum((npoints(DuffySinh(), fd, degree) for (fd, _) in cone_faces(dom, Float64)); init = 0)
 claimed_degree(::DuffyCone, dom, degree) = min(2duffy_m(degree) - 1, 2duffy_m(degree + 1) - 2)
 degree_range(::DuffyCone, dom) = 0:typemax(Int)
-properties(::DuffyCone, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::DuffyCone, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 function build(f::DuffyCone, dom::InverseDistanceTetDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("nodes for the kernel 1/|y − x₀| are irrational; $(T) is not supported"))

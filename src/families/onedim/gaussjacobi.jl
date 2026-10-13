@@ -44,7 +44,7 @@ gj_points(degree) = max(1, cld(degree + 1, 2))
 npoints(::GaussJacobi, dom, degree::Integer) = gj_points(degree)
 claimed_degree(::GaussJacobi, dom, degree) = 2gj_points(degree) - 1
 degree_range(::GaussJacobi, dom) = 0:typemax(Int)
-properties(::GaussJacobi, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::GaussJacobi, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 degree_for_npoints(::GaussJacobi, dom, n::Integer) = 2n - 1
 
 gj_domain(f::GaussJacobi) = iszero(f.α) && iszero(f.β) ? Interval() : WeightedDomain(Interval(), JacobiWeight(f.α, f.β))

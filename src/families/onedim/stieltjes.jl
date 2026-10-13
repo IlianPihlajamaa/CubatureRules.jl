@@ -125,7 +125,7 @@ npoints(::StieltjesDiscretization, dom, degree::Integer) = max(1, cld(degree + 1
 claimed_degree(f::StieltjesDiscretization, dom, degree) = 2 * npoints(f, dom, degree) - 1
 degree_range(::StieltjesDiscretization, dom) = 0:typemax(Int)
 degree_for_npoints(::StieltjesDiscretization, dom, n::Integer) = 2n - 1
-properties(::StieltjesDiscretization, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::StieltjesDiscretization, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 function build(f::StieltjesDiscretization, dom::FunctionDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("Gauss nodes for a function weight are irrational; $(T) is not supported"))

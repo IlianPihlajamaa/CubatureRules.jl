@@ -102,7 +102,7 @@ end
     @test isempty(candidates(LebedevRule, Simplex{2}(), PolynomialDegree(5)))
     # the provenance records the group and the licence of the seeds
     r5 = rule(LebedevRule(), Sphere{3}(); degree = 5)
-    @test provenance(r5).symmetry === :Oh
+    @test provenance(r5).symmetry === CR.Oh()
     @test occursin("generated in-house", provenance(r5).license)
     @test occursin("invariants", certificate(r5).equations)
     @test certificate(r5).residual < 1e-14      # a Float64 rule: the residual is at its roundoff
@@ -128,15 +128,15 @@ end
 @testset "octahedral symmetry check" begin
     r = rule(LebedevRule(), Sphere{3}(); degree = 5)
     xs, ws = collect(nodes(r)), collect(weights(r))
-    @test CR.check_octahedral_symmetry(xs, ws, 1e-12)
+    @test CR.check_invariance(CR.Oh(), xs, ws, 1e-12)
     # break one weight: the group orbit no longer carries a single weight
     ws2 = copy(ws); ws2[1] *= 1.5
-    @test !CR.check_octahedral_symmetry(xs, ws2, 1e-12)
+    @test !CR.check_invariance(CR.Oh(), xs, ws2, 1e-12)
     # move one node off its orbit
     xs2 = copy(xs); xs2[1] = CR.SVector(0.0, 0.6, 0.8)
-    @test !CR.check_octahedral_symmetry(xs2, ws, 1e-12)
+    @test !CR.check_invariance(CR.Oh(), xs2, ws, 1e-12)
     # a rule on the circle is not in the group's dimension
-    @test !CR.check_octahedral_symmetry([CR.SVector(1.0, 0.0)], [1.0], 1e-12)
+    @test !CR.check_invariance(CR.Oh(), [CR.SVector(1.0, 0.0)], [1.0], 1e-12)
 end
 
 @testset "verification on orbit representatives" begin
@@ -171,7 +171,7 @@ end
     asym = check(QuadratureRule(nodes(r), w, domain(r), PolynomialDegree(11), provenance(r)))
     @test asym.symmetric === false && !passed(asym)
     @test !occursin("orbit representatives", asym.basis)
-    @test CR.octahedral_orbits([big.(collect(x)) for x in nodes(r)], big.(w), big(1e-12)) === nothing
+    @test CR.group_orbits(CR.Oh(), [big.(collect(x)) for x in nodes(r)], big.(w), big(1e-12)) === nothing
 end
 
 @testset "a smaller rule in a package that is not loaded is mentioned" begin

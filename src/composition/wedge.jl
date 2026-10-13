@@ -45,7 +45,7 @@ degree_range(::WedgeProduct, dom) = 1:0
 supports_type(f::WedgeProduct, ::Type{T}) where {T} = supports_type(f.tri, T) && supports_type(f.line, T)
 function properties(f::WedgeProduct, dom, degree)
     pt, pl = properties(f.tri, Simplex{2}(), degree), properties(f.line, Interval(), degree)
-    return (positive = pt.positive && pl.positive, interior = pt.interior && pl.interior, symmetry = :none, nested = false)
+    return (positive = pt.positive && pl.positive, interior = pt.interior && pl.interior, symmetry = NoSymmetry(), nested = false)
 end
 cost_estimate(f::WedgeProduct, dom, degree, T) =
     cost_estimate(f.tri, Simplex{2}(), degree, T) + cost_estimate(f.line, Interval(), degree, T)

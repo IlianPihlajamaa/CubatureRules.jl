@@ -48,7 +48,7 @@ describe_family(f::TanhSinh) = "TanhSinh(level $(f.level))"
 needs_degree(::TanhSinh) = false
 home_domain(::TanhSinh) = Interval()
 degree_range(::TanhSinh, dom) = 0:-1                      # no polynomial degree at all
-properties(::TanhSinh, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = true)
+properties(::TanhSinh, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = true)
 npoints(f::TanhSinh, dom, degree = 0) = length(tanh_sinh_work(f.level, 53 + 32, 53)[1])
 claimed_degree(::TanhSinh, dom, degree) = -1
 
@@ -115,6 +115,6 @@ function build(f::TanhSinh, dom::Interval, degree::Int, ctx::BuildContext{T}) wh
     prov = Provenance(family = "TanhSinh", derivation = Derived(),
                       path = ["h = 2^-$(f.level), $(length(xs)) nodes after truncation",
                               "claim: none — tanh-sinh converges but is exact on no polynomial space"],
-                      seed_source = "none (closed form)", citations = [TAKAHASI_MORI_1974], symmetry = :reflection)
+                      seed_source = "none (closed form)", citations = [TAKAHASI_MORI_1974], symmetry = Reflection())
     return QuadratureRule(xs, ws, Interval(), NoClaim(), prov, cert)
 end

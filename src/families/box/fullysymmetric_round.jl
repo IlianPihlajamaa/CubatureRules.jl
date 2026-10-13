@@ -26,7 +26,7 @@ function _round_entry(D, degree)
     return e
 end
 round_table(D) = D == 2 ? "src/data/disk_d4_seeds.toml" : "src/data/ball_oh_seeds.toml"
-round_symmetry(D) = D == 2 ? :D4 : :Oh
+round_symmetry(D) = D == 2 ? D4() : Oh()
 
 function candidates(::Type{FullySymmetric}, dom::Ball{D}, c::PolynomialDegree) where {D}
     (D in (2, 3) && isreference(dom) && round_entry_for(D, c.d) !== nothing) || return FullySymmetric[]

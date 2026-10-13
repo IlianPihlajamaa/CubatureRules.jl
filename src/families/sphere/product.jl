@@ -54,7 +54,7 @@ claimed_degree(::SphereProduct, dom::Sphere, degree) = degree
 degree_range(::SphereProduct, dom::Sphere{D}) where {D} = D >= 2 ? (0:typemax(Int)) : (1:0)
 degree_range(::SphereProduct, dom) = 1:0
 properties(::SphereProduct, dom::Sphere, degree) =
-    (positive = true, interior = true, symmetry = :none, nested = false)
+    (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 const ATKINSON_1982 = Citation(key = "Atkinson1982", authors = ["Kendall Atkinson"],
                                title = "Numerical integration on the sphere",
@@ -115,6 +115,6 @@ function build(f::SphereProduct, dom::Sphere{D}, degree::Int, ctx::BuildContext{
                        digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)))
     prov = Provenance(family = "SphereProduct", derivation = Derived(), path = path,
                       seed_source = "none (closed form × Gauss–Jacobi)",
-                      citations = [ATKINSON_1982, GOLUB_WELSCH_1969], symmetry = :none)
+                      citations = [ATKINSON_1982, GOLUB_WELSCH_1969], symmetry = NoSymmetry())
     return QuadratureRule(xout, wout, Sphere{D}(), PolynomialDegree(degree), prov, cert)
 end

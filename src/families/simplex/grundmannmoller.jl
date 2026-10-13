@@ -35,7 +35,7 @@ npoints(::GrundmannMöller, dom::Simplex{D}, degree::Integer) where {D} =
 claimed_degree(::GrundmannMöller, dom, degree) = 2gm_s(degree) + 1
 degree_range(::GrundmannMöller, dom::Simplex) = 0:typemax(Int)
 properties(::GrundmannMöller, dom, degree) =
-    (positive = gm_s(degree) == 0, interior = true, symmetry = Symbol("S", dimension(dom) + 1), nested = false)
+    (positive = gm_s(degree) == 0, interior = true, symmetry = SymmetricGroup{dimension(dom) + 1}(), nested = false)
 
 # Σ|w|/Σw from the level weights and their multiplicities: it grows quickly with the degree
 # (1.3e5 at degree 31 on the tetrahedron). The selector asks for it on every call, so it is
@@ -98,6 +98,6 @@ function build(::GrundmannMöller, dom::Simplex{D}, degree::Int, ctx::BuildConte
                        digits = target_digits(ctx), guard_digits = 0)
     prov = Provenance(family = "GrundmannMöller", derivation = Derived(),
                       path = ["closed form in exact Rational{BigInt}", isexact(ctx) ? "exact output" : "rounded once to $T"],
-                      seed_source = "none (explicit formula)", citations = [GRUNDMANN_MOLLER_1978], symmetry = Symbol("S", D + 1))
+                      seed_source = "none (explicit formula)", citations = [GRUNDMANN_MOLLER_1978], symmetry = SymmetricGroup{D + 1}())
     return QuadratureRule(xs, wt, Simplex{D}(), PolynomialDegree(2s + 1), prov, cert)
 end

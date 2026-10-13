@@ -124,9 +124,9 @@ end
         r = rule(FullySymmetric(), dom; degree = d)
         g = CR.properties(FullySymmetric(), dom, d).symmetry
         xs, ws = nodes(r), weights(r)
-        @test CR.check_symmetry(g, xs, ws, 1e-12) === true
+        @test CR.check_invariance(g, xs, ws, 1e-12) === true
         ys = copy(xs)
         ys[end] = ys[end] + CR.SVector(1e-6, 0.0, 0.0)
-        @test CR.check_symmetry(g, ys, ws, 1e-12) === false
+        @test CR.check_invariance(g, ys, ws, 1e-12) === false
     end
 end

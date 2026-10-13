@@ -44,6 +44,7 @@ include("domains/sphere.jl")
 include("domains/harmonics.jl")
 include("domains/ball.jl")
 include("domains/wedge_pyramid.jl")
+include("symmetry/groups.jl")
 include("core/records.jl")
 include("core/rule.jl")
 include("core/precision.jl")
@@ -109,6 +110,7 @@ include("registry/registry.jl")
 include("apply/transport.jl")
 include("apply/integrate.jl")
 include("apply/embedded.jl")
+include("verify/symmetry.jl")
 include("verify/verify.jl")
 include("fast/doubledouble.jl")
 include("fast/quadratic_weight.jl")
@@ -162,6 +164,7 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        ExponentialWeight, GaussianWeight, RadialExponentialWeight, vertices, barycentric, cartesian, isreference,
        monomial_moment, barycentric_moment, AffineMap, affine_map, affine_frame,
        rule_hash, validation,
+       SymmetryGroup, NoSymmetry, Reflection, SymmetricGroup, Oh, D4, B4, C4v, D3h, check_invariance, group_orbits,
        Provenance, Certificate, Verification, Citation, Derived, Seeded,
        CombinatorFamily, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,

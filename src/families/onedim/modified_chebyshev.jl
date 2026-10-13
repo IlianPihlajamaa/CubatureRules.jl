@@ -265,7 +265,7 @@ degree_for_npoints(::ModifiedChebyshev, dom, n::Integer) = 2n - 1
 # moments do not describe such a measure the construction fails rather than lying, and
 # verification checks both claims against the rule that comes out.
 properties(::ModifiedChebyshev, dom, degree) =
-    (positive = true, interior = true, symmetry = :none, nested = false)
+    (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 function build(f::ModifiedChebyshev, dom::MomentDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) &&

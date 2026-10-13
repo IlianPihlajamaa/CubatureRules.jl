@@ -79,7 +79,7 @@ npoints(::GaussPatterson, dom, degree::Integer) = patterson_npoints(patterson_le
 claimed_degree(::GaussPatterson, dom, degree) = patterson_degree(patterson_level(degree))
 degree_range(::GaussPatterson, dom::Interval) = 0:patterson_degree(PATTERSON_MAXLEVEL)
 degree_range(::GaussPatterson, dom) = 1:0
-properties(::GaussPatterson, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = true)
+properties(::GaussPatterson, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = true)
 
 function degree_for_npoints(::GaussPatterson, dom, n::Integer)
     for k in 0:PATTERSON_MAXLEVEL
@@ -334,7 +334,7 @@ function build(f::GaussPatterson, dom::Interval, degree::Int, ctx::BuildContext{
                               "by bracketed Newton between the old ones",
                               "weights: interpolatory, integrated by Gauss–Legendre",
                               "precision: raised until two runs agreed to $(ctx.bits) bits"],
-                      seed_source = "none (derived)", citations = [PATTERSON_1968], symmetry = :reflection)
+                      seed_source = "none (derived)", citations = [PATTERSON_1968], symmetry = Reflection())
     return QuadratureRule(xs, ws, Interval(), PolynomialDegree(d), prov, cert)
 end
 

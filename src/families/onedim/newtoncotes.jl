@@ -37,7 +37,7 @@ claimed_degree(f::NewtonCotes, dom, degree) = nc_degree(f, nc_points(f, degree))
 degree_range(::NewtonCotes, dom::Interval) = 0:typemax(Int)
 degree_range(::NewtonCotes, dom) = 1:0
 properties(f::NewtonCotes, dom, degree) =
-    (positive = nc_points(f, degree) <= (f.open ? 2 : 8), interior = f.open, symmetry = :reflection,
+    (positive = nc_points(f, degree) <= (f.open ? 2 : 8), interior = f.open, symmetry = Reflection(),
      nested = false)
 
 """
@@ -81,6 +81,6 @@ function build(f::NewtonCotes, dom::Interval, degree::Int, ctx::BuildContext{T})
                       path = ["$(n) equally spaced nodes, $(f.open ? "open" : "closed")",
                               "weights: exact integration of the Lagrange basis in Rational{BigInt}",
                               isexact(ctx) ? "exact output" : "rounded once to $T"],
-                      seed_source = "none (closed form)", citations = [NEWTON_COTES], symmetry = :reflection)
+                      seed_source = "none (closed form)", citations = [NEWTON_COTES], symmetry = Reflection())
     return QuadratureRule(xs, ws, Interval(), PolynomialDegree(nc_degree(f, n)), prov, cert)
 end

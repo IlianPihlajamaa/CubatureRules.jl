@@ -67,7 +67,7 @@ candidates(::Type{DuffyFinitePart}, dom::FinitePartDomain, ::PolynomialDegree) =
 npoints(::DuffyFinitePart, dom, degree::Integer) = npatches(dom) * (degree + 1) * finitepart_rays(dom, degree)
 claimed_degree(::DuffyFinitePart, dom, degree) = Int(degree)
 degree_range(::DuffyFinitePart, dom) = 0:typemax(Int)
-properties(::DuffyFinitePart, dom, degree) = (positive = false, interior = true, symmetry = :none, nested = false)
+properties(::DuffyFinitePart, dom, degree) = (positive = false, interior = true, symmetry = NoSymmetry(), nested = false)
 
 "`∫₀¹ g(t) q(t)^{-3/2} dt` discretised by `t = t* + η sinh u` and Gauss–Legendre `(x, w)` in `u`."
 function inverse_cube_grid(A, B, (x, w))

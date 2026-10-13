@@ -93,7 +93,7 @@ function degree_range(::XiaoGimbutas, dom::Simplex{2})
     isempty(es) ? (1:0) : (0:maximum(e -> e.degree, es))
 end
 degree_range(::XiaoGimbutas, dom) = 1:0
-properties(::XiaoGimbutas, dom, degree) = (positive = true, interior = true, symmetry = :S3, nested = false)
+properties(::XiaoGimbutas, dom, degree) = (positive = true, interior = true, symmetry = SymmetricGroup{3}(), nested = false)
 cost_estimate(f::XiaoGimbutas, dom, degree, T) =
     float(npoints(f, dom, degree)) * dubiner_length(claimed_degree(f, dom, degree)) / 10 * _precision_factor(T)
 
@@ -203,7 +203,7 @@ function build_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{
                               "structure: " * string(structure),
                               "refine: Gauss–Newton with rank-revealing (column-pivoted QR) solve at $(wbits) bits",
                               @sprintf("guard: %d bits from measured cond(J) = %.2e", guard, res.cond_max)],
-                      seed_source = seed_desc, citations = citations, symmetry = Symbol("S", N),
+                      seed_source = seed_desc, citations = citations, symmetry = SymmetricGroup{N}(),
                       license = license)
     return QuadratureRule(xs, wt, Simplex{D}(), PolynomialDegree(n), prov, cert)
 end
@@ -240,6 +240,6 @@ function ship_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{T
                        digits = target_digits(ctx), guard_digits = 0, cond = e.cond, iterations = 0)
     prov = Provenance(family = name, derivation = Seeded(),
                       path = ["seed: " * seed_desc, "structure: " * string(structure), how],
-                      seed_source = seed_desc, citations = citations, symmetry = Symbol("S", N), license = license)
+                      seed_source = seed_desc, citations = citations, symmetry = SymmetricGroup{N}(), license = license)
     return QuadratureRule(xs, wt, Simplex{D}(), PolynomialDegree(n), prov, cert)
 end

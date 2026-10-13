@@ -77,8 +77,8 @@ family_name(::SinhSinh) = "SinhSinh"
 needs_degree(::DoubleExponentialUnbounded) = false
 degree_range(::DoubleExponentialUnbounded, dom) = 0:-1                 # no polynomial degree at all
 claimed_degree(::DoubleExponentialUnbounded, dom, degree) = -1
-properties(::ExpSinh, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = true)
-properties(::SinhSinh, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = true)
+properties(::ExpSinh, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = true)
+properties(::SinhSinh, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = true)
 npoints(f::DoubleExponentialUnbounded, dom, degree = 0) = length(de_work(f, 53 + 32, 53)[1])
 
 home_domain(::ExpSinh) = HalfLine()

@@ -41,7 +41,7 @@ Base.show(io::IO, ::Seeded) = print(io, "Seeded()")
 
 Where a rule came from: family, derivation class and path, seed source, citations, the
 licence of any data used, and — when chosen by the selector — the selection record.
-`symmetry` names the symmetry group the rule claims (`:none`, `:S3`, …), which
+`symmetry` is the [`SymmetryGroup`](@ref) the rule claims (`NoSymmetry()`, `SymmetricGroup{3}()`, …), which
 verification checks.
 """
 Base.@kwdef struct Provenance
@@ -52,12 +52,12 @@ Base.@kwdef struct Provenance
     citations::Vector{Citation} = Citation[]
     license::String = "MIT"
     selection::String = ""
-    symmetry::Symbol = :none
+    symmetry::SymmetryGroup = NoSymmetry()
 end
 
 with_selection(p::Provenance, s::AbstractString) =
     Provenance(p.family, p.derivation, p.path, p.seed_source, p.citations, p.license, String(s), p.symmetry)
-with_step(p::Provenance, s::AbstractString; symmetry::Symbol = p.symmetry) =
+with_step(p::Provenance, s::AbstractString; symmetry::SymmetryGroup = p.symmetry) =
     Provenance(p.family, p.derivation, vcat(p.path, String(s)), p.seed_source, p.citations, p.license, p.selection, symmetry)
 
 """

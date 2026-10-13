@@ -46,7 +46,7 @@ npoints(::Filon, dom, degree::Integer) = filon_order(degree) + 1
 claimed_degree(::Filon, dom, degree) = filon_order(degree)
 degree_range(::Filon, dom) = 0:typemax(Int)
 degree_for_npoints(::Filon, dom, n::Integer) = n - 1
-properties(::Filon, dom, degree) = (positive = false, interior = false, symmetry = :none, nested = false)
+properties(::Filon, dom, degree) = (positive = false, interior = false, symmetry = NoSymmetry(), nested = false)
 
 # Legendre values P[k + 1, j] = P_k(x_j), k = 0 … K
 function legendre_table(K, x)

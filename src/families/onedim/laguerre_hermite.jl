@@ -69,8 +69,8 @@ claimed_degree(::ClassicalUnbounded, dom, degree) = 2gj_points(degree) - 1
 degree_range(::ClassicalUnbounded, dom::WeightedDomain) = 0:typemax(Int)
 degree_range(::ClassicalUnbounded, dom) = 1:0
 degree_for_npoints(::ClassicalUnbounded, dom, n::Integer) = 2n - 1
-properties(::GaussLaguerre, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
-properties(::GaussHermite, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = false)
+properties(::GaussLaguerre, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
+properties(::GaussHermite, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = false)
 
 function build(f::ClassicalUnbounded, dom::WeightedDomain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("$(describe_family(f)) nodes are irrational; $(T) is not supported"))

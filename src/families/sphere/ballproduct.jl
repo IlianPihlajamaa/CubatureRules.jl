@@ -48,7 +48,7 @@ claimed_degree(f::BallProduct, dom::Ball{D}, degree) where {D} =
 degree_range(f::BallProduct, dom::Ball{D}) where {D} = degree_range(f.angular, Sphere{D}())
 degree_range(::BallProduct, dom) = 1:0
 properties(f::BallProduct, dom::Ball{D}, degree) where {D} =
-    (positive = true, interior = true, symmetry = :none, nested = false)
+    (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 cost_estimate(f::BallProduct, dom::Ball{D}, degree, T) where {D} =
     float(ball_radial_points(degree)) * cost_estimate(f.angular, Sphere{D}(), degree, T)
 
@@ -103,6 +103,6 @@ function build(f::BallProduct, dom::Ball{D}, degree::Int, ctx::BuildContext{T}) 
                               "angular: " * describe_family(f.angular) * ", $(npoints(ang)) points",
                               "claim: min(2n-1, angular degree) = $(claimed_degree(f, dom, degree))"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = :none)
+                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry())
     return QuadratureRule(xout, wout, Ball{D}(), PolynomialDegree(claimed_degree(f, dom, degree)), prov, cert)
 end

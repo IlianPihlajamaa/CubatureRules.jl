@@ -44,7 +44,7 @@ npoints(::Fejer, dom, degree::Integer) = fejer_points(degree)
 claimed_degree(::Fejer, dom, degree) = fejer_degree(fejer_points(degree))
 degree_range(::Fejer, dom::Interval) = 0:typemax(Int)
 degree_range(::Fejer, dom) = 1:0
-properties(::Fejer, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = false)
+properties(::Fejer, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = false)
 
 """
     fejer_work(n, kind, bits) -> (x, w)
@@ -108,6 +108,6 @@ function build(f::Fejer, dom::Interval, degree::Int, ctx::BuildContext{T}) where
     prov = Provenance(family = "Fejer", derivation = Derived(),
                       path = ["$(n) Chebyshev points of the $(f.kind == 1 ? "first" : "second") kind",
                               "weights: closed form at $(ctx.bits + guard) bits, rounded once to $T"],
-                      seed_source = "none (closed form)", citations = [FEJER_1933], symmetry = :reflection)
+                      seed_source = "none (closed form)", citations = [FEJER_1933], symmetry = Reflection())
     return QuadratureRule(xs, ws, Interval(), PolynomialDegree(fejer_degree(n)), prov, cert)
 end

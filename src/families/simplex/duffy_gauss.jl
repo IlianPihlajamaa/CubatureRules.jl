@@ -51,7 +51,7 @@ npoints(::DuffyGauss, dom, degree::Integer) = npatches(dom) * duffy_m(degree)^2
 claimed_degree(::DuffyGauss, dom, degree) = 2duffy_m(degree) - 1
 degree_range(::DuffyGauss, dom) = 0:typemax(Int)
 degree_for_npoints(::DuffyGauss, dom, n::Integer) = 2isqrt(n ÷ npatches(dom)) - 1
-properties(::DuffyGauss, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::DuffyGauss, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 """
     inverse_sqrt_quadratic_rule(a, b, m, bits, gl) -> (t, λ, M, gap, usedbits)

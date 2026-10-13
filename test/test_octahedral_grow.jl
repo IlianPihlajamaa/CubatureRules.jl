@@ -63,7 +63,7 @@ end
                                  BigFloat(x[3]; precision = bits)) for x in xs0]
     ws = [BigFloat(w; precision = bits) for w in ws0]
     r = CR.QuadratureRule(xs, ws, Sphere{3}(), PolynomialDegree(17),
-                          CR.Provenance(family = "test", derivation = CR.Derived(), symmetry = :Oh))
+                          CR.Provenance(family = "test", derivation = CR.Derived(), symmetry = CR.Oh()))
     v = check(r)
     @test v.exact && v.sharp === true && v.positive && v.symmetric === true
     @test CR.octahedral_margins(s, θ)[1] > 0

@@ -53,7 +53,8 @@ function npoints end
     properties(f, domain, degree) -> NamedTuple
 
 `(positive, interior, symmetry, nested)` for the rule of `f` at `degree`, without
-constructing it.
+constructing it; `symmetry` is the [`SymmetryGroup`](@ref) the rule is invariant under
+(`NoSymmetry()` if none).
 """
 function properties end
 

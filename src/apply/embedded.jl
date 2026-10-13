@@ -116,7 +116,7 @@ function embedded(f::GaussKronrod, dom::Interval; degree::Integer, T = nothing, 
     xs = [finalize_number(BuildContext{Tout}(bits), xi) for xi in gauss[1]]
     ws = [finalize_number(BuildContext{Tout}(bits), wi) for wi in gauss[2]]
     prov = Provenance(family = "GaussJacobi", derivation = Derived(), path = ["Gauss subset of the Kronrod rule"],
-                      seed_source = "QuadGK.jl", citations = [QUADGK_JL], symmetry = :reflection)
+                      seed_source = "QuadGK.jl", citations = [QUADGK_JL], symmetry = Reflection())
     coarse = QuadratureRule(xs, ws, Interval(), PolynomialDegree(2n - 1), prov)
     return EmbeddedRule(fine, coarse)
 end

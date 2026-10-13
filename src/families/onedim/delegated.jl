@@ -98,10 +98,10 @@ claimed_degree(::Radau, dom, degree) = 2 * radau_points(degree) - 2
 claimed_degree(::ClenshawCurtis, dom, degree) = (n = cc_points(degree); isodd(n) ? n : n - 1)
 claimed_degree(::GaussKronrod, dom, degree) = kronrod_degree(kronrod_halves(degree))
 
-properties(::Lobatto, dom, degree) = (positive = true, interior = false, symmetry = :reflection, nested = false)
-properties(::Radau, dom, degree) = (positive = true, interior = false, symmetry = :none, nested = false)
-properties(::ClenshawCurtis, dom, degree) = (positive = true, interior = false, symmetry = :reflection, nested = true)
-properties(::GaussKronrod, dom, degree) = (positive = true, interior = true, symmetry = :reflection, nested = true)
+properties(::Lobatto, dom, degree) = (positive = true, interior = false, symmetry = Reflection(), nested = false)
+properties(::Radau, dom, degree) = (positive = true, interior = false, symmetry = NoSymmetry(), nested = false)
+properties(::ClenshawCurtis, dom, degree) = (positive = true, interior = false, symmetry = Reflection(), nested = true)
+properties(::GaussKronrod, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = true)
 
 candidates(::Type{GaussKronrod}, dom::Interval, ::PolynomialDegree) =
     isreference(dom) ? [GaussKronrod()] : GaussKronrod[]

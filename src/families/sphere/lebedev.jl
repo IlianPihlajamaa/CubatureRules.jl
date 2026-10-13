@@ -233,10 +233,10 @@ function degree_range(::LebedevRule{InHouseSeeds}, dom::Sphere{3})
     isempty(es) ? (1:0) : (0:maximum(e -> e.degree, es))
 end
 degree_range(::LebedevRule{InHouseSeeds}, dom) = 1:0
-properties(::LebedevRule, dom, degree) = (positive = true, interior = true, symmetry = :Oh, nested = false)
+properties(::LebedevRule, dom, degree) = (positive = true, interior = true, symmetry = Oh(), nested = false)
 # Lebedev's own rule of degree 13 has 74 points and a negative weight
 properties(::LebedevRule{LebedevJLSeeds}, dom, degree) =
-    (positive = upstream_lebedev_order(degree) != 13, interior = true, symmetry = :Oh, nested = false)
+    (positive = upstream_lebedev_order(degree) != 13, interior = true, symmetry = Oh(), nested = false)
 cost_estimate(f::LebedevRule{InHouseSeeds}, dom, degree, T) =
     float(npoints(f, dom, degree)) * length(invariant_exponents(claimed_degree(f, dom, degree))) *
     _precision_factor(T)
@@ -313,7 +313,7 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
                        next_error = isfinite(e.next_error) ? BigFloat(e.next_error; precision = 64) : nothing)
     prov = Provenance(family = "Lebedev", derivation = Seeded(),
                       path = vcat(["seed: " * seed_desc, "structure: " * string(structure)], steps),
-                      seed_source = seed_desc, citations = citations, symmetry = :Oh,
+                      seed_source = seed_desc, citations = citations, symmetry = Oh(),
                       license = "MIT (seeds generated in-house; no published tables are redistributed)")
     return QuadratureRule(nodes, wt, Sphere{3}(), PolynomialDegree(n), prov, cert)
 end

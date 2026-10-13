@@ -33,7 +33,7 @@ function degree_range(::FullySymmetric, ::Wedge)
     es = wedge_entries()
     return isempty(es) ? (1:0) : (0:maximum(e -> e.degree, es))
 end
-properties(::FullySymmetric, ::Wedge, degree) = (positive = true, interior = true, symmetry = :D3h, nested = false)
+properties(::FullySymmetric, ::Wedge, degree) = (positive = true, interior = true, symmetry = D3h(), nested = false)
 cost_estimate(f::FullySymmetric, dom::Wedge, degree, T) = float(npoints(f, dom, degree)) * _precision_factor(T)
 
 """
@@ -83,7 +83,7 @@ function build(f::FullySymmetric, dom::Wedge, degree::Int, ctx::BuildContext{T};
                        iterations = iters)
     prov = Provenance(family = "FullySymmetric", derivation = Seeded(),
                       path = vcat(["seed: " * seed_desc, "structure: " * string(wedge_structure_lists(s))], steps),
-                      seed_source = seed_desc, symmetry = :D3h,
+                      seed_source = seed_desc, symmetry = D3h(),
                       citations = [WITHERDEN_VINCENT_2015],
                       license = "MIT (seeds generated in-house; point counts compared with Witherden & Vincent 2015)")
     return QuadratureRule(xs, wt, Wedge(), PolynomialDegree(n), prov, cert)

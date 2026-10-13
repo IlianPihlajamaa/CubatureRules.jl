@@ -37,7 +37,7 @@ npoints(::DuffyCurved, dom, degree::Integer) =
     length(curved_geometry(dom).patches) * duffy_m(degree) * (duffy_m(degree) + 2)
 claimed_degree(::DuffyCurved, dom, degree) = 2duffy_m(degree) - 1
 degree_range(::DuffyCurved, dom) = 0:typemax(Int)
-properties(::DuffyCurved, dom, degree) = (positive = true, interior = true, symmetry = :none, nested = false)
+properties(::DuffyCurved, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 
 "The `m`-point Gauss rule on `[0, 1]` of `s ↦ J(ξ₀ + s v)/|Dχ(ξ₀) v + s Q(v)|`, to `bits`; `gl(M, bits)` gives Gauss–Legendre."
 function curved_ray_rule(el, X0, v, Av, m, bits, gl)

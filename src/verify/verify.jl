@@ -1079,7 +1079,8 @@ end
 # Symmetry. Two points of ℝ³ lie in the same O_h orbit exactly when their sorted absolute
 # coordinates agree. Sorting the nodes by that key groups them into candidate orbits in
 # O(N log N); a group is a complete orbit when its members are distinct and as many as the
-# key's orbit size, and the rule is invariant when every group is complete with one weight.
+# key's orbit size, and the rule is invariant when every group is complete with one weight
+# (`group_orbits`, src/verify/symmetry.jl, the same for every group).
 #
 # Exactness. For an invariant rule, a polynomial and its group average integrate identically
 # both under the rule and over the sphere, so only invariant test functions carry
@@ -1094,50 +1095,6 @@ end
 # plus 363 for sharpness, evaluated once per orbit (132 of them). The test functions are
 # monomials evaluated on the delivered nodes, not the p₄, p₆ invariants in orbit parameters
 # that the solver used, so the check stays independent of the construction.
-
-"""
-    octahedral_orbits(xs, ws, tol) -> Union{Nothing, Tuple}
-
-Group the nodes of a rule on the unit sphere into `O_h` orbits. Returns the orbit
-representatives (sorted absolute coordinates, descending) and each orbit's total weight, or
-`nothing` if some group is not a complete orbit with a single weight — in which case the
-rule is not `O_h`-invariant to tolerance `tol`, or its nodes are too close to tell.
-"""
-function octahedral_orbits(xs, ws, tol)
-    length(first(xs)) == 3 || return nothing
-    wscale = maximum(abs, ws)
-    keys = [sort!(abs.(collect(x)); rev = true) for x in xs]
-    order = sortperm(keys)
-    reps = Vector{eltype(keys)}()
-    totals = similar(ws, 0)
-    i = 1
-    while i <= length(order)
-        k = keys[order[i]]
-        j = i
-        while j < length(order) && maximum(abs, keys[order[j + 1]] .- k) <= tol
-            j += 1
-        end
-        grp = order[i:j]
-        w = ws[grp[1]]
-        all(g -> abs(ws[g] - w) <= tol * wscale, grp) || return nothing
-        length(grp) == _octahedral_orbit_size(k, tol) || return nothing
-        pts = sort([collect(xs[g]) for g in grp])
-        all(m -> maximum(abs, pts[m + 1] .- pts[m]) > tol, 1:(length(pts) - 1)) || return nothing
-        push!(reps, k)
-        push!(totals, w * length(grp))
-        i = j + 1
-    end
-    return reps, totals
-end
-
-"Size of the `O_h` orbit of a point given by its sorted absolute coordinates `k`."
-function _octahedral_orbit_size(k, tol)
-    zeros_ = count(v -> v <= tol, k)
-    same12 = abs(k[1] - k[2]) <= tol
-    same23 = abs(k[2] - k[3]) <= tol
-    perms = same12 && same23 ? 1 : (same12 || same23) ? 3 : 6
-    return perms * 2^(3 - zeros_)
-end
 
 """
     OctahedralTestSet{S}(d, sharp)
@@ -1206,8 +1163,8 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         refdom = reference(r.domain)
         # an O_h-symmetric rule on S² is checked on its orbit representatives; if its nodes
         # do not group into complete orbits, it falls through to the general check below
-        orbits = use_symmetry && !exact && refdom isa Sphere{3} && r.provenance.symmetry === :Oh ?
-                 octahedral_orbits(xs, ws, 64ε) : nothing
+        orbits = use_symmetry && !exact && refdom isa Sphere{3} && r.provenance.symmetry isa Oh ?
+                 group_orbits(Oh(), xs, ws, 64ε) : nothing
         if orbits !== nothing
             reps, totals = orbits
             basis = OctahedralTestSet{S}(d, test_sharp)
@@ -1257,7 +1214,7 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         positive = eltype(r.weights) <: Real && all(>(0), r.weights)
         # the orbit grouping is itself a complete invariance check, done in O(N log N)
         symmetric = orbits !== nothing ? true :
-                    check_symmetry(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
+                    check_invariance(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
         Verification(basis = bname, degree = d, max_residual = BigFloat(max_res), tolerance = BigFloat(max_tol),
                      exact = is_exact, sharp = sharp,
                      sharp_residual = sh === nothing ? big(0.0) : BigFloat(sh[1]),
@@ -1265,27 +1222,6 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
                      method = :exact_integration, empirical = false, precision_bits = exact ? 0 : cbits,
                      sharp_note = sharp_note)
     end
-end
-
-"""
-    check_simplex_symmetry(xs, ws, tol)
-
-Whether the node/weight set on the reference simplex is invariant under every permutation
-of barycentric coordinates, to tolerance `tol` in coordinates and relative weight.
-"""
-function check_simplex_symmetry(xs, ws, tol)
-    N = length(first(xs)) + 1
-    perms = permutations_of(N)
-    λs = [vcat(1 - sum(x), x) for x in xs]
-    wscale = maximum(abs, ws)
-    for (λ, w) in zip(λs, ws), σ in perms
-        μ = λ[σ]
-        found = any(eachindex(λs)) do j
-            maximum(abs.(λs[j] .- μ)) <= tol && abs(ws[j] - w) <= tol * wscale
-        end
-        found || return false
-    end
-    return true
 end
 
 function verify(r::QuadratureRule, c::SpanOf; integrals = nothing, bits = nothing, degree = nothing,
@@ -1386,151 +1322,4 @@ function Base.show(io::IO, ::MIME"text/plain", v::Verification)
     println(io, "  structure : Σw = measure ", v.weights_sum_ok ? "✓" : "✗",
             ", interior ", v.interior ? "✓" : "✗", ", positive ", v.positive ? "✓" : "✗",
             v.symmetric === nothing ? "" : ", symmetric " * (v.symmetric ? "✓" : "✗"))
-end
-
-"""
-    check_symmetry(group, xs, ws, tol)
-
-Whether the rule is invariant under the symmetry group it claims: `:S_N` permutes the
-barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the reference interval,
-`:Oh` is the 48 signed permutations of Cartesian coordinates (the sphere, the cube or the
-ball), `:D4` the 8 of the square or the disk, `:B4` the 384 of the 4-cube, `:C4v` the 8 of the
-pyramid's square base and `:D3h` the 12 of the wedge. `nothing` when no symmetry is claimed.
-Any other tag is an error: a family with a misspelt or new group must not be checked as a
-simplex.
-"""
-check_symmetry(group::Symbol, xs, ws, tol) =
-    group === :none ? nothing :
-    group === :reflection ? check_reflection_symmetry(xs, ws, tol) :
-    group === :Oh ? check_octahedral_symmetry(xs, ws, tol) :
-    group === :D4 ? check_square_symmetry(xs, ws, tol) :
-    group === :B4 ? check_signed_permutation_symmetry(xs, ws, tol) :
-    group === :C4v ? check_pyramid_symmetry(xs, ws, tol) :
-    group === :D3h ? check_wedge_symmetry(xs, ws, tol) :
-    group === simplex_group(xs) ? check_simplex_symmetry(xs, ws, tol) :
-    throw(ArgumentError("no symmetry check for the group $(repr(group)) on nodes in $(length(first(xs))) dimensions"))
-
-"The symmetric group `:S_N` of the simplex whose nodes are `xs`, `N` the number of barycentric coordinates."
-simplex_group(xs) = Symbol("S", length(first(xs)) + 1)
-
-"Whether the nodes and weights are invariant under the permutations of the triangle's barycentric coordinates on `(x, y)` and under `z ↦ −z` (the wedge's group D₃ₕ)."
-function check_wedge_symmetry(xs, ws, tol)
-    wscale = maximum(abs, ws)
-    λs = [SVector(1 - x[1] - x[2], x[1], x[2], x[3]) for x in xs]
-    for (λ, w) in zip(λs, ws), σ in permutations_of(3), sz in (1, -1)
-        μ = SVector(λ[σ[1]], λ[σ[2]], λ[σ[3]], sz * λ[4])
-        any(j -> maximum(abs, λs[j] - μ) <= tol && abs(ws[j] - w) <= tol * wscale, eachindex(λs)) || return false
-    end
-    return true
-end
-
-"Whether the nodes and weights are invariant under the symmetries of the square on `(x, y)`, slab by slab in `z` (the pyramid's group C₄ᵥ)."
-function check_pyramid_symmetry(xs, ws, tol)
-    zs = [x[3] for x in xs]
-    order = sortperm(zs)
-    i = 1
-    while i <= length(order)
-        j = i
-        while j < length(order) && zs[order[j + 1]] - zs[order[i]] <= tol
-            j += 1
-        end
-        slab = order[i:j]
-        check_signed_permutation_symmetry([SVector(xs[k][1], xs[k][2]) for k in slab], ws[slab], tol) || return false
-        i = j + 1
-    end
-    return true
-end
-
-"""
-    check_signed_permutation_symmetry(xs, ws, tol)
-
-Whether the node/weight set is invariant under every signed permutation of the coordinates,
-the symmetry group of the hypercube, in any dimension. The orbit of a point is the set of
-points with the same sorted absolute coordinates, so the nodes are grouped by that key (to
-`tol`), and each group must hold exactly as many distinct nodes as the orbit has points, all
-with one weight. `O(N log N)`, where matching all `2ᴰ D!` images would cost `O(2ᴰ D! N²)`.
-"""
-function check_signed_permutation_symmetry(xs, ws, tol)
-    D = length(first(xs))
-    wscale = maximum(abs, ws)
-    keys = [sort(abs.(collect(x))) for x in xs]
-    order = sortperm(keys)
-    i = 1
-    while i <= length(order)
-        j = i
-        while j < length(order) && maximum(abs, keys[order[j + 1]] - keys[order[i]]) <= tol
-            j += 1
-        end
-        group = order[i:j]
-        # the orbit's size from its key: zeros, and runs of equal nonzero values
-        k = keys[order[i]]
-        nz = count(>(tol), k)
-        runs, r = Int[], 1
-        for l in (D - nz + 2):D
-            if k[l] - k[l - 1] <= tol
-                r += 1
-            else
-                push!(runs, r)
-                r = 1
-            end
-        end
-        nz > 0 && push!(runs, r)
-        size = factorial(D) ÷ (factorial(D - nz) * prod(factorial, runs; init = 1)) * 2^nz
-        length(group) == size || return false
-        all(g -> abs(ws[g] - ws[group[1]]) <= tol * wscale, group) || return false
-        # the group's nodes are distinct
-        for a in group, b in group
-            a < b && maximum(abs, collect(xs[a]) - collect(xs[b])) <= tol && return false
-        end
-        i = j + 1
-    end
-    return true
-end
-
-"""
-    check_octahedral_symmetry(xs, ws, tol)
-
-Whether the node/weight set is invariant under the full octahedral group: every image of
-every node under a signed permutation of its coordinates is again a node, carrying the same
-weight. Checking the 48 images of each node is what makes this independent of the orbit
-machinery that built the rule.
-"""
-function check_octahedral_symmetry(xs, ws, tol)
-    length(first(xs)) == 3 || return false
-    wscale = maximum(abs, ws)
-    for (x, w) in zip(xs, ws), p in permutations_of(3), s1 in (1, -1), s2 in (1, -1), s3 in (1, -1)
-        y = (s1 * x[p[1]], s2 * x[p[2]], s3 * x[p[3]])
-        any(eachindex(xs)) do j
-            maximum(abs, (xs[j][1] - y[1], xs[j][2] - y[2], xs[j][3] - y[3])) <= tol &&
-                abs(ws[j] - w) <= tol * wscale
-        end || return false
-    end
-    return true
-end
-
-"""
-    check_square_symmetry(xs, ws, tol)
-
-Whether the node/weight set in the plane is invariant under the 8 symmetries of the square:
-every signed permutation of the two coordinates of every node is again a node, carrying the
-same weight.
-"""
-function check_square_symmetry(xs, ws, tol)
-    length(first(xs)) == 2 || return false
-    wscale = maximum(abs, ws)
-    for (x, w) in zip(xs, ws), p in ((1, 2), (2, 1)), s1 in (1, -1), s2 in (1, -1)
-        y = (s1 * x[p[1]], s2 * x[p[2]])
-        any(j -> max(abs(xs[j][1] - y[1]), abs(xs[j][2] - y[2])) <= tol && abs(ws[j] - w) <= tol * wscale,
-            eachindex(xs)) || return false
-    end
-    return true
-end
-
-"Whether the node/weight set on the reference interval is invariant under `x ↦ -x`."
-function check_reflection_symmetry(xs, ws, tol)
-    wscale = maximum(abs, ws)
-    for (x, w) in zip(xs, ws)
-        any(j -> abs(xs[j][1] + x[1]) <= tol && abs(ws[j] - w) <= tol * wscale, eachindex(xs)) || return false
-    end
-    return true
 end

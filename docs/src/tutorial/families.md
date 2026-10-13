@@ -9,7 +9,7 @@ Here is a complete family with a single one-point rule on any simplex:
 ```julia
 using CubatureRules, StaticArrays
 import CubatureRules: candidates, build, npoints, properties, degree_range, derivation,
-                      isreference, Derived, Provenance
+                      isreference, Derived, Provenance, NoSymmetry
 
 struct CentroidRule <: RuleFamily end
 
@@ -17,7 +17,7 @@ candidates(::Type{CentroidRule}, dom::Simplex, c::PolynomialDegree) =
     isreference(dom) && c.d <= 1 ? [CentroidRule()] : CentroidRule[]
 npoints(::CentroidRule, dom, degree) = 1
 properties(::CentroidRule, dom, degree) =
-    (positive = true, interior = true, symmetry = :none, nested = false)
+    (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 degree_range(::CentroidRule, dom) = 0:1
 derivation(::Type{CentroidRule}) = Derived()
 

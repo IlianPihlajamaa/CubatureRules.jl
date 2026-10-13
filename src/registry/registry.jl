@@ -53,7 +53,7 @@ struct Candidate
     derivation::DerivationClass
     positive::Bool
     interior::Bool
-    symmetry::Symbol
+    symmetry::SymmetryGroup
     cost::Float64
     amplification::Union{Nothing,Float64}      # Σ|w|/Σw where known without building
 end

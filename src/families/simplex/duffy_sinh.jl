@@ -60,7 +60,7 @@ npoints(::DuffySinh, dom, degree::Integer) = npatches(dom) * sinh_radial(dom, de
 claimed_degree(::DuffySinh, dom, degree) = 2sinh_radial(dom, degree) - (dom.weight isa InverseDistanceGradient ? 2 : 1)
 degree_range(::DuffySinh, dom) = 0:typemax(Int)
 properties(::DuffySinh, dom, degree) =
-    (positive = !(dom.weight isa InverseDistanceGradient), interior = true, symmetry = :none, nested = false)
+    (positive = !(dom.weight isa InverseDistanceGradient), interior = true, symmetry = NoSymmetry(), nested = false)
 
 """
     radial_kernel_moments(q, ℓ, H², K) -> Vector

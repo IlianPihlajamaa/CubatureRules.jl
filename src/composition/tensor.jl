@@ -48,7 +48,7 @@ supports_type(f::TensorProduct, ::Type{T}) where {T} = all(fi -> supports_type(f
 function properties(f::TensorProduct, dom, degree)
     ps = [properties(fi, Interval(), degree) for fi in f.families]
     return (positive = all(p -> p.positive, ps), interior = all(p -> p.interior, ps),
-            symmetry = :none, nested = all(p -> p.nested, ps))
+            symmetry = NoSymmetry(), nested = all(p -> p.nested, ps))
 end
 cost_estimate(f::TensorProduct, dom, degree, T) =
     sum(cost_estimate(fi, Interval(), degree, T) for fi in f.families) * _precision_factor(T)

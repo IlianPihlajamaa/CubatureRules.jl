@@ -216,7 +216,7 @@ function transform(r::QuadratureRule{D}, φ, Jφ; domain::Domain{D} = r.domain, 
     step = claim === nothing ? "transform: nonlinear change of variables (claim destroyed → NoClaim)" :
            "transform: nonlinear change of variables; claim $(describe(claim)) ASSERTED by the caller, not derived"
     xsT = D == 1 ? T.(xs) : [SVector{D,T}(x) for x in xs]
-    return QuadratureRule(xsT, T.(ws), domain, newclaim, with_step(r.provenance, step; symmetry = :none), r.certificate)
+    return QuadratureRule(xsT, T.(ws), domain, newclaim, with_step(r.provenance, step; symmetry = NoSymmetry()), r.certificate)
 end
 _detval(J::Number) = J
 _detval(J::AbstractMatrix) = det(J)
@@ -243,7 +243,7 @@ function duffy(r::QuadratureRule{D,T,<:Simplex}; power::Integer = 2) where {D,T}
         end
         QuadratureRule(xs, ws, r.domain, NoClaim(),
                        with_step(r.provenance, "duffy: radial grading x ↦ u^$(q-1)·x towards vertex 0 (claim destroyed → NoClaim)";
-                                 symmetry = :none), r.certificate)
+                                 symmetry = NoSymmetry()), r.certificate)
     end
 end
 

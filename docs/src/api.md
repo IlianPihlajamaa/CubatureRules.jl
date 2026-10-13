@@ -171,6 +171,22 @@ monomial_moment
 barycentric_moment
 ```
 
+The symmetry a rule claims, and its check:
+
+```@docs
+SymmetryGroup
+NoSymmetry
+Reflection
+SymmetricGroup
+Oh
+D4
+B4
+C4v
+D3h
+check_invariance
+group_orbits
+```
+
 ## Provenance and citation
 
 ```@docs

@@ -130,7 +130,7 @@ function next_error(dir, degree)
     setprecision(BigFloat, 300) do
         xs, ws = CR.expand(s, BigFloat.(θ))
         prov = CR.Provenance(family = "Lebedev", derivation = CR.Seeded(), path = String[], seed_source = dir,
-                             symmetry = :Oh, license = "")
+                             symmetry = CR.Oh(), license = "")
         r = CR.QuadratureRule([CR.SVector{3,BigFloat}(x) for x in xs], ws, Sphere{3}(), PolynomialDegree(degree), prov)
         v = CR.verify(r, PolynomialDegree(degree))
         (v.exact && v.sharp === true) || error("degree $degree: not exact and sharp at high precision ($(v.exact), $(v.sharp))")

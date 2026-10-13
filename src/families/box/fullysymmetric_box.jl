@@ -63,7 +63,7 @@ function _box_entry(D, degree)
 end
 box_table(D) = D == 2 ? "src/data/square_d4_seeds.toml" : D == 3 ? "src/data/cube_oh_seeds.toml" :
                "src/data/hypercube_b4_seeds.toml"
-box_symmetry(D) = D == 2 ? :D4 : D == 3 ? :Oh : :B4
+box_symmetry(D) = D == 2 ? D4() : D == 3 ? Oh() : B4()
 
 function candidates(::Type{FullySymmetric}, dom::Orthotope{D}, c::PolynomialDegree) where {D}
     (D in (2, 3, 4) && isreference(dom) && box_entry_for(D, c.d) !== nothing) || return FullySymmetric[]
