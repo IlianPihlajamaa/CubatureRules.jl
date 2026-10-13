@@ -30,6 +30,8 @@ end
     @test CR.selectable(UpstreamLebedev()) === false
     @test all(c -> selectable(c.family), CR.gather(Sphere{3}(), 19, Float64))
     @test any(c -> !selectable(c.family), CR.gather(Sphere{3}(), 19, Float64; all = true))
+    # compare shows at least what available lists
+    @test "Lebedev (Lebedev.jl, GPL-3)" in [row.family for row in compare(Sphere{3}(), 11)]
     # at degree 19 our table stops, so the default is the product rule — with a warning,
     # because a smaller rule existed and was passed over for its licence
     r = @test_logs (:warn, r"licence is not one") match_mode=:any rule(Sphere{3}(); degree = 19)

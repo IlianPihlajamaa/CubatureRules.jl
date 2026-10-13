@@ -806,7 +806,7 @@ function polar_finitepart_integrals(dom::FinitePartDomain, L::Integer, ::Type{S}
                 ê = (edge - x0) / R
                 for i in 1:(K + 1)
                     φ!(vals, x0 + σ[i] * R * ê)
-                    G[:, i] .= vals .+ zero(S)          # new numbers: the evaluator updates its BigFloats in place
+                    copy_values!(view(G, :, i), vals)
                 end
                 a = G * transpose(Vinv)                      # a[l, k + 1]: coefficient of (ρ/R)^k
                 dθ = hv * wk / cosh(v)                       # dθ = dv/cosh v along the edge
@@ -925,7 +925,7 @@ function verification_basis(dom::CurvedKernelDomain, n, ::Type{S}, exact) where 
     dub = DubinerBasis{S}(K; normalize = true)
     function φ!(out, ξ)
         dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
-        out .= dub.φ
+        copy_values!(out, dub.φ)                  # by value: dubiner! writes into dub.φ in place
     end
     integrals = polar_curved_integrals(dom, dubiner_length(K), S, φ!; degree = K)
     A = SMatrix{2,2,S,4}(1, 0, 0, 1)
@@ -991,7 +991,7 @@ function verification_basis(dom::FinitePartDomain, n, ::Type{S}, exact) where {S
     function φ!(out, y)
         ξ = A * (y - v[1])
         dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
-        out .= dub.φ
+        copy_values!(out, dub.φ)                  # by value: dubiner! writes into dub.φ in place
     end
     integrals = kernel_geometry(dom).place === :near ? polar_kernel_integrals(dom, dubiner_length(K), S, φ!; degree = K) :
                 polar_finitepart_integrals(dom, dubiner_length(K), S, φ!; degree = K)
@@ -1011,7 +1011,7 @@ function verification_basis(dom::InverseDistanceDomain, n, ::Type{S}, exact) whe
     function φ!(out, y)
         ξ = A * (y - v[1])
         dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, ξ[1], ξ[2])
-        out .= dub.φ
+        copy_values!(out, dub.φ)                  # by value: dubiner! writes into dub.φ in place
     end
     integrals = polar_kernel_integrals(dom, dubiner_length(K), S, φ!; degree = K)
     return KernelTriangleBasis{S,D,2D}(dub, A, v[1], integrals),
@@ -1253,7 +1253,7 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
         μ = lift(S, measure(refdom))
         wsum = sum(ws)
         wsum_ok = exact ? wsum == μ : abs(wsum - μ) <= 16ε * sum(abs, ws) + floor_tol
-        interior = all(x -> isinterior(x, r.domain), _node_iter(r))
+        interior = all(x -> isinterior(x, r.domain), r.nodes)
         positive = eltype(r.weights) <: Real && all(>(0), r.weights)
         # the orbit grouping is itself a complete invariance check, done in O(N log N)
         symmetric = orbits !== nothing ? true :
@@ -1266,9 +1266,6 @@ function verify(r::QuadratureRule{D}, c::PolynomialDegree; degree = nothing, bit
                      sharp_note = sharp_note)
     end
 end
-
-_node_iter(r::QuadratureRule{1}) = r.nodes
-_node_iter(r::QuadratureRule) = r.nodes
 
 """
     check_simplex_symmetry(xs, ws, tol)
@@ -1399,6 +1396,8 @@ barycentric coordinates of a simplex, `:reflection` is `x ↦ -x` on the referen
 `:Oh` is the 48 signed permutations of Cartesian coordinates (the sphere, the cube or the
 ball), `:D4` the 8 of the square or the disk, `:B4` the 384 of the 4-cube, `:C4v` the 8 of the
 pyramid's square base and `:D3h` the 12 of the wedge. `nothing` when no symmetry is claimed.
+Any other tag is an error: a family with a misspelt or new group must not be checked as a
+simplex.
 """
 check_symmetry(group::Symbol, xs, ws, tol) =
     group === :none ? nothing :
@@ -1408,7 +1407,11 @@ check_symmetry(group::Symbol, xs, ws, tol) =
     group === :B4 ? check_signed_permutation_symmetry(xs, ws, tol) :
     group === :C4v ? check_pyramid_symmetry(xs, ws, tol) :
     group === :D3h ? check_wedge_symmetry(xs, ws, tol) :
-    check_simplex_symmetry(xs, ws, tol)
+    group === simplex_group(xs) ? check_simplex_symmetry(xs, ws, tol) :
+    throw(ArgumentError("no symmetry check for the group $(repr(group)) on nodes in $(length(first(xs))) dimensions"))
+
+"The symmetric group `:S_N` of the simplex whose nodes are `xs`, `N` the number of barycentric coordinates."
+simplex_group(xs) = Symbol("S", length(first(xs)) + 1)
 
 "Whether the nodes and weights are invariant under the permutations of the triangle's barycentric coordinates on `(x, y)` and under `z ↦ −z` (the wedge's group D₃ₕ)."
 function check_wedge_symmetry(xs, ws, tol)

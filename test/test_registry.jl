@@ -97,6 +97,10 @@ end
     @test occursin("has negative weights", m3)
     @test occursin("GrundmannMöller degree 1", m3)
     @test_throws NoRuleError rule(Simplex{2}(); degree = 5, family = XiaoGimbutas(), T = Rational{BigInt})
+    # with an explicit family, `positive` and `interior` are still held to
+    @test_throws NoRuleError rule(Simplex{2}(); degree = 3, family = GrundmannMöller(), positive = true)
+    @test_throws NoRuleError rule(Interval(-1, 1); degree = 5, family = Lobatto(), interior = true)
+    @test npoints(rule(Simplex{2}(); degree = 3, family = GrundmannMöller())) > 0
     @test_throws CR.NotYetImplemented Polytope{3}()
     # a domain with no family at all names itself and says when it is coming
     @test occursin("Polytope", try rule(Polytope{3,Float64}()) catch e; sprint(showerror, e) end)

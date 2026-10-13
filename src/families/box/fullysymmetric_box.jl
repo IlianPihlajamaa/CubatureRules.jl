@@ -118,11 +118,7 @@ function build(f::FullySymmetric, dom::Orthotope{D}, degree::Int, ctx::BuildCont
     # the moment equations at the delivered parameters
     rbits = 2ctx.bits + 32
     resid = with_bits(rbits) do
-        θd = BigFloat[]
-        for (o, off) in zip(s.orbits, param_offsets(s))
-            push!(θd, BigFloat(finalize_number(ctx, θ[off + 1])))
-            append!(θd, (BigFloat(finalize_number(ctx, θ[off + 1 + i])) for i in 1:nparams(o)))
-        end
+        θd = [BigFloat(finalize_number(ctx, t)) for t in θ]
         maximum(abs, BoxMomentSystem(s, n, BigFloat)(θd; jacobian = false)[1])
     end
     cert = Certificate(equations = "B_$D-invariant moment system (symmetrised even Legendre products, degree ≤ $n)",

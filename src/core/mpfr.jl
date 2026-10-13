@@ -81,20 +81,48 @@ end
 bigfloats(::Type{S}, dims::Integer...) where {S} = S === BigFloat ? [BigFloat(0) for _ in CartesianIndices(dims)] :
                                                    zeros(S, dims...)
 
+"`sign(x − k)` for an integer `k`, without allocating."
+@inline mp_cmp_si(x::BigFloat, k::Integer) = ccall((:mpfr_cmp_si, MPFR_LIB), Int32, (Ref{BigFloat}, Clong), x, k)
+
 """
     unshare!(v, prec)
 
 Make every entry of the `BigFloat` array `v` a distinct number of precision `prec`, so the
-in-place kernels can write into it. Cheap once it holds: it then only compares.
+in-place kernels can write into it; its values are overwritten, since `v` is an output.
+
+Distinctness is checked in place, in O(n) and without allocating: entry `i` is set to `i`, and
+an entry that no longer reads `i` afterwards shares its number with a later one and is
+replaced. Sharing with numbers outside `v` cannot be seen this way and is the caller's to
+avoid: an array handed to an in-place kernel as its output belongs to the kernel, and values
+read from it that must outlive the next call are copied by value ([`copy_values!`](@ref)),
+not with `.=`, which for `BigFloat` copies references.
 """
 function unshare!(v::AbstractArray{BigFloat}, prec::Integer)
-    prev = nothing                     # the previous entry as it was, not as replaced
     @inbounds for i in eachindex(v)
-        cur = isassigned(v, i) ? v[i] : nothing
-        if cur === nothing || cur === prev || precision(cur) != prec
-            v[i] = BigFloat(0; precision = prec)
-        end
-        prev = cur
+        (isassigned(v, i) && precision(v[i]) == prec) || (v[i] = BigFloat(0; precision = prec))
+    end
+    k = 0
+    @inbounds for i in eachindex(v)
+        mp_set_si!(v[i], k += 1)
+    end
+    k = 0
+    @inbounds for i in eachindex(v)
+        mp_cmp_si(v[i], k += 1) == 0 || (v[i] = BigFloat(0; precision = prec))
     end
     return v
 end
+
+"""
+    copy_values!(out, src)
+
+`out .= src` by value: for `BigFloat`, new numbers of `src`'s precision, so `out` keeps its
+values when an in-place kernel next writes into `src` (see [`unshare!`](@ref)).
+"""
+function copy_values!(out::AbstractArray{BigFloat}, src::AbstractArray{BigFloat})
+    @inbounds for (i, j) in zip(eachindex(out), eachindex(src))
+        x = src[j]
+        out[i] = mp_set!(BigFloat(; precision = precision(x)), x)
+    end
+    return out
+end
+copy_values!(out, src) = (out .= src)

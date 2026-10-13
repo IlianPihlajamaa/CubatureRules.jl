@@ -61,3 +61,30 @@ end
     @test_exact r 9
     @test_exact r 5
 end
+
+@testset "symmetry tags" begin
+    r = rule(Simplex{2}(); degree = 6)
+    xs, ws = nodes(r), weights(r)
+    @test CR.check_symmetry(:S3, xs, ws, 1e-12) === true
+    @test CR.check_symmetry(:none, xs, ws, 1e-12) === nothing
+    # a tag the checks do not know is an error, not a simplex check
+    @test_throws ArgumentError CR.check_symmetry(:S3v, xs, ws, 1e-12)
+    @test_throws ArgumentError CR.check_symmetry(:S4, xs, ws, 1e-12)      # the tetrahedron's, on a triangle
+end
+
+@testset "in-place BigFloat kernels: outputs are unshared, copies are by value" begin
+    setprecision(BigFloat, 128) do
+        a, b = BigFloat(1), BigFloat(2)
+        v = [a, b, a, b, BigFloat(3)]                 # shared, and not with a neighbour
+        CR.unshare!(v, 128)
+        @test length(unique(objectid, v)) == 5 && all(x -> precision(x) == 128, v)
+        # sharing with numbers outside an output array is the caller's to avoid: copy by value
+        dub = CR.DubinerBasis{BigFloat}(3; normalize = true)
+        out = zeros(BigFloat, CR.dubiner_length(3))
+        CR.dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, big(0.2), big(0.3))
+        CR.copy_values!(out, dub.φ)
+        kept = copy(out)
+        CR.dubiner!(dub.φ, dub.gx, dub.gy, dub.ws, big(0.6), big(0.1))   # writes into dub.φ in place
+        @test out == kept && out != dub.φ
+    end
+end

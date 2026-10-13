@@ -127,7 +127,7 @@ function reynolds_blocks(basis::SimplexBasis{D}, N, xs, ws, blocks) where {D}
             Rφ[i] /= length(perms)
         end
         φ, _ = evaluate!(basis, x; gradient = false)
-        copyto!(φ0, φ)
+        copy_values!(φ0, φ)
         for (b, r) in enumerate(blocks)
             M = Mb[b]
             o = first(r) - 1

@@ -243,6 +243,3 @@ function ship_symmetric(name::String, e::SymmetricSeedEntry, ctx::BuildContext{T
                       seed_source = seed_desc, citations = citations, symmetry = Symbol("S", N), license = license)
     return QuadratureRule(xs, wt, Simplex{D}(), PolynomialDegree(n), prov, cert)
 end
-
-"Former name of [`refine_symmetric`](@ref), kept for scripts."
-const refine_symmetric_triangle = refine_symmetric

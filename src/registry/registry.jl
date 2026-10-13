@@ -267,7 +267,7 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
               positive::Bool = false, interior::Bool = false, family = nothing, cancel = nothing, seed = nothing,
               copyleft::Bool = false, verbose = false)
     if family !== nothing
-        return rule(family, dom; degree, npoints, T, digits, cancel, seed, verbose)
+        return rule(family, dom; degree, npoints, T, digits, cancel, seed, positive, interior, verbose)
     end
     npoints === nothing || throw(ArgumentError("`npoints` requires an explicit `family`"))
     degree === nothing && throw(NoRuleError(no_degree_message(dom)))
@@ -560,7 +560,7 @@ Side-by-side properties of every candidate at `degree`, including those `availab
 filter out, with a rough construction-cost estimate.
 """
 function compare(dom::Domain, degree::Integer; T = Float64)
-    cands = gather(dom, degree, T)
+    cands = gather(dom, degree, T; all = true)          # everything `available` lists, selectable or not
     rows = NamedTuple[(family = c.name, npoints = c.npoints, degree = c.degree, derivation = c.derivation,
                        positive = c.positive, interior = c.interior, symmetry = c.symmetry,
                        exact_rational = supports_type(c.family, Rational{BigInt}),
