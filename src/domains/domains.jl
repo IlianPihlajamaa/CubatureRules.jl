@@ -127,6 +127,26 @@ end
 @inline edge_matrix(s::Simplex{D,T}) where {D,T} =
     SMatrix{D,D}(ntuple(k -> s.vertices[(k - 1) ÷ D + 2][(k - 1) % D + 1] - s.vertices[1][(k - 1) % D + 1], Val(D * D)))
 
+"""
+    affine_frame(dom, S) -> (A, b, J)
+
+The affine map `ξ ↦ A ξ + b` from the reference domain of `dom` onto `dom`, in type `S`, and
+the factor `J` by which it scales the measure: `|det A|`; for a triangle in space its area
+element, for a sphere `ρ^(D−1)`. In one dimension `A`, `b` and `J` are numbers. The one
+description of where a domain lies, from which [`map_to`](@ref), `integrate` over a domain,
+[`affine_map`](@ref) and verification's map back to the reference are all made.
+"""
+function affine_frame end
+
+@inline function affine_frame(s::Simplex{D}, ::Type{S}) where {D,S}
+    A = SMatrix{D,D,S}(edge_matrix(s))
+    return A, SVector{D,S}(s.vertices[1]), abs(det(A))
+end
+@inline function affine_frame(d::Interval, ::Type{S}) where {S}
+    h = (S(d.b) - S(d.a)) / 2
+    return h, S(d.a) + h, abs(h)
+end
+
 function measure(s::Simplex{D}) where {D}
     isreference(s) && return 1 // factorial(D)
     A = edge_matrix(s)
@@ -215,6 +235,10 @@ end
 Orthotope{D}() where {D} = Orthotope{D,Int}(SVector{D,Int}(ntuple(_ -> -1, D)), SVector{D,Int}(ntuple(_ -> 1, D)))
 
 isreference(d::Orthotope) = all(d.lo .== -1) && all(d.hi .== 1)
+@inline function affine_frame(d::Orthotope{D}, ::Type{S}) where {D,S}
+    h = SVector{D,S}((d.hi - d.lo) ./ 2)
+    return SMatrix{D,D,S}(Diagonal(h)), SVector{D,S}(d.lo) + h, abs(prod(h))
+end
 reference(::Orthotope{D}) where {D} = Orthotope{D}()
 measure(d::Orthotope) = prod(d.hi - d.lo)
 convert_domain(::Type{S}, d::Orthotope{D}) where {S,D} =

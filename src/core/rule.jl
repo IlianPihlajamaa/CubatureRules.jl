@@ -169,3 +169,8 @@ _exact_string(x::AbstractFloat) = repr(x)
 _exact_string(x::Rational) = string(numerator(x), "//", denominator(x))
 _exact_string(x) = string(x)
 
+
+_is_exact_type(::Type{T}) where {T} = T <: Rational || T <: Integer
+"The precision of a rule's numbers in bits: 0 for exact rationals, a BigFloat's own precision."
+_rule_precision(r::QuadratureRule) = _is_exact_type(eltype(r)) ? 0 :
+                                     eltype(r) === BigFloat ? precision(real(first(r.weights))) : bits_of(eltype(r))

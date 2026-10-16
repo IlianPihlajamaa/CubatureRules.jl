@@ -96,19 +96,21 @@ convert_domain(::Type{S}, d::Wedge) where {S} = Wedge{S}(SVector{6,SVector{3,S}}
 convert_domain(::Type{S}, d::Pyramid) where {S} = Pyramid{S}(SVector{5,SVector{3,S}}(map(v -> SVector{3,S}(map(S, v)), d.vertices)))
 
 """
-    affine_frame(dom, S) -> (A, b)
+    affine_frame(dom::Union{Wedge,Pyramid}, S) -> (A, b, |det A|)
 
 The affine map `x ↦ A x + b` from the reference shape onto a [`Wedge`](@ref) or
 [`Pyramid`](@ref), in type `S`.
 """
 function affine_frame(d::Wedge, ::Type{S}) where {S}
     v = map(p -> SVector{3,S}(map(S, p)), d.vertices)
-    return hcat(v[2] - v[1], v[3] - v[1], (v[4] - v[1]) / 2), (v[1] + v[4]) / 2
+    A = hcat(v[2] - v[1], v[3] - v[1], (v[4] - v[1]) / 2)
+    return A, (v[1] + v[4]) / 2, abs(det(A))
 end
 function affine_frame(d::Pyramid, ::Type{S}) where {S}
     v = map(p -> SVector{3,S}(map(S, p)), d.vertices)
     c = (v[1] + v[3]) / 2
-    return hcat((v[2] - v[1]) / 2, (v[4] - v[1]) / 2, v[5] - c), c
+    A = hcat((v[2] - v[1]) / 2, (v[4] - v[1]) / 2, v[5] - c)
+    return A, c, abs(det(A))
 end
 
 _reference_measure(::Wedge) = 1 // 1

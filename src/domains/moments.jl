@@ -59,36 +59,18 @@ jacobian_det(m::AffineMap) = abs(det(m.A))
 """
     affine_map(from, to)
 
-The affine map taking domain `from` onto domain `to` (vertex `i` to vertex `i`).
+The affine map taking domain `from` onto domain `to` (vertex `i` to vertex `i`): simplices,
+intervals or boxes of the same dimension, through their frames (see [`affine_frame`](@ref)).
 """
-function affine_map(from::Simplex{D}, to::Simplex{D}) where {D}
-    T = promote_type(eltype(eltype(from.vertices)), eltype(eltype(to.vertices)))
+function affine_map(from::Union{Simplex,Interval,Orthotope}, to::Union{Simplex,Interval,Orthotope})
+    T = promote_type(_coordtype(from), _coordtype(to))
     T = T <: Integer ? Rational{BigInt} : T
-    Ef = SMatrix{D,D,T}(edge_matrix(from))
-    Et = SMatrix{D,D,T}(edge_matrix(to))
-    A = Et / Ef
-    b = SVector{D,T}(to.vertices[1]) - A * SVector{D,T}(from.vertices[1])
-    return AffineMap(A, b)
-end
-
-function affine_map(from::Interval, to::Interval)
-    T = promote_type(typeof(from.a), typeof(to.a))
-    T = T <: Integer ? Rational{BigInt} : T
-    s = T(to.b - to.a) / T(from.b - from.a)
-    return AffineMap(SMatrix{1,1,T}(s), SVector{1,T}(T(to.a) - s * T(from.a)))
+    A, b, _ = _affine(from, to, T)
+    return A isa Number ? AffineMap(SMatrix{1,1,T}(A), SVector{1,T}(b)) : AffineMap(A, b)
 end
 
 function monomial_moment(d::Orthotope{D}, α) where {D}
     isreference(d) || throw(ArgumentError("exact moments are provided on the reference orthotope"))
     length(α) == D || throw(ArgumentError("need $D exponents"))
     return prod(isodd(k) ? big(0) // 1 : big(2) // (k + 1) for k in α)
-end
-
-"The affine map between two boxes is diagonal."
-function affine_map(from::Orthotope{D}, to::Orthotope{D}) where {D}
-    T = promote_type(eltype(from.lo), eltype(to.lo))
-    T = T <: Integer ? Rational{BigInt} : T
-    s = SVector{D,T}((to.hi - to.lo) ./ (from.hi - from.lo))
-    A = SMatrix{D,D,T}(Diagonal(s))
-    return AffineMap(A, SVector{D,T}(to.lo) - A * SVector{D,T}(from.lo))
 end

@@ -43,13 +43,14 @@ convert_domain(::Type{S}, t::SurfaceTriangle) where {S} = SurfaceTriangle{S}(map
 Base.show(io::IO, t::SurfaceTriangle) = print(io, "SurfaceTriangle(", join((Tuple(v) for v in t.vertices), ", "), ")")
 
 """
-    surface_frame(t, S) -> (E, v₀, J)
+    affine_frame(t::SurfaceTriangle, S) -> (E, v₀, J)
 
-The edge matrix `E = [v₁ − v₀  v₂ − v₀]` (3 × 2), the vertex `v₀` and the area element
-`J = |(v₁ − v₀) × (v₂ − v₀)|`, twice the area, in type `S`. `J` is a square root: in exact
-arithmetic it exists only when it is rational, and otherwise this throws.
+The frame of a triangle in space: the edge matrix `E = [v₁ − v₀  v₂ − v₀]` (3 × 2), the
+vertex `v₀` and the area element `J = |(v₁ − v₀) × (v₂ − v₀)|`, twice the area, in type `S`.
+`J` is a square root: in exact arithmetic it exists only when it is rational, and otherwise
+this throws.
 """
-function surface_frame(t::SurfaceTriangle, ::Type{S}) where {S}
+function affine_frame(t::SurfaceTriangle, ::Type{S}) where {S}
     v0, v1, v2 = (SVector{3,S}(map(S, p)) for p in t.vertices)
     e1, e2 = v1 - v0, v2 - v0
     n = cross(e1, e2)
@@ -66,13 +67,13 @@ end
 
 function measure(t::SurfaceTriangle{T}) where {T}
     S = T <: AbstractFloat ? T : BigFloat
-    return surface_frame(t, S)[3] / 2
+    return affine_frame(t, S)[3] / 2
 end
 
 "Barycentric coordinates of the orthogonal projection of `x` onto the plane of `t`."
 function barycentric(t::SurfaceTriangle, x::AbstractVector)
     S = float(promote_type(eltype(eltype(t.vertices)), eltype(x)))
-    E, v0, _ = surface_frame(t, S)
+    E, v0, _ = affine_frame(t, S)
     ξ = (E' * E) \ (E' * (SVector{3,S}(map(S, x)) - v0))
     return SVector{3,S}(1 - ξ[1] - ξ[2], ξ[1], ξ[2])
 end

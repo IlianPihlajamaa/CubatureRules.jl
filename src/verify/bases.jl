@@ -258,90 +258,26 @@ function exact_integrals(b::ProductTop{S}) where {S}
     return v
 end
 
-# Map a rule to its reference domain in type S: (nodes as Vector{Vector{S}}, weights).
-function reference_nodes(r::QuadratureRule{D,T,<:Simplex}, ::Type{S}) where {D,T,S}
-    dom = r.domain
-    Ed = SMatrix{D,D,S}(edge_matrix(dom))
-    v0 = SVector{D,S}(dom.vertices[1])
-    J = abs(det(Ed))
-    xs = [Vector{S}(Ed \ (SVector{D,S}(map(S, x)) - v0)) for x in r.nodes]
-    ws = [S(w) / J for w in r.weights]
-    return xs, ws
-end
-function reference_nodes(r::QuadratureRule{1,T,<:Interval}, ::Type{S}) where {T,S}
-    a, b = S(r.domain.a), S(r.domain.b)
-    xs = [[(2S(x) - (a + b)) / (b - a)] for x in r.nodes]
-    ws = [2S(w) / (b - a) for w in r.weights]
-    return xs, ws
-end
-function reference_nodes(r::QuadratureRule{D,T,<:Orthotope}, ::Type{S}) where {D,T,S}
-    lo = SVector{D,S}(map(S, r.domain.lo))
-    hi = SVector{D,S}(map(S, r.domain.hi))
-    scale = prod((hi - lo) ./ 2)
-    xs = [Vector{S}((2 .* SVector{D,S}(map(S, x)) .- (lo .+ hi)) ./ (hi .- lo)) for x in r.nodes]
-    return xs, [S(w) / scale for w in r.weights]
-end
-
-# A wedge or a pyramid through its affine frame
-function reference_nodes(r::QuadratureRule{3,T,<:Union{Wedge,Pyramid}}, ::Type{S}) where {T,S}
-    A, b = affine_frame(r.domain, S)
-    J = abs(det(A))
-    xs = [Vector{S}(A \ (SVector{3,S}(map(S, x)) - b)) for x in r.nodes]
+# Map a rule to its reference domain in type S: (nodes as Vector{Vector{S}}, weights), through
+# the inverse of the domain's frame (see `affine_frame`), the weights divided by its Jacobian.
+const FramedDomain = Union{Simplex,Interval,Orthotope,Wedge,Pyramid,Ball,Sphere,SurfaceTriangle}
+function reference_nodes(r::QuadratureRule{D,T,<:FramedDomain}, ::Type{S}) where {D,T,S}
+    A, b, J = affine_frame(r.domain, S)
+    xs = [_reference_point(A, _mapnode(S, x) - b) for x in r.nodes]
     return xs, [S(w) / J for w in r.weights]
 end
+_reference_point(A::Number, y) = [y / A]
+_reference_point(A::SMatrix{D,D}, y) where {D} = Vector(A \ y)
+# a triangle in space: the left inverse of its 3 × 2 frame
+_reference_point(A::SMatrix, y) = Vector((transpose(A) * A) \ (transpose(A) * y))
 
-# A ball maps to its reference the same way, with the volume Jacobian r^D.
-function reference_nodes(r::QuadratureRule{D,T,<:Ball}, ::Type{S}) where {D,T,S}
-    dom = r.domain
-    c = SVector{D,S}(map(S, dom.centre))
-    ρ = S(dom.radius)
-    xs = [Vector{S}((SVector{D,S}(map(S, x)) .- c) ./ ρ) for x in r.nodes]
-    return xs, [S(w) / ρ^D for w in r.weights]
+# A domain that is its own reference — a measure given by its moments or as a function, a
+# kernel, an oscillatory weight (whose weights may be complex), a weighted domain on the
+# reference base — is verified where it is: the nodes pass through.
+function reference_nodes(r::QuadratureRule, ::Type{S}) where {S}
+    isreference(r.domain) || throw(ArgumentError("verification of rules on $(r.domain) needs its reference domain"))
+    return [x isa Number ? [S(x)] : Vector{S}(map(S, x)) for x in r.nodes], [lift(S, w) for w in r.weights]
 end
-
-# A sphere maps to its reference by translating to the origin and scaling: the weights
-# carry r^(D-1), the surface Jacobian, not r^D.
-function reference_nodes(r::QuadratureRule{D,T,<:Sphere}, ::Type{S}) where {D,T,S}
-    dom = r.domain
-    c = SVector{D,S}(map(S, dom.centre))
-    ρ = S(dom.radius)
-    xs = [Vector{S}((SVector{D,S}(map(S, x)) .- c) ./ ρ) for x in r.nodes]
-    return xs, [S(w) / ρ^(D - 1) for w in r.weights]
-end
-
-# A triangle in space maps back to the reference triangle through the left inverse of its
-# frame, and its weights carry the area element |e₁ × e₂|.
-function reference_nodes(r::QuadratureRule{3,T,<:SurfaceTriangle}, ::Type{S}) where {T,S}
-    E, v0, J = surface_frame(r.domain, S)
-    P = inv(E' * E) * E'
-    xs = [Vector{S}(P * (SVector{3,S}(map(S, x)) - v0)) for x in r.nodes]
-    return xs, [S(w) / J for w in r.weights]
-end
-
-# A weighted domain in more than one dimension is its own reference here: there is no map
-# to apply, so the nodes pass through.
-function reference_nodes(r::QuadratureRule{D,T,<:WeightedDomain}, ::Type{S}) where {D,T,S}
-    isreference(r.domain) || throw(ArgumentError("verification of weighted rules needs the reference domain"))
-    return [Vector{S}(map(S, x)) for x in r.nodes], [S(w) for w in r.weights]
-end
-
-function reference_nodes(r::QuadratureRule{1,T,<:WeightedDomain}, ::Type{S}) where {T,S}
-    isreference(r.domain.base) || throw(ArgumentError("verification of weighted rules needs the reference interval"))
-    return [[S(x)] for x in r.nodes], [S(w) for w in r.weights]
-end
-
-# A measure given by its moments is stated on the interval it was integrated over, whatever
-# that interval is, so the rule is already on its own reference and the nodes pass through.
-reference_nodes(r::QuadratureRule{1,T,<:MomentDomain}, ::Type{S}) where {T,S} =
-    ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
-# and so is a weight given as a function, and a singular kernel
-reference_nodes(r::QuadratureRule{1,T,<:FunctionDomain}, ::Type{S}) where {T,S} =
-    ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
-reference_nodes(r::QuadratureRule{1,T,<:KernelDomain}, ::Type{S}) where {T,S} =
-    ([[S(x)] for x in r.nodes], [S(w) for w in r.weights])
-# and an oscillatory weight, whose weights may be complex
-reference_nodes(r::QuadratureRule{1,T,<:OscillatoryDomain}, ::Type{S}) where {T,S} =
-    ([[S(x)] for x in r.nodes], [lift(S, w) for w in r.weights])
 
 "A real or complex number in the verification type `S`, or `Complex{S}`."
 lift(::Type{S}, z::Complex) where {S} = Complex{S}(z)

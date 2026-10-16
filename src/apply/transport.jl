@@ -5,117 +5,59 @@
 #     transform(r, φ, Jφ)   general φ            → NoClaim, unless the caller asserts one
 #     duffy(r)              radial grading       → NoClaim
 
-_rule_bits(r::QuadratureRule{D,BigFloat}) where {D} = precision(real(first(r.weights)))
-_rule_bits(r::QuadratureRule) = 256
-
 "Run `f` at the precision of the rule's BigFloats (so no conversion reads ambient precision)."
-_at_rule_precision(f, r::QuadratureRule) = eltype(r) === BigFloat ? with_bits(f, _rule_bits(r)) : f()
+_at_rule_precision(f, r::QuadratureRule) = eltype(r) === BigFloat ? with_bits(f, _rule_precision(r)) : f()
 
 """
     map_to(r, domain)
 
-The affine image of rule `r` on `domain` (same domain kind and dimension), weights scaled
-by `|det A|`. The claim is preserved. There is deliberately no way to pass a nonlinear map
-here: use [`transform`](@ref), which reports `NoClaim`.
+The affine image of rule `r` on `domain` — a domain of the same kind and dimension, or a
+triangle in space for a rule on a triangle in the plane — with the weights scaled by the
+Jacobian. The claim is preserved. There is deliberately no way to pass a nonlinear map here:
+use [`transform`](@ref), which reports `NoClaim`.
 """
-function map_to(r::QuadratureRule{D,T,<:Simplex}, dom::Simplex{D}) where {D,T}
-    S = promote_type(T, eltype(eltype(dom.vertices)))
-    S <: Integer && (S = Rational{BigInt})
+function map_to(r::QuadratureRule, dom::Domain)
+    S = _maptype(eltype(r), _coordtype(dom))
+    kind = dom isa Union{Sphere,Ball} ? "similarity" : "affine"
     return _at_rule_precision(r) do
         A, b, J = _affine(r.domain, dom, S)
-        xs = [A * SVector{D,S}(x) + b for x in r.nodes]
+        xs = [A * _mapnode(S, x) + b for x in r.nodes]
         ws = [S(w) * J for w in r.weights]
         QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
+                       with_step(r.provenance, "map_to: $kind image onto $(dom)"), r.certificate)
     end
 end
 
-function map_to(r::QuadratureRule{1,T,<:Interval}, dom::Interval) where {T}
-    S = promote_type(T, typeof(dom.a))
-    S <: Integer && (S = Rational{BigInt})
-    return _at_rule_precision(r) do
-        s = (S(dom.b) - S(dom.a)) / (S(r.domain.b) - S(r.domain.a))
-        xs = [S(dom.a) + s * (S(x) - S(r.domain.a)) for x in r.nodes]
-        ws = [S(w) * s for w in r.weights]
-        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
-    end
-end
+# The pairs of domains map_to and integrate over a domain transport between.
+_mappable(::Domain, ::Domain) = false
+_mappable(::Interval, ::Interval) = true
+_mappable(::Simplex{D}, ::Simplex{D}) where {D} = true
+_mappable(::Simplex{2}, ::SurfaceTriangle) = true
+_mappable(::Orthotope{D}, ::Orthotope{D}) where {D} = true
+_mappable(::Wedge, ::Wedge) = true
+_mappable(::Pyramid, ::Pyramid) = true
+_mappable(::Ball{D}, ::Ball{D}) where {D} = true
+_mappable(::Sphere{D}, ::Sphere{D}) where {D} = true
 
-function map_to(r::QuadratureRule{3,T,<:Wedge}, dom::Wedge) where {T}
-    return _map_affine_shape(r, dom, T)
-end
-function map_to(r::QuadratureRule{3,T,<:Pyramid}, dom::Pyramid) where {T}
-    return _map_affine_shape(r, dom, T)
-end
-function _map_affine_shape(r, dom, ::Type{T}) where {T}
-    S = promote_type(T, eltype(eltype(dom.vertices)))
-    S <: Integer && (S = Rational{BigInt})
-    return _at_rule_precision(r) do
-        A, b, J = _affine(r.domain, dom, S)
-        xs = [A * SVector{3,S}(x) + b for x in r.nodes]
-        ws = [S(w) * J for w in r.weights]
-        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
-    end
-end
+_mapnode(::Type{S}, x::Number) where {S} = S(x)
+_mapnode(::Type{S}, x::SVector{D}) where {S,D} = SVector{D,S}(map(S, x))
 
-# The affine map between two wedges, or two pyramids, through their reference frames
-@inline _affine(src::Wedge, dst::Wedge, ::Type{S}) where {S} = _affine_frames(src, dst, S)
-@inline _affine(src::Pyramid, dst::Pyramid, ::Type{S}) where {S} = _affine_frames(src, dst, S)
-function _affine_frames(src, dst, ::Type{S}) where {S}
-    Ad, bd = affine_frame(dst, S)
-    isreference(src) && return Ad, bd, abs(det(Ad))
-    As, bs = affine_frame(src, S)
+# (A, b, J) of the affine map from `src` onto `dst`, in type S: frame(dst) ∘ frame(src)⁻¹
+# (see `affine_frame`), and the factor by which it scales the measure. A reference `src`
+# needs no inversion; allocation-free for isbits S.
+@inline function _affine(src::Domain, dst::Domain, ::Type{S}) where {S}
+    _mappable(src, dst) ||
+        throw(ArgumentError("map_to transports a rule affinely between domains of the same kind; " *
+                            "cannot map a rule on $(src) onto $(dst)"))
+    Ad, bd, Jd = affine_frame(dst, S)
+    isreference(src) && return Ad, bd, Jd
+    As, bs, Js = affine_frame(src, S)
     A = Ad / As
-    return A, bd - A * bs, abs(det(A))
+    return A, bd - A * bs, _composed_jacobian(dst, A, Jd, Js)
 end
-
-map_to(r::QuadratureRule, dom::Domain) =
-    throw(ArgumentError("map_to transports a rule affinely between domains of the same kind; " *
-                        "cannot map a rule on $(r.domain) onto $(dom)"))
-
-# (A, b, |det A|) of the affine map from `src` onto `dst`, in type S. Allocation-free for
-# isbits S; the reference source needs no inversion.
-@inline function _affine(src::Simplex{D}, dst::Simplex{D}, ::Type{S}) where {D,S}
-    Ed = SMatrix{D,D,S}(edge_matrix(dst))
-    if isreference(src)
-        A = Ed
-        b = SVector{D,S}(dst.vertices[1])
-    else
-        Es = SMatrix{D,D,S}(edge_matrix(src))
-        A = Ed / Es
-        b = SVector{D,S}(dst.vertices[1]) - A * SVector{D,S}(src.vertices[1])
-    end
-    return A, b, abs(det(A))
-end
-
-@inline function _affine(src::Interval, dst::Interval, ::Type{S}) where {S}
-    s = (S(dst.b) - S(dst.a)) / (S(src.b) - S(src.a))
-    return s, S(dst.a) - s * S(src.a), abs(s)
-end
-
-# A triangle in the plane onto a triangle in space, through the reference triangle and the
-# triangle's frame: A is 3 × 2, and the weights scale by the area element |e₁ × e₂| over the
-# Jacobian of `src`.
-@inline function _affine(src::Simplex{2}, dst::SurfaceTriangle, ::Type{S}) where {S}
-    E, v0, J = surface_frame(dst, S)
-    isreference(src) && return E, v0, J
-    B, c, Jb = _affine(src, Simplex{2}(), S)                   # src → reference
-    return E * B, E * c + v0, J * Jb
-end
-
-function map_to(r::QuadratureRule{2,T,<:Simplex{2}}, dom::SurfaceTriangle) where {T}
-    S = promote_type(T, eltype(eltype(dom.vertices)))
-    S <: Integer && (S = Rational{BigInt})
-    return _at_rule_precision(r) do
-        A, b, J = _affine(r.domain, dom, S)
-        xs = [A * SVector{2,S}(x) + b for x in r.nodes]
-        ws = [S(w) * J for w in r.weights]
-        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
-    end
-end
+_composed_jacobian(::Domain, A, Jd, Js) = abs(det(A))
+_composed_jacobian(::Interval, A, Jd, Js) = abs(A)
+_composed_jacobian(::Union{Sphere,SurfaceTriangle}, A, Jd, Js) = Jd / Js    # a surface: the ratio of area elements
 
 # ---------------------------------------------------------------------------------------
 
@@ -244,57 +186,5 @@ function duffy(r::QuadratureRule{D,T,<:Simplex}; power::Integer = 2) where {D,T}
         QuadratureRule(xs, ws, r.domain, NoClaim(),
                        with_step(r.provenance, "duffy: radial grading x ↦ u^$(q-1)·x towards vertex 0 (claim destroyed → NoClaim)";
                                  symmetry = NoSymmetry()), r.certificate)
-    end
-end
-
-@inline function _affine(src::Orthotope{D}, dst::Orthotope{D}, ::Type{S}) where {D,S}
-    s = SVector{D,S}((dst.hi - dst.lo) ./ (src.hi - src.lo))
-    A = SMatrix{D,D,S}(Diagonal(s))
-    return A, SVector{D,S}(dst.lo) - A * SVector{D,S}(src.lo), abs(prod(s))
-end
-
-# Balls transport like spheres, with the volume Jacobian rather than the surface one.
-function map_to(r::QuadratureRule{D,T,<:Ball}, dom::Ball{D}) where {D,T}
-    S = promote_type(T, eltype(dom.centre), typeof(dom.radius))
-    S <: Integer && (S = Rational{BigInt})
-    return _at_rule_precision(r) do
-        src = r.domain
-        ρ = S(dom.radius) / S(src.radius)
-        c = SVector{D,S}(map(S, dom.centre))
-        c0 = SVector{D,S}(map(S, src.centre))
-        xs = [c + ρ * (SVector{D,S}(map(S, x)) - c0) for x in r.nodes]
-        ws = [S(w) * ρ^D for w in r.weights]
-        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: similarity image onto $(dom)"), r.certificate)
-    end
-end
-
-# A sphere maps onto another by a similarity — translate and scale — so the Jacobian is
-# r^(D-1), the surface one, and the claim survives: a polynomial of degree d pulled back
-# through x ↦ c + ρx is again a polynomial of degree d.
-function map_to(r::QuadratureRule{D,T,<:Sphere}, dom::Sphere{D}) where {D,T}
-    S = promote_type(T, eltype(dom.centre), typeof(dom.radius))
-    S <: Integer && (S = Rational{BigInt})
-    return _at_rule_precision(r) do
-        src = r.domain
-        ρ = S(dom.radius) / S(src.radius)
-        c = SVector{D,S}(map(S, dom.centre))
-        c0 = SVector{D,S}(map(S, src.centre))
-        xs = [c + ρ * (SVector{D,S}(map(S, x)) - c0) for x in r.nodes]
-        ws = [S(w) * ρ^(D - 1) for w in r.weights]
-        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: similarity image onto $(dom)"), r.certificate)
-    end
-end
-
-function map_to(r::QuadratureRule{D,T,<:Orthotope}, dom::Orthotope{D}) where {D,T}
-    S = promote_type(T, eltype(dom.lo))
-    S <: Integer && (S = Rational{BigInt})
-    return _at_rule_precision(r) do
-        A, b, J = _affine(r.domain, dom, S)
-        xs = [A * SVector{D,S}(x) + b for x in r.nodes]
-        ws = [S(w) * J for w in r.weights]
-        QuadratureRule(xs, ws, convert_domain(S, dom), r.exactness,
-                       with_step(r.provenance, "map_to: affine image onto $(dom)"), r.certificate)
     end
 end

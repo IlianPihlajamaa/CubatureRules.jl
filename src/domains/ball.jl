@@ -39,6 +39,10 @@ isreference(d::Ball) = all(iszero, d.centre) && isone(d.radius)
 reference(::Ball{D}) where {D} = Ball{D}()
 convert_domain(::Type{S}, d::Ball{D}) where {S,D} =
     Ball{D,S}(SVector{D,S}(map(S, d.centre)), S(d.radius))
+@inline function affine_frame(d::Ball{D}, ::Type{S}) where {D,S}
+    ρ = S(d.radius)
+    return SMatrix{D,D,S}(ρ * I), SVector{D,S}(map(S, d.centre)), ρ^D
+end
 
 "Volume of the unit `D`-ball, `π^{D/2} / Γ(D/2 + 1)` — the sphere's area over `D`."
 unit_ball_volume(D::Integer) = unit_sphere_area(D) / D

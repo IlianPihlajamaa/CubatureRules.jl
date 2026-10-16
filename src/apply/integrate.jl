@@ -112,4 +112,5 @@ end
 _coordtype(d::Interval) = typeof(d.a)
 _coordtype(d::Orthotope) = eltype(d.lo)
 _coordtype(d::Union{Wedge,Pyramid}) = eltype(eltype(d.vertices))
+_coordtype(d::Union{Ball,Sphere}) = promote_type(eltype(d.centre), typeof(d.radius))
 

@@ -41,6 +41,11 @@ isreference(d::Sphere) = all(iszero, d.centre) && isone(d.radius)
 reference(::Sphere{D}) where {D} = Sphere{D}()
 convert_domain(::Type{S}, d::Sphere{D}) where {S,D} =
     Sphere{D,S}(SVector{D,S}(map(S, d.centre)), S(d.radius))
+# a similarity, with the surface Jacobian ρ^(D-1)
+@inline function affine_frame(d::Sphere{D}, ::Type{S}) where {D,S}
+    ρ = S(d.radius)
+    return SMatrix{D,D,S}(ρ * I), SVector{D,S}(map(S, d.centre)), ρ^(D - 1)
+end
 
 "Surface area of the unit `(D-1)`-sphere, `2 π^{D/2} / Γ(D/2)`."
 unit_sphere_area(D::Integer) = 2 * big(π)^(D / 2) / SpecialFunctions.gamma(big(D) / 2)

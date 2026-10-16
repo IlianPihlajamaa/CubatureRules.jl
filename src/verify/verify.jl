@@ -46,10 +46,6 @@ verify(r::QuadratureRule, ::NoClaim; kw...) =
     throw(ArgumentError("a rule with NoClaim has nothing to verify by exact integration; " *
                         "use verify_convergence on a sequence of such rules"))
 
-_is_exact_type(::Type{T}) where {T} = T <: Rational || T <: Integer
-_rule_precision(r::QuadratureRule) = _is_exact_type(eltype(r)) ? 0 :
-                                     eltype(r) === BigFloat ? precision(real(first(r.weights))) : bits_of(eltype(r))
-
 "Per degree block: the largest residual, the largest ratio of residual to tolerance, and tolerance."
 function block_residuals(basis, xs, ws, ε, floor_tol)
     I = exact_integrals(basis)
