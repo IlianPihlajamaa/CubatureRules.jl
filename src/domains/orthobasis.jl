@@ -42,47 +42,6 @@ function jacobi_mass(α, β)
            SpecialFunctions.gamma(a + b + 2)
 end
 
-"""
-    jacobi_orthonormal!(p, x, α, β)
-
-Fill `p[k+1]` with the orthonormal Jacobi polynomial `p_k(x)`, `k = 0:length(p)-1`,
-normalised against the weight `(1-x)^α (1+x)^β` on `[-1, 1]`.
-"""
-function jacobi_orthonormal!(p::AbstractVector{S}, x, α, β) where {S}
-    n = length(p) - 1
-    μ = jacobi_mass(α, β)
-    p[1] = one(S) / sqrt(S(μ))
-    n == 0 && return p
-    Sα, Sβ = S(α), S(β)
-    p[2] = (x - jacobi_a(0, Sα, Sβ)) * p[1] / jacobi_b(1, Sα, Sβ)
-    for k in 1:(n - 1)
-        p[k + 2] = ((x - jacobi_a(k, Sα, Sβ)) * p[k + 1] - jacobi_b(k, Sα, Sβ) * p[k]) /
-                   jacobi_b(k + 1, Sα, Sβ)
-    end
-    return p
-end
-
-"""
-    legendre_orthonormal!(p, x)
-
-Orthonormal Legendre polynomials on `[-1, 1]`: `p[k+1] = √((2k+1)/2) P_k(x)`. In exact
-arithmetic (`Rational`) the normalisation is omitted and `P_k` is returned.
-"""
-function legendre_orthonormal!(p::AbstractVector{S}, x; normalize::Bool = true) where {S}
-    n = length(p) - 1
-    p[1] = one(S)
-    n >= 1 && (p[2] = S(x))
-    for k in 1:(n - 1)
-        p[k + 2] = ((2k + 1) * x * p[k + 1] - k * p[k]) / (k + 1)
-    end
-    if normalize
-        for k in 0:n
-            p[k + 1] *= sqrt(S(2k + 1) / 2)
-        end
-    end
-    return p
-end
-
 # ---------------------------------------------------------------------------------------
 # Proriol–Koornwinder–Dubiner basis on the reference triangle (0,0), (1,0), (0,1).
 #
@@ -125,12 +84,23 @@ struct DubinerWorkspace{S}
     tmp::Vector{S}
 end
 
+"""
+    jacobi_step_integers(n, α) -> (a1, a2, a3, a4)
+
+The integers of the Jacobi `P^(α,0)` recurrence, `a1 P_n = (a2 + a3 x) P_{n−1} − a4 P_{n−2}`,
+`n ≥ 2`.
+"""
+function jacobi_step_integers(n::Int, α::Int)
+    a1 = 2n * (n + α) * (2n + α - 2)
+    a2 = (2n + α - 1) * α^2
+    a3 = (2n + α - 2) * (2n + α - 1) * (2n + α)
+    a4 = 2 * (n + α - 1) * (n - 1) * (2n + α)
+    return a1, a2, a3, a4
+end
+
 "Coefficients of the Jacobi `P^(α,0)` recurrence in the kernels: `(a2/a1, a3/a1, a4/a1)`."
 function jacobi_step_coefficients(q::Int, α::Int, ::Type{S}) where {S}
-    a1 = 2q * (q + α) * (2q + α - 2)
-    a2 = (2q + α - 1) * α^2
-    a3 = (2q + α - 2) * (2q + α - 1) * (2q + α)
-    a4 = 2 * (q + α - 1) * (q - 1) * (2q + α)
+    a1, a2, a3, a4 = jacobi_step_integers(q, α)
     return S(a2) / S(a1), S(a3) / S(a1), S(a4) / S(a1)
 end
 
@@ -190,10 +160,7 @@ function _dubiner!(φ, gx, gy, ws::DubinerWorkspace{S}, x, y) where {S}
             Jb[2] = S(α + 2) / 2
         end
         for q in 2:m
-            a1 = 2q * (q + α) * (2q + α - 2)
-            a2 = (2q + α - 1) * α^2
-            a3 = (2q + α - 2) * (2q + α - 1) * (2q + α)
-            a4 = 2 * (q + α - 1) * (q - 1) * (2q + α)
+            a1, a2, a3, a4 = jacobi_step_integers(q, α)
             J[q + 1] = ((a2 + a3 * b) * J[q] - a4 * J[q - 1]) / a1
             if grad
                 Jb[q + 1] = ((a2 + a3 * b) * Jb[q] + a3 * J[q] - a4 * Jb[q - 1]) / a1

@@ -197,15 +197,10 @@ end
 n_equations(sys::BoxMomentSystem) = length(sys.exps)
 n_unknowns(sys::BoxMomentSystem) = nunknowns(sys.structure)
 
-# orthonormal Legendre p_j(x) = √((2j+1)/2) P_j(x) and its derivative, j = 0 … n
+# orthonormal Legendre p_j(x) = √((2j+1)/2) P_j(x) and its derivative, j = 0 … n, from the
+# classical recurrence (2j + 1, 0, j, j + 1), whose coefficients are integers
 function legendre_orthonormal(n::Integer, x::S) where {S}
-    P, dP = zeros(S, n + 1), zeros(S, n + 1)
-    P[1] = one(S)
-    n >= 1 && (P[2] = x; dP[2] = one(S))
-    for j in 1:(n - 1)
-        P[j + 2] = ((2j + 1) * x * P[j + 1] - j * P[j]) / (j + 1)
-        dP[j + 2] = dP[j] + (2j + 1) * P[j + 1]
-    end
+    P, dP = three_term!(zeros(S, n + 1), zeros(S, n + 1), x, one(S), j -> (2j + 1, 0, j, j + 1))
     c = [sqrt(S(2j + 1) / 2) for j in 0:n]
     return P .* c, dP .* c
 end

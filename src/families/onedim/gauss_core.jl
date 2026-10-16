@@ -25,6 +25,47 @@ struct Recurrence{A,B,M}
 end
 
 """
+    three_term!(p, dp, x, p0, coefficients) -> (p, dp)
+
+The polynomials of a three-term recurrence at `x`, `p[k+1] = p_k(x)` for
+`k = 0 … length(p) − 1`, by `p_{k+1} = ((α_k x − a_k) p_k − c_k p_{k−1}) / d_k` from
+`p₀ = p0`, with `(α_k, a_k, c_k, d_k) = coefficients(k)`, and their derivatives into `dp`
+unless it is `nothing`. The orthonormal recurrence of a weight has `α = 1`, `c_k = b_k` and
+`d_k = b_{k+1}` ([`orthonormal!`](@ref)), the monic one `α = d = 1` and `c_k = β_k`, the
+classical Legendre one `(2k + 1, 0, k, k + 1)`. The one evaluator of every recurrence in the
+package's moment systems and verification bases.
+"""
+function three_term!(p::AbstractVector, dp, x, p0, coefficients)
+    n = length(p) - 1
+    z = zero(p0)
+    p[1] = p0
+    dp === nothing || (dp[1] = z)
+    for k in 0:(n - 1)
+        α, a, c, d = coefficients(k)
+        prev = k == 0 ? z : p[k]
+        f = α * x - a
+        p[k + 2] = (f * p[k + 1] - c * prev) / d
+        if dp !== nothing
+            dprev = k == 0 ? z : dp[k]
+            dp[k + 2] = (α * p[k + 1] + f * dp[k + 1] - c * dprev) / d
+        end
+    end
+    return p, dp
+end
+
+"""
+    orthonormal!(p, dp, rec, x) -> (p, dp)
+
+The orthonormal polynomials `p₀ … p_n` of the recurrence `rec` at `x`, into `p` (`n + 1 =
+length(p)`), with their derivatives into `dp` unless it is `nothing`; in the element type of
+`p`. See [`three_term!`](@ref).
+"""
+function orthonormal!(p::AbstractVector{S}, dp, rec::Recurrence, x) where {S}
+    return three_term!(p, dp, x, one(S) / sqrt(S(rec.mass(S))),
+                       k -> (one(S), rec.a(k, S), k == 0 ? zero(S) : rec.b(k, S), rec.b(k + 1, S)))
+end
+
+"""
     gauss_from_recurrence(n, rec, bits) -> (x, w, iterations)
 
 `n`-point Gauss nodes (ascending) and weights for the weight described by `rec`, as

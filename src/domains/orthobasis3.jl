@@ -76,10 +76,7 @@ function _homog_jacobi!(Q, Qs, Qt, col, α, m, s, t, grad, ::Type{S}) where {S}
     Qs[2, col] = S(α + 2) / 2
     Qt[2, col] = S(α) / 2
     for n in 2:m
-        a1 = 2n * (n + α) * (2n + α - 2)
-        a2 = (2n + α - 1) * α^2
-        a3 = (2n + α - 2) * (2n + α - 1) * (2n + α)
-        a4 = 2 * (n + α - 1) * (n - 1) * (2n + α)
+        a1, a2, a3, a4 = jacobi_step_integers(n, α)
         f = a2 * t + a3 * s
         Q[n + 1, col] = (f * Q[n, col] - a4 * t^2 * Q[n - 1, col]) / a1
         if grad
@@ -96,10 +93,7 @@ function _jacobi_col!(P, Pd, col, α, m, x, grad, ::Type{S}) where {S}
     P[2, col] = (α + 1) + (α + 2) * (x - 1) / 2
     Pd[2, col] = S(α + 2) / 2
     for n in 2:m
-        a1 = 2n * (n + α) * (2n + α - 2)
-        a2 = (2n + α - 1) * α^2
-        a3 = (2n + α - 2) * (2n + α - 1) * (2n + α)
-        a4 = 2 * (n + α - 1) * (n - 1) * (2n + α)
+        a1, a2, a3, a4 = jacobi_step_integers(n, α)
         P[n + 1, col] = ((a2 + a3 * x) * P[n, col] - a4 * P[n - 1, col]) / a1
         grad && (Pd[n + 1, col] = ((a2 + a3 * x) * Pd[n, col] + a3 * P[n, col] - a4 * Pd[n - 1, col]) / a1)
     end

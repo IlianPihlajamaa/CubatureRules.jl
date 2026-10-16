@@ -16,19 +16,8 @@
 # harmonic polynomial, so these are polynomials of degree 2k + ℓ, and orthonormal on the ball.
 
 "Orthonormal Jacobi polynomials `p₀ … p_K` of `(1 − t)^α (1 + t)^β` on `[−1, 1]` at `t`, and their derivatives."
-function jacobi_orthonormal_d(K::Integer, α, β, t::S) where {S}
-    p, dp = zeros(S, K + 1), zeros(S, K + 1)
-    p[1] = one(S) / sqrt(S(jacobi_mass(α, β)))
-    Sα, Sβ = S(α), S(β)
-    for k in 0:(K - 1)
-        a, bnext = jacobi_a(k, Sα, Sβ), jacobi_b(k + 1, Sα, Sβ)
-        bk = k == 0 ? zero(S) : jacobi_b(k, Sα, Sβ)
-        prev, dprev = k == 0 ? (zero(S), zero(S)) : (p[k], dp[k])
-        p[k + 2] = ((t - a) * p[k + 1] - bk * prev) / bnext
-        dp[k + 2] = (p[k + 1] + (t - a) * dp[k + 1] - bk * dprev) / bnext
-    end
-    return p, dp
-end
+jacobi_orthonormal_d(K::Integer, α, β, t::S) where {S} =
+    orthonormal!(zeros(S, K + 1), zeros(S, K + 1), jacobi_recurrence(α, β), t)
 
 """
     round_terms(D, n)

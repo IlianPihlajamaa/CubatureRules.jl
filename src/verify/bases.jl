@@ -30,30 +30,12 @@ struct JacobiBasis{S,P} <: VerificationBasis
     normalize::Bool
 end
 function evaluate!(b::JacobiBasis{S}, xv) where {S}
-    x = xv[1]
-    p = zeros(S, b.n + 1)
-    dp = zeros(S, b.n + 1)
+    x = S(xv[1])
+    p, dp = zeros(S, b.n + 1), zeros(S, b.n + 1)
     if b.normalize
-        μ = S(jacobi_mass(b.α, b.β))
-        A, B = S(b.α), S(b.β)
-        p[1] = one(S) / sqrt(μ)
-        if b.n >= 1
-            b1 = jacobi_b(1, A, B)
-            p[2] = (x - jacobi_a(0, A, B)) * p[1] / b1
-            dp[2] = p[1] / b1
-        end
-        for k in 1:(b.n - 1)
-            bk, bk1, ak = jacobi_b(k, A, B), jacobi_b(k + 1, A, B), jacobi_a(k, A, B)
-            p[k + 2] = ((x - ak) * p[k + 1] - bk * p[k]) / bk1
-            dp[k + 2] = (p[k + 1] + (x - ak) * dp[k + 1] - bk * dp[k]) / bk1
-        end
+        orthonormal!(p, dp, jacobi_recurrence(b.α, b.β), x)
     else   # exact arithmetic: unnormalised Legendre, α = β = 0
-        p[1] = one(S)
-        b.n >= 1 && (p[2] = S(x); dp[2] = one(S))
-        for k in 1:(b.n - 1)
-            p[k + 2] = ((2k + 1) * x * p[k + 1] - k * p[k]) / (k + 1)
-            dp[k + 2] = ((2k + 1) * (p[k + 1] + x * dp[k + 1]) - k * dp[k]) / (k + 1)
-        end
+        three_term!(p, dp, x, one(S), k -> (2k + 1, 0, k, k + 1))
     end
     return p, abs.(dp)
 end
@@ -240,21 +222,7 @@ struct RecurrenceBasis{S,R<:Recurrence} <: VerificationBasis
     rec::R
 end
 function evaluate!(b::RecurrenceBasis{S}, xv) where {S}
-    x = xv[1]
-    p = zeros(S, b.n + 1)
-    dp = zeros(S, b.n + 1)
-    μ = S(b.rec.mass(S))
-    p[1] = one(S) / sqrt(μ)
-    if b.n >= 1
-        b1 = b.rec.b(1, S)
-        p[2] = (x - b.rec.a(0, S)) * p[1] / b1
-        dp[2] = p[1] / b1
-    end
-    for k in 1:(b.n - 1)
-        bk, bk1, ak = b.rec.b(k, S), b.rec.b(k + 1, S), b.rec.a(k, S)
-        p[k + 2] = ((x - ak) * p[k + 1] - bk * p[k]) / bk1
-        dp[k + 2] = (p[k + 1] + (x - ak) * dp[k + 1] - bk * dp[k]) / bk1
-    end
+    p, dp = orthonormal!(zeros(S, b.n + 1), zeros(S, b.n + 1), b.rec, S(xv[1]))
     return p, abs.(dp)
 end
 blocks(b::RecurrenceBasis) = [k:k for k in 1:(b.n + 1)]
@@ -530,17 +498,10 @@ struct MomentBasis{S,W<:MomentWeight} <: VerificationBasis
 end
 MomentBasis{S}(degs, w::W) where {S,W<:MomentWeight} = MomentBasis{S,W}(collect(degs), w)
 function evaluate!(b::MomentBasis{S}, xv) where {S}
-    x = S(xv[1])
     N = maximum(b.degs) + 1
-    p = zeros(S, N)
-    dp = zeros(S, N)
-    p[1] = one(S)
-    for k in 1:(N - 1)
-        a, c = S(b.w.aux.a(k - 1, S)), S(b.w.aux.b(k - 1, S))
-        prev, dprev = k == 1 ? (zero(S), zero(S)) : (p[k - 1], dp[k - 1])
-        p[k + 1] = (x - a) * p[k] - c * prev
-        dp[k + 1] = p[k] + (x - a) * dp[k] - c * dprev
-    end
+    aux = b.w.aux                                    # monic: α = d = 1, c_k = β_k
+    p, dp = three_term!(zeros(S, N), zeros(S, N), S(xv[1]), one(S),
+                        k -> (one(S), S(aux.a(k, S)), S(aux.b(k, S)), one(S)))
     return S[p[k + 1] for k in b.degs], S[abs(dp[k + 1]) for k in b.degs]
 end
 blocks(b::MomentBasis) = [k:k for k in eachindex(b.degs)]
@@ -572,13 +533,7 @@ end
 function evaluate!(B::IntervalMomentBasis{S}, xv) where {S}
     x = (S(xv[1]) - B.c) / B.h
     N = maximum(B.degs) + 1
-    p, dp = zeros(S, N), zeros(S, N)
-    p[1] = one(S)
-    for j in 1:(N - 1)
-        prev, dprev = j == 1 ? (zero(S), zero(S)) : (p[j - 1], dp[j - 1])
-        p[j + 1] = ((x - B.a[j]) * p[j] - B.b[j] * prev) / B.b[j + 1]
-        dp[j + 1] = (p[j] + (x - B.a[j]) * dp[j] - B.b[j] * dprev) / B.b[j + 1]
-    end
+    p, dp = three_term!(zeros(S, N), zeros(S, N), x, one(S), k -> (one(S), B.a[k + 1], B.b[k + 1], B.b[k + 2]))
     return S[p[j + 1] for j in B.degs], S[abs(dp[j + 1]) / B.h for j in B.degs]
 end
 blocks(B::IntervalMomentBasis) = [j:j for j in eachindex(B.degs)]
