@@ -46,7 +46,8 @@ function refine_and_residual(e, kind, N)
         θ, res, _ = CR.refine_box(s, n, θ64, REFINE_BITS)
         system = (θ) -> CR.BoxMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
     elseif kind === :round
-        s = CR.BoxStructure([Int[x for x in m] for m in e["structure"]], N)
+        s = CR.BoxStructure([Int[x for x in m] for m in e["structure"]], N;
+                            geometry = CR.RoundGeometry())
         θ, res, _ = CR.refine_round(s, n, θ64, REFINE_BITS)
         system = (θ) -> CR.RoundMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
     elseif kind === :pyramid

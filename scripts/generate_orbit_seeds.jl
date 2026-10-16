@@ -70,7 +70,7 @@ function generate(name, degrees; chains = 16)
             break
         end
         s, θ = got
-        w, c, _ = CR.structure_margins(s, θ)
+        w, c, _ = CR.margins(s, θ)
         pub = get(published, n, nothing)
         @printf("%s degree %2d: %4d points (published %s), %2d orbits, min weight %.1e, distance from boundary %.3f [%.0f s]\n",
                 name, n, CR.npoints(s), pub === nothing ? "—" : string(pub), length(s.orbits), w, c, t)

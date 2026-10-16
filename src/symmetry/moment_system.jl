@@ -193,7 +193,7 @@ end
 Smallest weight and smallest barycentric coordinate over all nodes: the minima over the
 orbits' weights and distinct values, which are exactly the numbers the expanded nodes hold.
 """
-function rule_margins(structure::SymmetricStructure, θ::AbstractVector{S}) where {S}
+function margins(structure::SymmetricStructure, θ::AbstractVector{S}) where {S}
     wmin, λmin = typemax(S), typemax(S)
     for (o, off) in zip(structure.orbits, param_offsets(structure))
         wmin = min(wmin, θ[off + 1])
@@ -205,7 +205,7 @@ function rule_margins(structure::SymmetricStructure, θ::AbstractVector{S}) wher
         end
         λmin = min(λmin, (one(S) - s) / o.mult[end])
     end
-    return wmin, λmin
+    return (weight = wmin, interior = λmin)
 end
 
 """

@@ -25,12 +25,14 @@ end
 
 @testset "disk and ball" begin
     # four points at radius √½ (degree 3 on the disk), six at √(3/5) (degree 3 on the ball)
-    r, _ = CR.RoundMomentSystem(CR.BoxStructure([[1]], 2), 3, Float64)([π / 4, sqrt(0.5)])
+    disk(mults) = CR.BoxStructure(mults, 2; geometry = CR.RoundGeometry())
+    ball(mults) = CR.BoxStructure(mults, 3; geometry = CR.RoundGeometry())
+    r, _ = CR.RoundMomentSystem(disk([[1]]), 3, Float64)([π / 4, sqrt(0.5)])
     @test maximum(abs, r) < 1e-14
-    r, _ = CR.RoundMomentSystem(CR.BoxStructure([[1]], 3), 3, Float64)([2π / 9, sqrt(0.6)])
+    r, _ = CR.RoundMomentSystem(ball([[1]]), 3, Float64)([2π / 9, sqrt(0.6)])
     @test maximum(abs, r) < 1e-14
     for D in (2, 3)
-        s = CR.BoxStructure(D == 2 ? [[], [1], [2], [1, 1]] : [[], [1], [2], [1, 1, 1]], D)
+        s = D == 2 ? disk([[], [1], [2], [1, 1]]) : ball([[], [1], [2], [1, 1, 1]])
         θ = D == 2 ? [0.3, 0.2, 0.5, 0.1, 0.4, 0.05, 0.6, 0.3] : [0.3, 0.2, 0.5, 0.1, 0.4, 0.05, 0.6, 0.3, 0.1]
         @test jacobian_error(CR.RoundMomentSystem(s, 7, Float64), θ) < 1e-7
     end

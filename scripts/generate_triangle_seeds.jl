@@ -85,7 +85,7 @@ function main(mindeg, maxdeg, path)
         θ, res, guard = CR.refine_symmetric(s, n, θ0, CR.digits_to_bits(100); basis = CR.invariant_basis(3, n))
         res.converged || error("degree $n: refinement to 100 digits failed")
         θ64 = Float64.(θ)
-        wmin, λmin = CR.rule_margins(s, θ64)
+        wmin, λmin = CR.margins(s, θ64)
         extra = CR.npoints(s) - npts
         @printf("degree %2d: %3d pts (published %d)  %s  cond %.1e  iters %d\n",
                 n, CR.npoints(s), npts, method, res.cond, res.iterations)

@@ -42,7 +42,7 @@ function generate(name, nmax; chains = 16)
             lo = prev === nothing ? 1 : CR.npoints(prev[1])
             CR.box_multistart(n, D; npts = lo:(4lo + 64), nstarts = 64, geom)
         else
-            r = CR.box_grow_and_eliminate(prev[1], prev[2], n; chains, rng_seed = 0xb0c5 + n, geom)
+            r = CR.box_grow_and_eliminate(prev[1], prev[2], n; chains, rng_seed = 0xb0c5 + n)
             r === nothing ? nothing : (r[1], r[2])
         end
         if got === nothing
@@ -50,7 +50,7 @@ function generate(name, nmax; chains = 16)
             break
         end
         s, θ = got
-        w, c, g = CR.orbit_margins(geom, s, θ)
+        w, c, g = CR.margins(s, θ)
         pub = get(published, n, nothing)
         @printf("%s degree %2d: %4d points (published %s), %2d orbits, min weight %.1e, distance from boundary %.3f [%.0f s]\n",
                 name, n, CR.npoints(s), pub === nothing ? "—" : string(pub), length(s.orbits), w, c, t)

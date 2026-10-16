@@ -47,7 +47,7 @@ function fit(d::SimplexDomain, s, θ0, n)
 end
 system(d::SimplexDomain, s, n) = CR.SymmetricMomentSystem(s, n, Float64, basis(d, n); representatives = true)
 weight_indices(::SimplexDomain, s) = [off + 1 for off in CR.param_offsets(s)]
-inside(::SimplexDomain, s, θ) = CR.rule_margins(s, θ)[2] > -0.05
+inside(::SimplexDomain, s, θ) = CR.margins(s, θ).interior > -0.05
 moves(::SimplexDomain, s, θ) = [(mv.structure, mv.θ0, mv.removed, mv.score, mv.what) for mv in CR.elimination_moves(s, θ)]
 
 general_orbit(d::SimplexDomain) = _SIMPLEX_TYPES[d.N][1]
@@ -59,7 +59,7 @@ function random_orbit(d::SimplexDomain, p, rng)
     return (copy(p.mult), vcat(0.02 * volume(d) / CR.orbit_size(p), [u[i] / p.mult[i] for i in 1:(length(p.mult) - 1)]))
 end
 with_orbits(d::SimplexDomain, s, θ, new) = CR.from_blocks(d.N, vcat(CR.orbit_blocks(s, θ), new))
-margin(::SimplexDomain, s, θ) = CR.rule_margins(s, θ)
+margin(::SimplexDomain, s, θ) = CR.margins(s, θ)
 function chain(d::SimplexDomain, s, θ, n, seed)
     r = CR.grow_and_eliminate(s, θ, n; basis = basis(d, n), chains = 1, rng_seed = seed, min_excess = 0)
     return r === nothing ? nothing : (r[1], r[2])
@@ -70,7 +70,7 @@ function refine(d::SimplexDomain, s, n, θ64)
     return Float64.(θ), res.converged, res.cond
 end
 function entry(d::SimplexDomain, n, s, θr, cond, note)
-    wmin, λmin = CR.rule_margins(s, θr)
+    wmin, λmin = CR.margins(s, θr)
     return Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => orbit_mults(d, s),
                             "seed" => θr, "status" => "ok", "note" => note, "method" => "pooled search",
                             "min_weight" => wmin, "min_barycentric" => λmin, "cond" => cond)
@@ -105,7 +105,7 @@ function with_orbits(d::BoxDomain, s, θ, new)
     blocks = [(o, θ[(off + 1):(off + CR.nunknowns(o))]) for (o, off) in zip(s.orbits, CR.param_offsets(s))]
     return CR.from_box_blocks(d.D, vcat(blocks, new))
 end
-margin(::BoxDomain, s, θ) = (m = CR.box_margins(s, θ); (m[1], min(m[2], m[3])))
+margin(::BoxDomain, s, θ) = (m = CR.margins(s, θ); (m.weight, min(m.interior, m.gap)))
 function chain(::BoxDomain, s, θ, n, seed)
     r = CR.box_grow_and_eliminate(s, θ, n; chains = 1, rng_seed = seed)
     return r === nothing ? nothing : (r[1], r[2])

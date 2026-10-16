@@ -105,27 +105,14 @@ orbit_points(o::OctahedralOrbit, p, ::Type{S}) where {S} = signed_orbit(orbit_re
 
 A list of `O_h`-orbit types: the shape of a Lebedev-like rule, before any numbers.
 """
-struct OctahedralStructure
+struct OctahedralStructure <: OrbitStructure
     orbits::Vector{OctahedralOrbit}
 end
 OctahedralStructure(kinds::AbstractVector{Symbol}) = OctahedralStructure(OctahedralOrbit.(kinds))
 
-npoints(s::OctahedralStructure) = sum(orbit_size, s.orbits; init = 0)
-nunknowns(s::OctahedralStructure) = sum(nunknowns, s.orbits; init = 0)
 Base.show(io::IO, s::OctahedralStructure) =
     print(io, "OctahedralStructure(", [o.kind for o in s.orbits], ", ", npoints(s), " points, ",
           nunknowns(s), " unknowns)")
-
-"Offsets of each orbit's parameter block in θ = [w₁, p₁…, w₂, p₂…, …]."
-function param_offsets(s::OctahedralStructure)
-    offs = Vector{Int}(undef, length(s.orbits))
-    k = 0
-    for (i, o) in enumerate(s.orbits)
-        offs[i] = k
-        k += nunknowns(o)
-    end
-    return offs
-end
 
 """
     expand(s::OctahedralStructure, θ) -> (nodes, weights)

@@ -99,12 +99,12 @@ end
 "One multistart attempt: LM from a random interior point, polished by Gauss–Newton."
 function multistart_attempt(sys::SymmetricMomentSystem{Float64}, structure, rng, tol)
     θ0 = random_parameters(rng, structure, 1 / factorial(structure.N - 1))
-    inside(θ) = rule_margins(structure, θ)[2] > -0.05
+    inside(θ) = margins(structure, θ).interior > -0.05
     θ, nr = levenberg_marquardt(sys, θ0; maxiter = 300, tol = tol, accept = inside)
     nr <= 1e-10 || return nothing
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
-    wmin, λmin = rule_margins(structure, res.θ)
+    wmin, λmin = margins(structure, res.θ)
     (wmin > 0 && λmin > 0) || return nothing
     _, θc = canonicalize(structure, res.θ)
     return θc, wmin, λmin

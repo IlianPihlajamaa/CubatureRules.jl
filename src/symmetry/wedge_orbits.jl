@@ -41,18 +41,8 @@ A fully symmetric rule on the reference wedge as a list of [`WedgeOrbit`](@ref)s
 parameters hold, per orbit, the weight of each point, the free barycentric values of the
 triangle orbit and, for a mirrored orbit, the height `z > 0`.
 """
-struct WedgeStructure
+struct WedgeStructure <: OrbitStructure
     orbits::Vector{WedgeOrbit}
-end
-nunknowns(s::WedgeStructure) = sum(nunknowns, s.orbits; init = 0)
-npoints(s::WedgeStructure) = sum(orbit_size, s.orbits; init = 0)
-function param_offsets(s::WedgeStructure)
-    offs, k = Int[], 0
-    for o in s.orbits
-        push!(offs, k)
-        k += nunknowns(o)
-    end
-    return offs
 end
 "The orbits as stored in a table: the triangle pattern's multiplicities, then 0 (at `z = 0`) or 2 (the pair `±z`)."
 wedge_structure_lists(s::WedgeStructure) = [vcat(o.pattern.mult, o.mirrored ? 2 : 0) for o in s.orbits]
@@ -172,8 +162,8 @@ function (sys::WedgeMomentSystem{S})(θ::AbstractVector; jacobian::Bool = true) 
     return r, J
 end
 
-"`(smallest weight, smallest barycentric value or distance of z from 0 and 1, smallest gap between an orbit's values)`"
-function wedge_margins(s::WedgeStructure, θ::AbstractVector{S}) where {S}
+"`(; weight, interior, gap)`: the smallest barycentric value or distance of `z` from 0 and 1 is `interior`."
+function margins(s::WedgeStructure, θ::AbstractVector{S}) where {S}
     wmin, cmin, gmin = typemax(S), typemax(S), typemax(S)
     for (o, off) in zip(s.orbits, param_offsets(s))
         wmin = min(wmin, θ[off + 1])
@@ -185,7 +175,7 @@ function wedge_margins(s::WedgeStructure, θ::AbstractVector{S}) where {S}
         end
         o.mirrored && (z = θ[off + 2 + nv]; cmin = min(cmin, z, 1 - z))
     end
-    return wmin, cmin, gmin
+    return (weight = wmin, interior = cmin, gap = gmin)
 end
 
 "`(s, θ)` with each orbit's values in a canonical order (as for the triangle), `z ≥ 0`, and the orbits sorted."

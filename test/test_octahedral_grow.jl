@@ -66,7 +66,7 @@ end
                           CR.Provenance(family = "test", derivation = CR.Derived(), symmetry = CR.Oh()))
     v = check(r)
     @test v.exact && v.sharp === true && v.positive && v.symmetric === true
-    @test CR.octahedral_margins(s, θ)[1] > 0
+    @test CR.margins(s, θ).weight > 0
     @test CR.node_separation(s, θ) > 1e-6
 end
 

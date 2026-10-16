@@ -46,7 +46,8 @@ function load_orbit_seeds(path, ::Type{S}, structure) where {S}
     end
     return sort!(out; by = e -> e.degree)
 end
-load_box_seeds(path, D) = load_orbit_seeds(path, BoxStructure, m -> BoxStructure(m, D))
+load_box_seeds(path, D; geometry::OrbitGeometry = BoxGeometry()) =
+    load_orbit_seeds(path, BoxStructure, m -> BoxStructure(m, D; geometry))
 
 # static package data, parsed once at precompile time
 const SQUARE_SEEDS = load_box_seeds(SQUARE_SEED_FILE, 2)

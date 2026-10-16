@@ -38,20 +38,10 @@ pyramid_orbit_types() = [PyramidOrbit(o) for o in box_orbit_types(2)]
 A fully symmetric rule on the reference pyramid as a list of [`PyramidOrbit`](@ref)s. Its
 parameters hold, per orbit, the weight of each point, the distinct `|ξ|` values and the height.
 """
-struct PyramidStructure
+struct PyramidStructure <: OrbitStructure
     orbits::Vector{PyramidOrbit}
 end
 PyramidStructure(mults::AbstractVector{<:AbstractVector}) = PyramidStructure([PyramidOrbit(m) for m in mults])
-nunknowns(s::PyramidStructure) = sum(nunknowns, s.orbits; init = 0)
-npoints(s::PyramidStructure) = sum(orbit_size, s.orbits; init = 0)
-function param_offsets(s::PyramidStructure)
-    offs, k = Int[], 0
-    for o in s.orbits
-        push!(offs, k)
-        k += nunknowns(o)
-    end
-    return offs
-end
 Base.show(io::IO, s::PyramidStructure) = print(io, "PyramidStructure(", [o.base.mult for o in s.orbits], ")")
 
 """
@@ -140,8 +130,8 @@ function (sys::PyramidMomentSystem{S})(θ::AbstractVector; jacobian::Bool = true
     return r, J
 end
 
-"`(smallest weight, smallest distance of a parameter from the edge of its range, smallest gap)`"
-function pyramid_margins(s::PyramidStructure, θ::AbstractVector{S}) where {S}
+"`(; weight, interior, gap)`: a parameter's distance from the edge of its range is `interior`."
+function margins(s::PyramidStructure, θ::AbstractVector{S}) where {S}
     wmin, cmin, gmin = typemax(S), typemax(S), typemax(S)
     for (o, off) in zip(s.orbits, param_offsets(s))
         wmin = min(wmin, θ[off + 1])
@@ -156,7 +146,7 @@ function pyramid_margins(s::PyramidStructure, θ::AbstractVector{S}) where {S}
             end
         end
     end
-    return wmin, cmin, gmin
+    return (weight = wmin, interior = cmin, gap = gmin)
 end
 
 "`(s, θ)` with each orbit's values in a canonical order, and the orbits sorted."

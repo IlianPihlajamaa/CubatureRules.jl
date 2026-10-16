@@ -69,27 +69,35 @@ function pattern_values(p::OrbitPattern, v::AbstractVector{S}) where {S}
 end
 
 """
-    SymmetricStructure(patterns)
+    OrbitStructure
 
-A fully symmetric rule's orbit structure: an ordered list of [`OrbitPattern`](@ref)s. The
-parameter vector of the rule is the concatenation, per orbit, of `[w, v₁, …, v_{r-1}]`.
+The shape of a symmetric rule before any numbers: a list of orbits in its field `orbits`,
+whose parameter blocks `[w, p₁, …]` — the weight of each point, then the orbit's own
+parameters — make up the rule's parameter vector `θ` in order. An orbit type defines
+`orbit_size` and `nunknowns`; the structure's counts and block offsets follow, here, once for
+every domain's structure (the simplex's, the box's and round domains', the octahedral one on
+the sphere, the pyramid's and the wedge's).
 """
-struct SymmetricStructure
-    N::Int
-    orbits::Vector{OrbitPattern}
-end
-function SymmetricStructure(patterns::AbstractVector, N::Integer)
-    return SymmetricStructure(Int(N), [p isa OrbitPattern ? p : OrbitPattern(p, N) for p in patterns])
-end
+abstract type OrbitStructure end
 
-dimension(s::SymmetricStructure) = s.N - 1
-npoints(s::SymmetricStructure) = sum(orbit_size, s.orbits; init = 0)
-nunknowns(s::SymmetricStructure) = sum(nunknowns, s.orbits; init = 0)
-Base.show(io::IO, s::SymmetricStructure) =
-    print(io, "SymmetricStructure(", join((string(o.mult) for o in s.orbits), ", "), ")")
+npoints(s::OrbitStructure) = sum(orbit_size, s.orbits; init = 0)
+nunknowns(s::OrbitStructure) = sum(nunknowns, s.orbits; init = 0)
+
+"""
+    margins(s::OrbitStructure, θ) -> NamedTuple
+
+How far the parameters `θ` of the structure `s` are from failing to describe a positive
+interior rule of that shape: `weight`, the smallest weight; `interior`, the smallest distance
+of a node's coordinate from the edge of its range (a barycentric value from 0, a coordinate
+from 0 and 1, a node from the boundary of the disk or ball); and `gap`, the smallest difference
+between two of an orbit's values, where an orbit has several (on the sphere, the distance to
+an orbit degeneracy, and there is no `interior`). One function for every domain's structure,
+read by the searches and the eliminations.
+"""
+function margins end
 
 "Offsets of each orbit's block in the parameter vector."
-function param_offsets(s::SymmetricStructure)
+function param_offsets(s::OrbitStructure)
     offs = Vector{Int}(undef, length(s.orbits))
     k = 0
     for (i, o) in enumerate(s.orbits)
@@ -98,6 +106,24 @@ function param_offsets(s::SymmetricStructure)
     end
     return offs
 end
+
+"""
+    SymmetricStructure(patterns)
+
+A fully symmetric rule's orbit structure: an ordered list of [`OrbitPattern`](@ref)s. The
+parameter vector of the rule is the concatenation, per orbit, of `[w, v₁, …, v_{r-1}]`.
+"""
+struct SymmetricStructure <: OrbitStructure
+    N::Int
+    orbits::Vector{OrbitPattern}
+end
+function SymmetricStructure(patterns::AbstractVector, N::Integer)
+    return SymmetricStructure(Int(N), [p isa OrbitPattern ? p : OrbitPattern(p, N) for p in patterns])
+end
+
+dimension(s::SymmetricStructure) = s.N - 1
+Base.show(io::IO, s::SymmetricStructure) =
+    print(io, "SymmetricStructure(", join((string(o.mult) for o in s.orbits), ", "), ")")
 
 """
     expand(s::SymmetricStructure, θ) -> (λs, ws)

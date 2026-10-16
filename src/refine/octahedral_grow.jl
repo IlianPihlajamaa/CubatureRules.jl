@@ -89,12 +89,12 @@ reach a rule that is positive, non-degenerate and has distinct nodes.
 function fit_octahedral(s::OctahedralStructure, θ0::Vector{Float64}, n::Integer;
                         tol::Float64 = 1e-13, maxiter::Int = 400)
     sys = OctahedralMomentSystem(s, n, Float64)
-    inside(θ) = octahedral_margins(s, θ)[2] > -0.02
+    inside(θ) = margins(s, θ).gap > -0.02
     θ, nr = levenberg_marquardt(sys, θ0; maxiter, tol, accept = inside)
     nr <= 1e-10 || return nothing
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
-    wmin, dmin = octahedral_margins(s, res.θ)
+    wmin, dmin = margins(s, res.θ)
     (wmin > 0 && dmin > 1e-6) || return nothing
     node_separation(s, res.θ) > 1e-6 || return nothing
     return canonical_octahedral(s, res.θ)
@@ -215,7 +215,7 @@ function grow_and_eliminate_octahedral(s::OctahedralStructure, θ::Vector{Float6
         g === nothing && continue
         se, θe = eliminate_octahedral(g[1], g[2], n; rng = start_rng(rng_seed, c), cancel)
         push!(counts, npoints(se))
-        key = (npoints(se), -octahedral_margins(se, θe)[1])
+        key = (npoints(se), -margins(se, θe).weight)
         if best === nothing || key < best[3]
             best = (se, θe, key)
         end

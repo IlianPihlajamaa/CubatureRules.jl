@@ -39,7 +39,7 @@ function generate(nmax; multistart = 4, chains = 16)
             break
         end
         s, θ = got
-        w, λ = CR.rule_margins(s, θ)
+        w, λ = CR.margins(s, θ)
         @printf("4-simplex degree %2d: %4d points, %2d orbits, %d equations, min weight %.1e, min barycentric %.3f [%.0f s]\n",
                 n, CR.npoints(s), length(s.orbits), m, w, λ, t)
         flush(stdout)

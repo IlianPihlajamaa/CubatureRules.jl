@@ -59,7 +59,7 @@ function walk(n, counts, prevcounts, basis; nstarts)
 end
 
 better(a, b) = b === nothing ||
-               (CR.npoints(a[1]), -CR.rule_margins(a[1], a[2])[2]) < (CR.npoints(b[1]), -CR.rule_margins(b[1], b[2])[2])
+               (CR.npoints(a[1]), -CR.margins(a[1], a[2]).interior) < (CR.npoints(b[1]), -CR.margins(b[1], b[2]).interior)
 
 function main(mindeg, maxdeg, path)
     old = isfile(path) ? TOML.parsefile(path)["rule"] : Dict{String,Any}[]
@@ -103,7 +103,7 @@ function main(mindeg, maxdeg, path)
         θ, res, _ = CR.refine_symmetric(s, n, θbest, CR.digits_to_bits(100); basis)
         res.converged || error("degree $n: refinement to 100 digits failed")
         θ64 = Float64.(θ)
-        wmin, λmin = CR.rule_margins(s, θ64)
+        wmin, λmin = CR.margins(s, θ64)
         @printf("degree %2d: %3d pts  %d unknowns  (%s)  cond %.1e  iters %d\n",
                 n, CR.npoints(s), CR.nunknowns(s), method, res.cond, res.iterations)
         flush(stdout)

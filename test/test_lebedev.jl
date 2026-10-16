@@ -63,7 +63,7 @@ end
     for e in high
         # square systems: as many unknowns as invariant conditions
         @test CR.nunknowns(e.structure) == length(CR.invariant_exponents(e.degree))
-        wmin, dmin = CR.octahedral_margins(e.structure, e.seed)
+        wmin, dmin = CR.margins(e.structure, e.seed)
         @test wmin > 0 && dmin > 0
         # 0.2-1.5% above the parameter-count estimate (d+1)²/3, which is not a proven bound
         @test e.npoints <= 1.02 * (e.degree + 1)^2 / 3

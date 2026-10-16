@@ -194,11 +194,12 @@ function (sys::RoundMomentSystem{S})(θ::AbstractVector; jacobian::Bool = true) 
 end
 
 """
-    round_margins(s, θ) -> (smallest weight, smallest distance of a value from 0 and of a node from the boundary, smallest gap)
+    margins(s::BoxStructure{RoundGeometry}, θ) -> (; weight, interior, gap)
 
-As [`box_margins`](@ref), for the unit disk or ball.
+As for the box, with `interior` the smaller of a value's distance from 0 and a node's from the
+boundary of the unit disk or ball.
 """
-function round_margins(s::BoxStructure, θ::AbstractVector{S}) where {S}
+function margins(s::BoxStructure{RoundGeometry}, θ::AbstractVector{S}) where {S}
     wmin, cmin, gmin = typemax(S), typemax(S), typemax(S)
     for (o, off) in zip(s.orbits, param_offsets(s))
         wmin = min(wmin, θ[off + 1])
@@ -209,5 +210,5 @@ function round_margins(s::BoxStructure, θ::AbstractVector{S}) where {S}
             gmin = min(gmin, abs(v[i] - v[j]))
         end
     end
-    return wmin, cmin, gmin
+    return (weight = wmin, interior = cmin, gap = gmin)
 end

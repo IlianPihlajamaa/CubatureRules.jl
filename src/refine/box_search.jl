@@ -5,17 +5,10 @@
 # is the moment system and where an orbit's values may lie, which an `OrbitGeometry` supplies.
 # The results are seeds for `refine_box` and `refine_round`.
 
-abstract type OrbitGeometry end
-"The box `[-1, 1]^D`, with the symmetrised Legendre moments of [`BoxMomentSystem`](@ref)."
-struct BoxGeometry <: OrbitGeometry end
-"The unit disk or ball, with the moments of [`RoundMomentSystem`](@ref)."
-struct RoundGeometry <: OrbitGeometry end
 orbit_system(::BoxGeometry, s, n, ::Type{S}) where {S} = BoxMomentSystem(s, n, S)
 orbit_system(::RoundGeometry, s, n, ::Type{S}) where {S} = RoundMomentSystem(s, n, S)
 orbit_equations(::BoxGeometry, D, n) = length(box_exponents(D, n))
 orbit_equations(::RoundGeometry, D, n) = length(round_terms(D, n))
-orbit_margins(::BoxGeometry, s, θ) = box_margins(s, θ)
-orbit_margins(::RoundGeometry, s, θ) = round_margins(s, θ)
 orbit_volume(::BoxGeometry, D) = 2.0^D
 orbit_volume(::RoundGeometry, D) = D == 2 ? Float64(π) : 4π / 3
 # random values for an orbit with these multiplicities, inside the domain
@@ -26,8 +19,8 @@ loosely_inside(::BoxGeometry, o, v) = all(x -> abs(x) < 1.05, v)
 loosely_inside(::RoundGeometry, o, v) = sum((o.mult[i] * v[i]^2 for i in eachindex(v)); init = 0.0) < 1.1
 
 "Fit `(s, θ0)` onto the degree-`n` moment variety; the canonical `(s, θ)` if it is a positive interior rule, else `nothing`."
-function box_fit(s::BoxStructure, θ0::Vector{Float64}, n::Integer; tol::Float64 = 1e-13, maxiter::Int = 400,
-                 geom::OrbitGeometry = BoxGeometry())
+function box_fit(s::BoxStructure, θ0::Vector{Float64}, n::Integer; tol::Float64 = 1e-13, maxiter::Int = 400)
+    geom = geometry(s)
     sys = orbit_system(geom, s, n, Float64)
     inside(θ) = all(o_off -> loosely_inside(geom, o_off[1], [θ[o_off[2] + 1 + i] for i in 1:nparams(o_off[1])]),
                     zip(s.orbits, param_offsets(s)))
@@ -36,12 +29,13 @@ function box_fit(s::BoxStructure, θ0::Vector{Float64}, n::Integer; tol::Float64
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
     sc, θc = canonicalize(s, res.θ)
-    wmin, cmin, gmin = orbit_margins(geom, sc, θc)
-    (wmin > 0 && cmin > 1e-6 && gmin > 1e-6) || return nothing
+    (; weight, interior, gap) = margins(sc, θc)
+    (weight > 0 && interior > 1e-6 && gap > 1e-6) || return nothing
     return sc, θc
 end
 
-function random_box_start(s::BoxStructure, rng; geom::OrbitGeometry = BoxGeometry())
+function random_box_start(s::BoxStructure, rng)
+    geom = geometry(s)
     V, N = orbit_volume(geom, s.D), npoints(s)
     θ = Float64[]
     for o in s.orbits
@@ -52,10 +46,11 @@ function random_box_start(s::BoxStructure, rng; geom::OrbitGeometry = BoxGeometr
 end
 
 """
-    box_structures(npts, n, D; slack = 2)
+    box_structures(npts, n, D; slack = 2, geom = BoxGeometry())
 
 Every fully symmetric orbit structure on `[-1, 1]^D` with exactly `npts` points and between
-`m` and `m + slack` unknowns, `m` the number of degree-`n` moment equations.
+`m` and `m + slack` unknowns, `m` the number of degree-`n` moment equations; on the `D`-ball
+with `geom = RoundGeometry()`.
 """
 function box_structures(npts::Integer, n::Integer, D::Integer; slack::Integer = 2, geom::OrbitGeometry = BoxGeometry())
     types = box_orbit_types(D)
@@ -64,7 +59,8 @@ function box_structures(npts::Integer, n::Integer, D::Integer; slack::Integer = 
     function rec(i, left, counts)
         if i > length(types)
             left == 0 || return
-            s = BoxStructure(D, reduce(vcat, [fill(types[k], counts[k]) for k in eachindex(types)]; init = BoxOrbit[]))
+            s = BoxStructure(D, reduce(vcat, [fill(types[k], counts[k]) for k in eachindex(types)]; init = BoxOrbit[]);
+                             geometry = geom)
             m <= nunknowns(s) <= m + slack && push!(out, s)
             return
         end
@@ -79,7 +75,7 @@ function box_structures(npts::Integer, n::Integer, D::Integer; slack::Integer = 
 end
 
 """
-    box_multistart(n, D; npts, nstarts = 200, slack = 2, rng_seed) -> (s, θ) or nothing
+    box_multistart(n, D; npts, nstarts = 200, slack = 2, rng_seed, geom = BoxGeometry()) -> (s, θ) or nothing
 
 The fully symmetric rule of degree `n` on `[-1, 1]^D` with the fewest points in `npts`: for
 each count in turn, `nstarts` random starts on every orbit structure with that many points.
@@ -95,12 +91,12 @@ function box_multistart(n::Integer, D::Integer; npts, nstarts::Integer = 200, sl
             Threads.@threads :static for t in 1:nstarts
                 checkcancel(cancel)
                 rng = start_rng(rng_seed + N, t)
-                results[t] = box_fit(s, random_box_start(s, rng; geom), n; geom)
+                results[t] = box_fit(s, random_box_start(s, rng), n)
             end
             append!(found, filter(!isnothing, results))
         end
         isempty(found) && continue
-        return found[argmax([orbit_margins(geom, f...)[2] for f in found])]
+        return found[argmax([margins(f...).interior for f in found])]
     end
     return nothing
 end
@@ -112,8 +108,8 @@ function make_orbit(mult::Vector{Int}, vals::Vector{Float64}, D)
     order = sortperm(mult; rev = true)
     return BoxOrbit(mult[order], D), vals[order]
 end
-function from_box_blocks(D, blocks)
-    s = BoxStructure(D, [b[1] for b in blocks])
+function from_box_blocks(D, blocks, geometry::OrbitGeometry)
+    s = BoxStructure(D, [b[1] for b in blocks]; geometry)
     return canonicalize(s, reduce(vcat, (b[2] for b in blocks); init = Float64[]))
 end
 
@@ -127,13 +123,13 @@ function box_moves(s::BoxStructure, θ::Vector{Float64})
         mass = p[1] * orbit_size(o)
         v = p[2:end]
         replaced(no, nv) = from_box_blocks(D, [j == i ? (no, vcat(mass / orbit_size(no), nv)) : blocks[j]
-                                               for j in eachindex(blocks)])
+                                               for j in eachindex(blocks)], geometry(s))
         # drop the orbit, spreading its mass over the others
         rest = [(b[1], copy(b[2])) for (j, b) in enumerate(blocks) if j != i]
         if !isempty(rest)
             total = sum(b[2][1] * orbit_size(b[1]) for b in rest)
             foreach(b -> b[2][1] *= (total + mass) / total, rest)
-            push!(moves, (from_box_blocks(D, rest)..., orbit_size(o), mass))
+            push!(moves, (from_box_blocks(D, rest, geometry(s))..., orbit_size(o), mass))
         end
         # merge two of the orbit's values into one
         for k in 1:(length(v) - 1), l in (k + 1):length(v)
@@ -164,9 +160,8 @@ Greedy node elimination on a valid degree-`n` box rule: try the moves of [`box_m
 that remove the most points first, accept the first whose refit is valid, repeat until none
 is. With `rng`, moves removing the same number of points are tried in random order.
 """
-function box_eliminate(s::BoxStructure, θ::Vector{Float64}, n::Integer; rng = nothing, cancel = nothing,
-                       geom::OrbitGeometry = BoxGeometry())
-    m = orbit_equations(geom, s.D, n)
+function box_eliminate(s::BoxStructure, θ::Vector{Float64}, n::Integer; rng = nothing, cancel = nothing)
+    m = orbit_equations(geometry(s), s.D, n)
     while true
         checkcancel(cancel)
         moves = filter(mv -> nunknowns(mv[1]) >= m, box_moves(s, θ))
@@ -178,7 +173,7 @@ function box_eliminate(s::BoxStructure, θ::Vector{Float64}, n::Integer; rng = n
             results = Vector{Any}(nothing, length(idx))
             Threads.@threads :static for j in eachindex(idx)
                 mv = moves[idx[j]]
-                results[j] = box_fit(mv[1], mv[2], n; geom)
+                results[j] = box_fit(mv[1], mv[2], n)
             end
             k = findfirst(!isnothing, results)
             k === nothing || (accepted = results[k]; break)
@@ -194,9 +189,8 @@ end
 From a rule of lower degree, add general orbits with small weights until the unknowns
 exceed the degree-`n` equations comfortably, and refit.
 """
-function box_grow(s::BoxStructure, θ::Vector{Float64}, n::Integer; ntries::Int = 32, rng_seed::Integer = 0x96,
-                  geom::OrbitGeometry = BoxGeometry())
-    D = s.D
+function box_grow(s::BoxStructure, θ::Vector{Float64}, n::Integer; ntries::Int = 32, rng_seed::Integer = 0x96)
+    D, geom = s.D, geometry(s)
     m = orbit_equations(geom, D, n)
     general = last(box_orbit_types(D))
     blocks = [(o, θ[(off + 1):(off + nunknowns(o))]) for (o, off) in zip(s.orbits, param_offsets(s))]
@@ -210,8 +204,8 @@ function box_grow(s::BoxStructure, θ::Vector{Float64}, n::Integer; ntries::Int 
             rng = start_rng(rng_seed + k, t)
             new = [(general, vcat(0.02 * orbit_volume(geom, D) / orbit_size(general), random_values(geom, general.mult, rng)))
                    for _ in 1:added]
-            st, θ0 = from_box_blocks(D, vcat(blocks, new))
-            results[t] = box_fit(st, θ0, n; geom)
+            st, θ0 = from_box_blocks(D, vcat(blocks, new), geom)
+            results[t] = box_fit(st, θ0, n)
         end
         i = findfirst(!isnothing, results)
         i === nothing || return results[i]
@@ -226,15 +220,15 @@ Independent grow → eliminate chains from the lower-degree rule `(s, θ)`; the 
 fewest points, ties broken by the largest distance of the nodes from the boundary.
 """
 function box_grow_and_eliminate(s::BoxStructure, θ::Vector{Float64}, n::Integer; chains::Int = 8,
-                                rng_seed::Integer = 0xe11, cancel = nothing, geom::OrbitGeometry = BoxGeometry())
+                                rng_seed::Integer = 0xe11, cancel = nothing)
     best, counts = nothing, Int[]
     for c in 1:chains
         checkcancel(cancel)
-        g = box_grow(s, θ, n; rng_seed = rng_seed + 1000c, geom)
+        g = box_grow(s, θ, n; rng_seed = rng_seed + 1000c)
         g === nothing && continue
-        se, θe = box_eliminate(g[1], g[2], n; rng = start_rng(rng_seed, c), cancel, geom)
+        se, θe = box_eliminate(g[1], g[2], n; rng = start_rng(rng_seed, c), cancel)
         push!(counts, npoints(se))
-        key = (npoints(se), -orbit_margins(geom, se, θe)[2])
+        key = (npoints(se), -margins(se, θe).interior)
         (best === nothing || key < best[3]) && (best = (se, θe, key))
     end
     return best === nothing ? nothing : (best[1], best[2], counts)

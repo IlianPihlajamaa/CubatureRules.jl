@@ -289,7 +289,7 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
             "$(res.iterations) iterations); the seed is not returned unrefined"))
         wbits = ctx.bits + guard
         xs, ws = with_bits(() -> expand(structure, θ), wbits)
-        wmin, dmin = octahedral_margins(structure, θ)
+        wmin, dmin = margins(structure, θ)
         (wmin > 0 && dmin > 0) || throw(RefinementError("Lebedev",
             "refined degree-$n rule left the admissible set (min weight $(Float64(wmin)), margin $(Float64(dmin)))"))
         θhat = [finalize_number(ctx, t) for t in θ]

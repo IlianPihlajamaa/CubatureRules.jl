@@ -15,8 +15,8 @@ isfile(DISK_SEED_FILE) && include_dependency(DISK_SEED_FILE)
 isfile(BALL_SEED_FILE) && include_dependency(BALL_SEED_FILE)
 
 # static package data, parsed once at precompile time
-const DISK_SEEDS = load_box_seeds(DISK_SEED_FILE, 2)
-const BALL_SEEDS = load_box_seeds(BALL_SEED_FILE, 3)
+const DISK_SEEDS = load_box_seeds(DISK_SEED_FILE, 2; geometry = RoundGeometry())
+const BALL_SEEDS = load_box_seeds(BALL_SEED_FILE, 3; geometry = RoundGeometry())
 
 round_entries(D::Integer) = filter(e -> e.status == "ok", D == 2 ? DISK_SEEDS : D == 3 ? BALL_SEEDS : OrbitSeedEntry{BoxStructure}[])
 round_entry_for(D::Integer, degree::Integer) = seed_entry_for(round_entries(D), degree)

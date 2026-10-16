@@ -75,7 +75,7 @@ function convert_rule(dir, degree; T = Float64)
 end
 
 function table_entry(degree, s, θ64)
-    wmin, dmin = CR.octahedral_margins(s, θ64)
+    wmin, dmin = CR.margins(s, θ64)
     (wmin > 0 && dmin > 0) || error("degree $degree: not admissible (min weight $wmin, margin $dmin)")
     sys64 = CR.OctahedralMomentSystem(s, degree, Float64)
     r64, J64 = sys64(θ64)

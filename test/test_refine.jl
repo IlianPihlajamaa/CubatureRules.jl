@@ -102,7 +102,7 @@ end
     se, θe = CR.eliminate(s, θ, 8; basis = B8)
     @test CR.npoints(se) < CR.npoints(s)
     @test CR.nunknowns(se) >= CR.n_invariants(3, 8) - 2
-    wmin, λmin = CR.rule_margins(se, θe)
+    wmin, λmin = CR.margins(se, θe)
     @test wmin > 0 && λmin > 0
     sys = CR.SymmetricMomentSystem(se, 8, Float64, B8)
     @test maximum(abs, sys(θe)[1]) < 1e-12

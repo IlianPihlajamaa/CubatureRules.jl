@@ -20,7 +20,7 @@ using StaticArrays
 import Lebedev as LebedevPkg
 import CubatureRules: build, npoints, claimed_degree, degree_range, cost_estimate, expand,
                       upstream_lebedev_candidates, upstream_lebedev_table, classify_octahedral,
-                      refine_octahedral, octahedral_margins, OctahedralMomentSystem,
+                      refine_octahedral, margins, OctahedralMomentSystem,
                       LebedevRule, LebedevJLSeeds, Sphere, PolynomialDegree, isreference, Oh,
                       BuildContext, Provenance, Certificate, QuadratureRule, Seeded,
                       NoRuleError, RefinementError, LEBEDEV_LAIKOV_1999,

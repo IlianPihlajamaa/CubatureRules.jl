@@ -41,12 +41,12 @@ function orbit_margin(o::OctahedralOrbit, p)
 end
 
 """
-    octahedral_margins(structure, θ) -> (min weight, min coordinate margin)
+    margins(s::OctahedralStructure, θ) -> (; weight, gap)
 
 The two quantities that decide whether a solution is a rule of the shape it claims: the
 smallest weight, and the smallest distance to an orbit degeneracy.
 """
-function octahedral_margins(s::OctahedralStructure, θ::AbstractVector)
+function margins(s::OctahedralStructure, θ::AbstractVector)
     offs = param_offsets(s)
     wmin = Inf
     dmin = Inf
@@ -54,14 +54,14 @@ function octahedral_margins(s::OctahedralStructure, θ::AbstractVector)
         wmin = min(wmin, Float64(θ[offs[i] + 1]))
         dmin = min(dmin, orbit_margin(o, Float64.(θ[(offs[i] + 2):(offs[i] + nunknowns(o))])))
     end
-    return wmin, dmin
+    return (weight = wmin, gap = dmin)
 end
 
 """
     node_separation(structure, θ)
 
 Smallest distance between two distinct nodes of the expanded rule. Two orbits of the same
-kind at nearly equal parameters pass [`octahedral_margins`](@ref) and still describe one
+kind at nearly equal parameters pass [`margins`](@ref) and still describe one
 orbit twice, which this catches.
 """
 function node_separation(s::OctahedralStructure, θ::AbstractVector)
@@ -138,12 +138,12 @@ end
 function octahedral_attempt(sys::OctahedralMomentSystem{Float64}, s::OctahedralStructure, rng,
                             wscale::Float64, tol::Float64)
     θ0 = random_octahedral_parameters(rng, s, wscale)
-    inside(θ) = octahedral_margins(s, θ)[2] > 0.0
+    inside(θ) = margins(s, θ).gap > 0.0
     θ, nr = levenberg_marquardt(sys, θ0; maxiter = 300, tol = tol, accept = inside)
     nr <= 1e-10 || return nothing
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
-    wmin, dmin = octahedral_margins(s, res.θ)
+    wmin, dmin = margins(s, res.θ)
     (wmin > 0 && dmin > 1e-6) || return nothing
     node_separation(s, res.θ) > 1e-6 || return nothing
     return canonical_octahedral(s, res.θ), wmin, dmin

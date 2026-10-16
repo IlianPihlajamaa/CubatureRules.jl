@@ -4,7 +4,7 @@
 # small interface that each structure type implements:
 #
 #     orbit_types(T), make_structure(T, orbits), general_orbit(T), structure_volume(T)
-#     n_moment_equations(T, n), orbit_system(s, n, S), structure_margins(s, θ)
+#     n_moment_equations(T, n), orbit_system(s, n, S), margins(s, θ)
 #     canonicalize(s, θ), random_params(o, rng), loosely_inside(o, v), structure_moves(s, θ)
 #
 # `structure_moves` returns (structure, starting parameters, points removed, score) tuples.
@@ -19,7 +19,7 @@ function orbit_fit(s, θ0::Vector{Float64}, n::Integer; tol::Float64 = 1e-13, ma
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
     sc, θc = canonicalize(s, res.θ)
-    wmin, cmin, gmin = structure_margins(sc, θc)
+    wmin, cmin, gmin = margins(sc, θc)
     (wmin > 0 && cmin > 1e-6 && gmin > 1e-6) || return nothing
     return sc, θc
 end
@@ -82,7 +82,7 @@ function orbit_multistart(::Type{T}, n::Integer; npts, nstarts::Integer = 64, sl
             append!(found, filter(!isnothing, results))
         end
         isempty(found) && continue
-        return found[argmax([structure_margins(f...)[2] for f in found])]
+        return found[argmax([margins(f...).interior for f in found])]
     end
     return nothing
 end
@@ -171,7 +171,7 @@ function orbit_grow_and_eliminate(s, θ::Vector{Float64}, n::Integer; chains::In
         g === nothing && continue
         se, θe = orbit_eliminate(g[1], g[2], n; rng = start_rng(rng_seed, c), cancel)
         push!(counts, npoints(se))
-        key = (npoints(se), -structure_margins(se, θe)[2])
+        key = (npoints(se), -margins(se, θe).interior)
         (best === nothing || key < best[3]) && (best = (se, θe, key))
     end
     return best === nothing ? nothing : (best[1], best[2], counts)
@@ -185,7 +185,6 @@ general_orbit(::Type{PyramidStructure}) = PyramidOrbit([1, 1])
 structure_volume(::Type{PyramidStructure}) = 4 / 3
 n_moment_equations(::Type{PyramidStructure}, n) = length(pyramid_terms(n))
 orbit_system(s::PyramidStructure, n, ::Type{S}) where {S} = PyramidMomentSystem(s, n, S)
-structure_margins(s::PyramidStructure, θ) = pyramid_margins(s, θ)
 random_params(o::PyramidOrbit, rng) = vcat(0.03 .+ 0.94 .* rand(rng, nparams(o.base)), 0.03 + 0.94 * rand(rng))
 loosely_inside(o::PyramidOrbit, v) = all(x -> abs(x) < 1.05, v[1:(end - 1)]) && -0.05 < v[end] < 1.05
 
@@ -232,7 +231,6 @@ general_orbit(::Type{WedgeStructure}) = WedgeOrbit([1, 1, 1], true)
 structure_volume(::Type{WedgeStructure}) = 1
 n_moment_equations(::Type{WedgeStructure}, n) = n_wedge_equations(n)
 orbit_system(s::WedgeStructure, n, ::Type{S}) where {S} = WedgeMomentSystem(s, n, S)
-structure_margins(s::WedgeStructure, θ) = wedge_margins(s, θ)
 function random_params(o::WedgeOrbit, rng)
     r = length(o.pattern.mult)
     u = -log.(rand(rng, r))                                   # Dirichlet(1, …, 1), as on the triangle

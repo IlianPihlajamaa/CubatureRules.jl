@@ -56,7 +56,7 @@ function attempt(prev, n, N, seed, log)
         return nothing
     end
     θ64 = Float64.(θ)
-    wmin, λmin = CR.rule_margins(s, θ64)
+    wmin, λmin = CR.margins(s, θ64)
     logline(log, @sprintf("degree %2d: %d points (chains %s, seed %#x, %.0f s)", n, CR.npoints(s),
                           string(sort(counts)), seed, t))
     return Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => [o.mult for o in s.orbits],

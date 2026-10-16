@@ -91,7 +91,7 @@ function predicted_margin(s::SymmetricStructure, θ0::Vector{Float64}, n::Intege
     δ = J \ r                                 # QR: least squares, minimum norm when underdetermined
     θ = θ0 - δ
     all(isfinite, θ) || return -Inf
-    wmin, λmin = rule_margins(s, θ)
+    wmin, λmin = margins(s, θ)
     wmax = maximum(abs(θ0[off + 1]) for off in param_offsets(s))
     return min(wmin / wmax, λmin)
 end
@@ -102,12 +102,12 @@ function fit_symmetric(s::SymmetricStructure, θ0::Vector{Float64}, n::Integer, 
     # the search on one point per orbit, the acceptance on every node (see SymmetricMomentSystem)
     fast = SymmetricMomentSystem(s, n, Float64, basis; representatives = true)
     sys = SymmetricMomentSystem(s, n, Float64, basis)
-    inside(θ) = rule_margins(s, θ)[2] > -0.05
+    inside(θ) = margins(s, θ).interior > -0.05
     θ, nr = levenberg_marquardt(fast, θ0; maxiter, tol, accept = inside)
     nr <= 1e-10 || return nothing
     res = gauss_newton(sys, θ; step_tol = 1e-15, res_floor = tol, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
-    wmin, λmin = rule_margins(s, res.θ)
+    wmin, λmin = margins(s, res.θ)
     (wmin > 0 && λmin > 0) || return nothing
     return canonicalize(s, res.θ)[2]
 end
@@ -257,7 +257,7 @@ function grow_and_eliminate(s::SymmetricStructure, θ::Vector{Float64}, n::Integ
         g === nothing && continue
         se, θe = eliminate(g[1], g[2], n; basis, rng = start_rng(rng_seed, c), cancel, min_excess, max_failures, order)
         push!(counts, npoints(se))
-        key = (npoints(se), -rule_margins(se, θe)[2])
+        key = (npoints(se), -margins(se, θe).interior)
         if best === nothing || key < best[3]
             best = (se, θe, key)
         end

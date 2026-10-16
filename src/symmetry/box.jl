@@ -58,28 +58,34 @@ function box_orbit_types(D::Integer)
     return sort!(out; by = o -> (orbit_size(o), o.mult))
 end
 
-"""
-    BoxStructure(D, orbits)
+"Where the orbits of signed permutations live: the box or the round domain of the same symmetry."
+abstract type OrbitGeometry end
+"The box `[-1, 1]^D`, with the symmetrised Legendre moments of [`BoxMomentSystem`](@ref)."
+struct BoxGeometry <: OrbitGeometry end
+"The unit disk or ball, with the moments of [`RoundMomentSystem`](@ref)."
+struct RoundGeometry <: OrbitGeometry end
 
-A fully symmetric rule on `[-1, 1]^D` as a list of [`BoxOrbit`](@ref)s. Its parameters `θ` hold,
-per orbit, the weight of each point and then the orbit's distinct coordinate values.
 """
-struct BoxStructure
+    BoxStructure(D, orbits; geometry = BoxGeometry())
+    BoxStructure(mults, D; geometry = BoxGeometry())
+
+A fully symmetric rule on `[-1, 1]^D` (or, with `geometry = RoundGeometry()`, on the unit disk
+or ball, whose orbits are the same) as a list of [`BoxOrbit`](@ref)s. Its parameters `θ` hold,
+per orbit, the weight of each point and then the orbit's distinct coordinate values. The
+geometry is a type parameter, so that what depends on the domain — the margins of a rule, its
+moment system — follows from the structure.
+"""
+struct BoxStructure{G<:OrbitGeometry} <: OrbitStructure
     D::Int
     orbits::Vector{BoxOrbit}
 end
-BoxStructure(mults::AbstractVector, D::Integer) = BoxStructure(Int(D), [BoxOrbit(m, D) for m in mults])
-nunknowns(s::BoxStructure) = sum(nunknowns, s.orbits; init = 0)
-npoints(s::BoxStructure) = sum(orbit_size, s.orbits; init = 0)
-function param_offsets(s::BoxStructure)
-    offs, k = Int[], 0
-    for o in s.orbits
-        push!(offs, k)
-        k += nunknowns(o)
-    end
-    return offs
-end
-Base.show(io::IO, s::BoxStructure) = print(io, "BoxStructure(", s.D, ", ", [o.mult for o in s.orbits], ")")
+BoxStructure(D::Integer, orbits::AbstractVector{BoxOrbit}; geometry::OrbitGeometry = BoxGeometry()) =
+    BoxStructure{typeof(geometry)}(Int(D), collect(orbits))
+BoxStructure(mults::AbstractVector, D::Integer; geometry::OrbitGeometry = BoxGeometry()) =
+    BoxStructure(D, [BoxOrbit(m, D) for m in mults]; geometry)
+geometry(::BoxStructure{G}) where {G} = G()
+Base.show(io::IO, s::BoxStructure{G}) where {G} =
+    print(io, "BoxStructure(", s.D, ", ", [o.mult for o in s.orbits], G === RoundGeometry ? "; round" : "", ")")
 
 # the representative's coordinates from the orbit's parameters
 function representative(o::BoxOrbit, v::AbstractVector{S}) where {S}
@@ -118,12 +124,12 @@ function expand(s::BoxStructure, θ::AbstractVector{S}) where {S}
 end
 
 """
-    box_margins(s, θ) -> (smallest weight, smallest distance of a coordinate from 0 and 1, smallest gap)
+    margins(s::BoxStructure{BoxGeometry}, θ) -> (; weight, interior, gap)
 
 How far `(s, θ)` is from failing to be a positive rule with interior nodes in distinct
 orbits: the third number is the smallest difference between two values of one orbit.
 """
-function box_margins(s::BoxStructure, θ::AbstractVector{S}) where {S}
+function margins(s::BoxStructure{BoxGeometry}, θ::AbstractVector{S}) where {S}
     wmin, cmin, gmin = typemax(S), typemax(S), typemax(S)
     for (o, off) in zip(s.orbits, param_offsets(s))
         wmin = min(wmin, θ[off + 1])
@@ -135,7 +141,7 @@ function box_margins(s::BoxStructure, θ::AbstractVector{S}) where {S}
             end
         end
     end
-    return wmin, cmin, gmin
+    return (weight = wmin, interior = cmin, gap = gmin)
 end
 
 "`(s, θ)` with each orbit's values in a canonical order, and the orbits sorted."
@@ -151,7 +157,8 @@ function canonicalize(s::BoxStructure, θ::AbstractVector)
         push!(blocks, (o, vcat(θ[off + 1], abs.(v))))
     end
     sort!(blocks; by = b -> (orbit_size(b[1]), b[1].mult, Float64.(b[2][2:end])))
-    return BoxStructure(s.D, [b[1] for b in blocks]), reduce(vcat, (b[2] for b in blocks); init = eltype(θ)[])
+    return BoxStructure(s.D, [b[1] for b in blocks]; geometry = geometry(s)),
+           reduce(vcat, (b[2] for b in blocks); init = eltype(θ)[])
 end
 
 # --- the moment system ---------------------------------------------------------------------
