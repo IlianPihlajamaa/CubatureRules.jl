@@ -1,7 +1,7 @@
 # Written by scripts/validate_fast_kernel_rules.jl: the offline validation of KernelRuleBuilder
 # against the certified rules. Not edited by hand. `worst` is the largest relative error of the
 # Dubiner moments, `floor` that of the certified rule rounded to Float64, `median_us` the build time.
-source = "scripts/validate_fast_kernel_rules.jl, 2026-10-13, 24 points on and 48 off random triangles per kernel and degree"
+source = "scripts/validate_fast_kernel_rules.jl, 2026-10-16, 24 points on and 48 off random triangles per kernel and degree"
 
 [InverseDistance.0]
 fallbacks = 0
@@ -18,6 +18,86 @@ geometries = 72
 median_us = 107.3
 worst = 3.064841615443651e-15
 worst_at = "edge, x₀ edge, triangle 22"
+
+[InverseDistance.10]
+fallbacks = 1
+floor = 8.921715983884227e-15
+geometries = 71
+median_us = 325.8
+worst = 1.1664055279501066e-14
+worst_at = "edge, x₀ edge, triangle 22"
+
+[InverseDistance.11]
+fallbacks = 0
+floor = 1.4154918367319042e-14
+geometries = 72
+median_us = 324.6
+worst = 1.8516055683743012e-14
+worst_at = "nearedge, x₀ interior, triangle 16"
+
+[InverseDistance.12]
+fallbacks = 0
+floor = 2.151211723643314e-14
+geometries = 72
+median_us = 353.5
+worst = 2.623021014327144e-14
+worst_at = "beside, x₀ near, triangle 51"
+
+[InverseDistance.13]
+fallbacks = 0
+floor = 2.0803671303478648e-14
+geometries = 72
+median_us = 397.0
+worst = 4.1765005404580144e-14
+worst_at = "edge, x₀ edge, triangle 22"
+
+[InverseDistance.14]
+fallbacks = 0
+floor = 1.4965322236624456e-14
+geometries = 72
+median_us = 495.4
+worst = 3.8369594250577876e-14
+worst_at = "nearedge, x₀ interior, triangle 16"
+
+[InverseDistance.15]
+fallbacks = 0
+floor = 2.408887992996693e-14
+geometries = 72
+median_us = 417.0
+worst = 2.1844682626359816e-14
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistance.16]
+fallbacks = 0
+floor = 1.5779753260774255e-14
+geometries = 72
+median_us = 541.2
+worst = 2.2040525382238964e-14
+worst_at = "edge, x₀ edge, triangle 22"
+
+[InverseDistance.17]
+fallbacks = 0
+floor = 3.0095353612213646e-14
+geometries = 72
+median_us = 500.8
+worst = 2.772652247888418e-14
+worst_at = "inplane, x₀ near, triangle 52"
+
+[InverseDistance.18]
+fallbacks = 0
+floor = 3.2231707080587304e-14
+geometries = 72
+median_us = 588.9
+worst = 4.853111782360908e-14
+worst_at = "nearedge, x₀ interior, triangle 16"
+
+[InverseDistance.19]
+fallbacks = 0
+floor = 2.6845915252280628e-14
+geometries = 72
+median_us = 648.2
+worst = 3.0894561251811015e-14
+worst_at = "nearedge, x₀ interior, triangle 16"
 
 [InverseDistance.2]
 fallbacks = 0
@@ -74,3 +154,283 @@ geometries = 72
 median_us = 249.3
 worst = 1.8684660277956525e-14
 worst_at = "edge, x₀ edge, triangle 22"
+
+[InverseDistance.9]
+fallbacks = 0
+floor = 1.0193121783526817e-14
+geometries = 72
+median_us = 216.8
+worst = 1.2711750016350866e-14
+worst_at = "above, x₀ near, triangle 57"
+
+[InverseDistanceCubed.0]
+fallbacks = 3
+floor = 5.731642378222258e-17
+geometries = 69
+median_us = 132.6
+worst = 3.3453774328145973e-15
+worst_at = "interior, x₀ interior, triangle 15"
+
+[InverseDistanceCubed.1]
+fallbacks = 6
+floor = 9.518845696478886e-13
+geometries = 66
+median_us = 197.3
+worst = 3.9232868538739233e-13
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.10]
+fallbacks = 5
+floor = 1.7215106456703288e-11
+geometries = 67
+median_us = 382.5
+worst = 2.903690385295144e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.11]
+fallbacks = 3
+floor = 4.115401182173553e-11
+geometries = 69
+median_us = 347.6
+worst = 4.0852914183814016e-11
+worst_at = "nearedge, x₀ interior, triangle 8"
+
+[InverseDistanceCubed.12]
+fallbacks = 3
+floor = 4.0529752114075115e-11
+geometries = 69
+median_us = 418.1
+worst = 2.161762444655329e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.13]
+fallbacks = 5
+floor = 5.5217415576741354e-11
+geometries = 67
+median_us = 468.8
+worst = 3.741889235952726e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.14]
+fallbacks = 2
+floor = 1.9550066007864762e-10
+geometries = 70
+median_us = 489.6
+worst = 2.0075292793522474e-10
+worst_at = "nearedge, x₀ interior, triangle 20"
+
+[InverseDistanceCubed.15]
+fallbacks = 4
+floor = 1.1437139160331035e-10
+geometries = 68
+median_us = 531.0
+worst = 1.4391514801399315e-10
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.16]
+fallbacks = 7
+floor = 1.0870020347833186e-10
+geometries = 65
+median_us = 535.8
+worst = 9.290183966800265e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.17]
+fallbacks = 5
+floor = 1.0172648898214771e-10
+geometries = 67
+median_us = 531.1
+worst = 5.535970561537302e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.18]
+fallbacks = 5
+floor = 1.0207177628218509e-10
+geometries = 67
+median_us = 676.0
+worst = 1.894981684962988e-10
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.19]
+fallbacks = 5
+floor = 1.0480181832684794e-10
+geometries = 67
+median_us = 701.4
+worst = 1.4143683003652736e-10
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.2]
+fallbacks = 5
+floor = 2.7147610033265854e-12
+geometries = 67
+median_us = 213.0
+worst = 1.6228815730840059e-12
+worst_at = "interior, x₀ interior, triangle 23"
+
+[InverseDistanceCubed.3]
+fallbacks = 4
+floor = 3.7851158017921106e-12
+geometries = 68
+median_us = 179.9
+worst = 9.032535819703206e-13
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.4]
+fallbacks = 5
+floor = 4.716731353640684e-12
+geometries = 67
+median_us = 204.7
+worst = 7.741117225847545e-12
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.5]
+fallbacks = 5
+floor = 3.4911914433232465e-11
+geometries = 67
+median_us = 198.5
+worst = 1.9650278276378772e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.6]
+fallbacks = 5
+floor = 1.8433633212019576e-11
+geometries = 67
+median_us = 282.1
+worst = 1.8623013779389678e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.7]
+fallbacks = 5
+floor = 7.437956582641552e-12
+geometries = 67
+median_us = 253.9
+worst = 6.339247076227418e-12
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.8]
+fallbacks = 3
+floor = 2.8752736542193246e-11
+geometries = 69
+median_us = 338.5
+worst = 3.2560554878153354e-11
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceCubed.9]
+fallbacks = 3
+floor = 1.7650678176177992e-11
+geometries = 69
+median_us = 306.6
+worst = 2.0489780197064767e-11
+worst_at = "interior, x₀ interior, triangle 23"
+
+[InverseDistanceGradient.0]
+fallbacks = 4
+floor = 4.8781587802880705e-16
+geometries = 68
+median_us = 192.3
+worst = 6.2634266619538675e-12
+worst_at = "above, x₀ near, triangle 42"
+
+[InverseDistanceGradient.1]
+fallbacks = 4
+floor = 1.965223576358266e-13
+geometries = 68
+median_us = 187.1
+worst = 2.0595022201760537e-13
+worst_at = "above, x₀ near, triangle 65"
+
+[InverseDistanceGradient.10]
+fallbacks = 6
+floor = 2.7617168893507846e-12
+geometries = 65
+median_us = 348.7
+unbuilt = 1
+worst = 4.257819648546732e-12
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.11]
+fallbacks = 7
+floor = 3.5885975558916667e-12
+geometries = 65
+median_us = 443.0
+unbuilt = 0
+worst = 3.69302096753947e-12
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.12]
+fallbacks = 4
+floor = 2.1572319182953853e-12
+geometries = 68
+median_us = 354.7
+unbuilt = 0
+worst = 3.0312967144050437e-12
+worst_at = "edge, x₀ edge, triangle 10"
+
+[InverseDistanceGradient.2]
+fallbacks = 7
+floor = 3.814101525309744e-13
+geometries = 65
+median_us = 240.0
+worst = 7.103434589816377e-13
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.3]
+fallbacks = 6
+floor = 5.816568584613177e-13
+geometries = 66
+median_us = 256.0
+worst = 5.693643628062163e-13
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.4]
+fallbacks = 4
+floor = 9.195463518857971e-12
+geometries = 68
+median_us = 245.9
+worst = 1.0092212213092742e-11
+worst_at = "edge, x₀ edge, triangle 10"
+
+[InverseDistanceGradient.5]
+fallbacks = 4
+floor = 1.1508959687026457e-12
+geometries = 67
+median_us = 279.3
+unbuilt = 1
+worst = 2.143383792807913e-12
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.6]
+fallbacks = 5
+floor = 1.3154275345909916e-12
+geometries = 67
+median_us = 212.2
+unbuilt = 0
+worst = 8.137690888982709e-13
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.7]
+fallbacks = 4
+floor = 2.264668363454563e-12
+geometries = 68
+median_us = 241.6
+unbuilt = 0
+worst = 2.153845202080437e-12
+worst_at = "above, x₀ near, triangle 69"
+
+[InverseDistanceGradient.8]
+fallbacks = 5
+floor = 1.9617787886661105e-12
+geometries = 67
+median_us = 332.1
+unbuilt = 0
+worst = 4.116023559722654e-12
+worst_at = "interior, x₀ interior, triangle 3"
+
+[InverseDistanceGradient.9]
+fallbacks = 3
+floor = 4.314706244267648e-12
+geometries = 69
+median_us = 346.1
+unbuilt = 0
+worst = 2.0589751765062573e-12
+worst_at = "interior, x₀ interior, triangle 3"

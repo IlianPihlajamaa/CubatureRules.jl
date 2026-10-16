@@ -15,7 +15,9 @@
 # the triangle's orthonormal Dubiner polynomials to the degree; the error is the largest
 # difference over the largest integral (or 1). The certified rule rounded to Float64 gives the
 # floor that any Float64 rule faces, recorded beside it. Geometries the builder hands to the
-# certified construction (outside its range) are counted and left out.
+# certified construction (outside its range) are counted and left out, and so are those where
+# the certified construction itself fails (`unbuilt`: a piece thinner than its discretisation
+# reaches, as for the finite parts with x₀ within 1e-7 of an edge).
 
 using CubatureRules, LinearAlgebra, Printf, Random, StaticArrays, TOML
 const CR = CubatureRules
@@ -119,18 +121,31 @@ for K in (InverseDistance, InverseDistanceCubed, InverseDistanceGradient), d in 
     haskey(get(results, string(nameof(K)), Dict()), string(d)) && continue
     prng = Xoshiro(hash((string(nameof(K)), d)))
     b = KernelRuleBuilder(K, d)
-    worst, floor, at, n, fallbacks, times = 0.0, 0.0, "", 0, 0, Float64[]
+    worst, floor, at, n, fallbacks, unbuilt, times = 0.0, 0.0, "", 0, 0, 0, Float64[]
     for (T, V, i) in geometries
         x0, kind = i <= N_ON ? point_on(prng, V, i) : point_near(prng, V, i)
         kern = kernel_of(K, x0, prng)
-        xs, ws = b(T, kern)
+        local xs, ws, r
+        try                                    # the certified construction, in a fallback, may fail too
+            xs, ws = b(T, kern)
+        catch err
+            err isa RefinementError || rethrow()
+            unbuilt += 1
+            continue
+        end
         if b.place === :fallback
             fallbacks += 1
             continue
         end
         xs, ws = copy(xs), copy(ws)
         push!(times, @elapsed b(T, kern))
-        r = setprecision(() -> rule(WeightedDomain(T, kern); degree = d, digits = 20), BigFloat, 128)
+        try
+            r = setprecision(() -> rule(WeightedDomain(T, kern); degree = d, digits = 20), BigFloat, 128)
+        catch err
+            err isa RefinementError || rethrow()
+            unbuilt += 1
+            continue
+        end
         ref = moments(V, nodes(r), weights(r), d)
         e = relerr(moments(V, xs, ws, d), ref)
         f = relerr(moments(V, nodes(r), weights(r), d; rounded = true), ref)
@@ -142,12 +157,12 @@ for K in (InverseDistance, InverseDistanceCubed, InverseDistanceGradient), d in 
         end
     end
     sort!(times)
-    entry = Dict("worst" => worst, "floor" => floor, "geometries" => n, "fallbacks" => fallbacks,
+    entry = Dict("worst" => worst, "floor" => floor, "geometries" => n, "fallbacks" => fallbacks, "unbuilt" => unbuilt,
                  "worst_at" => at, "median_us" => round(1e6 * times[cld(length(times), 2)]; digits = 1))
     get!(results, string(nameof(K)), Dict{String,Any}())[string(d)] = entry
     write_record(results)
-    @printf("%-24s degree %2d: worst %.1e (rounded certified %.1e) over %d geometries, %d handed on; median %.1f µs [%s] (%.0f s)\n",
-            string(K), d, worst, floor, n, fallbacks, entry["median_us"], at, time() - t0)
+    @printf("%-24s degree %2d: worst %.1e (rounded certified %.1e) over %d geometries, %d handed on, %d unbuilt; median %.1f µs [%s] (%.0f s)\n",
+            string(K), d, worst, floor, n, fallbacks, unbuilt, entry["median_us"], at, time() - t0)
     flush(stdout)
 end
 println("wrote ", OUT)
