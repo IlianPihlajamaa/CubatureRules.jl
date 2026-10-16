@@ -18,11 +18,12 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
         @test length(e.seed) == CR.nunknowns(e.structure)
     end
     # Every entry is built and checked in the full sweep (CUBATURERULES_FULL_SWEEP=1); per
-    # commit, everything up to degree 17 and the two ends of the 133-201 range, whose rules
-    # have 6074 to 13680 points.
-    high = filter(e -> e.degree > 17, shipped)
+    # commit, everything up to degree 17, the first of the pooled search's 19-131, and the two
+    # ends of the 133-201 range, whose rules have 6074 to 13680 points.
+    mid = filter(e -> 17 < e.degree < 133, shipped)
+    high = filter(e -> e.degree >= 133, shipped)
     full = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1"
-    ends = isempty(high) ? Int[] : [first(high).degree, last(high).degree]
+    ends = vcat(isempty(mid) ? Int[] : [first(mid).degree], isempty(high) ? Int[] : [first(high).degree, last(high).degree])
     for e in shipped
         full || e.degree <= 17 || e.degree in ends || continue
         d = e.degree
@@ -33,6 +34,8 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
         @test v.exact
         if d <= 17
             @test v.sharp === true
+        elseif d < 133
+            @test v.sharp !== false                    # sharp, or not resolvable in Float64
         else
             # in Float64 these rules cannot show that they miss degree d + 1; the miss measured
             # at high precision, recorded in the table, says so instead (see next_error)
@@ -50,6 +53,10 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
             # his 74-point rule has a negative weight; ours is the smallest positive one
             @test e.npoints == 78
             @test occursin("not positive", e.note)
+        elseif d > 17
+            # the pooled search's rules: the note says where they match his count
+            @test e.npoints >= pub || occursin("fewer", e.note)
+            @test occursin("matches", e.note) == (e.npoints == pub)
         else
             @test e.npoints == pub
             @test occursin("matches", e.note)
@@ -57,8 +64,25 @@ const LEBEDEV_PUBLISHED = Dict(3 => 6, 5 => 14, 7 => 26, 9 => 38, 11 => 50, 13 =
     end
 end
 
+@testset "Lebedev degrees 19 to 131" begin
+    # in-house rules from scripts/search_campaign/, grown from the degree-17 rule
+    mid = filter(e -> 17 < e.degree < 133, CR.lebedev_entries())
+    @test [e.degree for e in mid] == collect(19:2:131)
+    for e in mid
+        # at most three unknowns above square, and a d orbit, which every rule of degree 18 or
+        # more needs: [xyz(x²−y²)(y²−z²)(z²−x²)]² vanishes on every other orbit kind
+        @test 0 <= CR.nunknowns(e.structure) - length(CR.invariant_exponents(e.degree)) <= 3
+        @test any(o -> o.kind === :d, e.structure.orbits)
+        wmin, dmin = CR.octahedral_margins(e.structure, e.seed)
+        @test wmin > 0 && dmin > 0
+        # within 15% of the parameter-count estimate (d+1)²/3, which is not a proven bound
+        @test e.npoints <= 1.15 * (e.degree + 1)^2 / 3
+        @test e.residual < 1e-14 && e.residual_bits >= 256
+    end
+end
+
 @testset "Lebedev degrees 133 to 201" begin
-    high = filter(e -> e.degree > 17, CR.lebedev_entries())
+    high = filter(e -> e.degree >= 133, CR.lebedev_entries())
     @test [e.degree for e in high] == collect(133:2:201)
     for e in high
         # square systems: as many unknowns as invariant conditions
@@ -71,11 +95,11 @@ end
         @test e.residual < 1e-14 && e.residual_bits >= 256
         @test e.next_error > 0
     end
-    # nothing is tabulated between degrees 17 and 133, so the degree-133 rule answers there
-    @test CR.lebedev_entry_for(19).degree == 133
-    @test npoints(LebedevRule(), Sphere{3}(), 131) == 6074
-    # the selector takes it only where it has fewer points than the product rule
-    @test family(rule(Sphere{3}(); degree = 41)) == "SphereProduct"
+    # every odd degree from 17 to 201 is tabulated, 19-131 by the pooled search
+    @test CR.lebedev_entry_for(19).degree == 19
+    @test CR.lebedev_entry_for(131).degree == 131 && npoints(LebedevRule(), Sphere{3}(), 131) < 6074
+    # the selector takes it where it has fewer points than the product rule, which is everywhere
+    @test family(rule(Sphere{3}(); degree = 41)) == "Lebedev"
     @test family(rule(Sphere{3}(); degree = 121)) == "Lebedev"
 end
 
@@ -178,7 +202,7 @@ end
     # Lebedev.jl is loaded only by the interop tests, which run later
     if CR.missing_dependency(UpstreamLebedev()) !== nothing
         CR.selection_warnings!(true)
-        @test only(CR.unloaded_alternatives(Sphere{3}(), 20)).npoints == 170
+        @test only(CR.unloaded_alternatives(Sphere{3}(), 25)).npoints == 230   # the in-house rule has more
         @test isempty(CR.unloaded_alternatives(Sphere{3}(), 127))
         @test_logs (:warn, r"Lebedev.jl has a 302-point rule there but is not loaded") match_mode = :any rule(Sphere{3}(); degree = 29)
         @test_logs rule(Sphere{3}(); degree = 29)              # once per family and degree

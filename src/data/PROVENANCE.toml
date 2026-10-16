@@ -9,9 +9,9 @@
 path = "triangle_s3_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully S3-symmetric, positive,
-interior triangle rules of degrees 1-68: to degree 26 at the point counts reported by Xiao &
+interior triangle rules of degrees 1-77: to degree 26 at the point counts reported by Xiao &
 Gimbutas (2010) (one point more at degree 25), at degrees 27-33 and 35-50 with fewer points
-than they report, and at 51-68 beyond the degrees they tabulate."""
+than they report, and at 51-77 beyond the degrees they tabulate."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_triangle_seeds.jl: multistart Levenberg-Marquardt on
@@ -20,15 +20,17 @@ fixed, then refined to 100 digits and rounded to Float64. Above degree 20, node 
 from the rule one degree lower (src/refine/elimination.jl); degrees 51-53 by
 scripts/search_campaign.jl (2026-09-25/26), 54-56 by the same grow → eliminate chains
 (2026-10-01/02), and 57-68 and the smaller rules at degree 35 (225 points, was 226) and 46
-(379, was 381) by the pooled search, scripts/search_campaign/ (2026-10-02/03). No numerical
+(379, was 381) by the pooled search, scripts/search_campaign/ (2026-10-02/03), and 69-77 by
+the same search (2026-10-03/09). No numerical
 table was consulted. The point counts (a combinatorial fact stated in the paper's prose and
 tables, not the tabulated nodes or weights) are from Xiao & Gimbutas (2010)."""
 license = "MIT"
 retrieved = "2026-09-18"
 citation = "H. Xiao and Z. Gimbutas, Comput. Math. Appl. 59 (2010) 663-676, doi:10.1016/j.camwa.2009.10.027"
-generator = "scripts/generate_triangle_seeds.jl; scripts/search_campaign.jl, removed after 6e11464 (degrees 51-56); scripts/search_campaign/ (35, 46, 57-68)"
+generator = "scripts/generate_triangle_seeds.jl; scripts/search_campaign.jl, removed after 165f243 (degrees 51-56); scripts/search_campaign/ (35, 46, 57-77)"
 checked = """
-scripts/certify_tables.jl, 2026-09-24 (degrees 35, 46 and 54-68 on 2026-10-03): every seed
+scripts/certify_tables.jl, 2026-09-24 (degrees 35, 46 and 54-68 on 2026-10-03, 69-77 on
+2026-10-16): every seed
 is the correctly rounded Float64 value of the rule refined to 160 bits (the degree-11
 triangle seed was 3 ulp off and was replaced), and its defining-equation residual at 256
 bits is recorded in the table."""
@@ -47,14 +49,17 @@ refined to 100 digits and rounded to Float64; above degree 10, node elimination 
 rule one degree lower. Degree 21, the 288-point degree-17 rule (2026-09-25), the 101-point
 degree-11 rule and the 609-point degree-22 rule (2026-10-02) were found by
 scripts/search_campaign.jl; degrees 23-27 by the same grow → eliminate chains
-(2026-10-01/02), and 28-30 by the pooled search, scripts/search_campaign/ (2026-10-03).
+(2026-10-01/02), and 28-30 by the pooled search, scripts/search_campaign/ (2026-10-03), which
+also found degree 31 and smaller rules at degrees 16 (248 points, was 250), 26 (927, was 954)
+and 27 (1033, was 1061) (2026-10-04/08).
 Neither numbers nor point counts were taken from any publication."""
 license = "MIT"
 retrieved = "2026-09-19"
 citation = "none (generated in-house)"
-generator = "scripts/generate_tetrahedron_seeds.jl; scripts/search_campaign.jl, removed after 6e11464 (degrees 21-27); scripts/search_campaign/ (28-30)"
+generator = "scripts/generate_tetrahedron_seeds.jl; scripts/search_campaign.jl, removed after 165f243 (degrees 21-27); scripts/search_campaign/ (16, 26-31)"
 checked = """
-scripts/certify_tables.jl, 2026-09-24 (degrees 11, 22 and 23-30 on 2026-10-03): every seed is
+scripts/certify_tables.jl, 2026-09-24 (degrees 11, 22 and 23-30 on 2026-10-03; 16, 26, 27
+and 31 on 2026-10-16): every seed is
 the correctly rounded Float64 value of the rule refined to 160 bits, and its
 defining-equation residual at 256 bits is recorded in the table."""
 
@@ -63,8 +68,9 @@ path = "lebedev_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for octahedrally symmetric, positive
 sphere rules of odd degree: degrees 3-17 with the smallest point counts the in-house search
-reached subject to positive weights, and every odd degree 133-201 as a square system, with as
-many unknowns as invariant moment conditions."""
+reached subject to positive weights, every odd degree 19-131 from the pooled search with at
+most three unknowns more than invariant moment conditions, and every odd degree 133-201 as a
+square system, with as many unknowns as conditions."""
 authors = "CubatureRules.jl contributors"
 source = """
 Degrees 3-17: generated in-house by scripts/generate_lebedev_seeds.jl: for each odd degree, a
@@ -74,6 +80,13 @@ taken from any publication. Lebedev's published point counts appear in the gener
 annotate its log, and the counts found agree with them except at degree 13, where the
 published 74-point rule has a negative weight and the search reports a 78-point positive one
 instead.
+
+Degrees 19-131: grown in-house from the degree-17 rule by the pooled search,
+scripts/search_campaign/ (2026-10-08/13), fitting in the orthonormal invariant harmonics and
+pruning, perturbing and re-growing in a shared pool of rules. Every rule has at least one d
+orbit, which every rule of degree 18 or more needs. No published numbers were used, and none
+seeded the search. Lebedev's point counts were compared afterwards: the same at degrees 19,
+21, 23, 35 and 41, and up to about 10% more elsewhere.
 
 Degrees 133-201: computed by the package author's continuation search (September 2026, run
 outside this repository). A verified rule at one degree is grown into an underdetermined rule
@@ -92,10 +105,10 @@ citation = """
 V. I. Lebedev, USSR Comput. Math. Math. Phys. 16 (1976) 10-24, doi:10.1016/0041-5553(76)90100-2;
 V. I. Lebedev and D. N. Laikov, Doklady Mathematics 59 (1999) 477-481 (the degree-131 rule the
 degree 133-201 continuation started from)"""
-generator = "scripts/generate_lebedev_seeds.jl (degrees 3-17); scripts/import_octahedral_rules.jl, removed after 6e11464 (degrees 133-201)"
+generator = "scripts/generate_lebedev_seeds.jl (degrees 3-17); scripts/search_campaign/ (degrees 19-131); scripts/import_octahedral_rules.jl, removed after 165f243 (degrees 133-201)"
 checked = """
-scripts/certify_tables.jl, 2026-09-24 and 2026-09-30 (degrees 3-17) and 2026-10-01 (degrees
-133-201): every seed is the correctly rounded Float64 value of the rule refined to 160 bits,
+scripts/certify_tables.jl, 2026-09-24 and 2026-09-30 (degrees 3-17), 2026-10-01 (degrees
+133-201) and 2026-10-16 (degrees 19-131): every seed is the correctly rounded Float64 value of the rule refined to 160 bits,
 and its defining-equation residual at 256 bits is recorded in the table."""
 
 [[file]]
@@ -111,16 +124,18 @@ upwards in point count with random starts on every orbit structure of each count
 each degree grown from the one below and thinned by node elimination, the best of two runs
 (16 and 32 chains) kept per degree. Degrees 33-51 were found by scripts/search_box_campaign.jl
 (2026-10-02, the same grow → eliminate moves run for 12 hours), and degrees 53-75 by the
-pooled search, scripts/search_campaign/ (2026-10-02/03). Neither numbers nor point counts were
+pooled search, scripts/search_campaign/ (2026-10-02/03), which later found smaller rules at
+degrees 41, 53, 57, 59, 63 and 75 (48 points fewer in all; 2026-10-04/08). Neither numbers nor point counts were
 taken from any publication. The counts were compared afterwards with Witherden & Vincent
 (2015), who tabulate this class to degree 21: they agree at every degree except 17,
 where this table has 57 points against 60."""
 license = "MIT"
 retrieved = "2026-10-02"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl, removed after 6e11464 (degrees 33-51); scripts/search_campaign/ (53-75)"
+generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl, removed after 165f243 (degrees 33-51); scripts/search_campaign/ (41, 53-75)"
 checked = """
-scripts/certify_tables.jl, 2026-10-02 (degrees 33-75 on 2026-10-03): every seed is the
+scripts/certify_tables.jl, 2026-10-02 (degrees 33-75 on 2026-10-03; 41, 53, 57, 59, 63 and
+75 again on 2026-10-16): every seed is the
 correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
 residual at 256 bits is recorded in the table. scripts/verify_tables.jl at 60 digits."""
 
@@ -137,7 +152,9 @@ upwards in point count with random starts on every orbit structure of each count
 each degree grown from the one below and thinned by node elimination. Degrees 19-29, and
 smaller rules at degrees 13 (154 points, was 160), 15 (199, was 208) and 17 (282, was 287),
 were found by scripts/search_box_campaign.jl (2026-10-02, the same moves run for 12 hours),
-and degrees 31-41 by the pooled search, scripts/search_campaign/ (2026-10-02/03). Neither
+and degrees 31-41 by the pooled search, scripts/search_campaign/ (2026-10-02/03), which later
+found smaller rules at degree 19 (369 points, was 380) and at every degree 31-41 (909 points
+fewer in all; 2026-10-04/12). Neither
 numbers nor point counts were taken from any publication. The counts were compared
 afterwards with Witherden & Vincent (2015), who tabulate this class to degree 11: they agree
 at every degree except 3, where this table has 8 points against 6, because a 6-point rule of
@@ -145,9 +162,10 @@ degree 3 has its nodes on the faces and these rules keep every node inside."""
 license = "MIT"
 retrieved = "2026-10-02"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl, removed after 6e11464 (degrees 13-29); scripts/search_campaign/ (31-41)"
+generator = "scripts/generate_box_seeds.jl; scripts/search_box_campaign.jl, removed after 165f243 (degrees 13-29); scripts/search_campaign/ (19, 31-41)"
 checked = """
-scripts/certify_tables.jl, 2026-10-02 (degrees 13-41 on 2026-10-03): every seed is the
+scripts/certify_tables.jl, 2026-10-02 (degrees 13-41 on 2026-10-03; 19 and 31-41 again on
+2026-10-16): every seed is the
 correctly rounded Float64 value of the rule refined to 160 bits, and its defining-equation
 residual at 256 bits is recorded in the table. scripts/verify_tables.jl at 60 digits."""
 
@@ -156,73 +174,79 @@ path = "hypercube_b4_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the 4-cube [-1, 1]^4, invariant under its 384 symmetries (the signed
-permutations of the coordinates), at odd degrees 1-17."""
+permutations of the coordinates), at odd degrees 1-25."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_box_seeds.jl (2026-10-08): up to degree 5, a walk
 upwards in point count with random starts on every orbit structure of each count; above it,
 each degree grown from the one below and thinned by node elimination. A short run that
 checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
-point counts were taken from any publication."""
+point counts were taken from any publication.
+Degrees 19-25 were grown by the pooled search, scripts/search_campaign/ (2026-10-11/12)."""
 license = "MIT"
 retrieved = "2026-10-08"
 citation = "none (generated in-house)"
-generator = "scripts/generate_box_seeds.jl"
+generator = "scripts/generate_box_seeds.jl; scripts/search_campaign/ (degrees 19-25)"
 checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+the table (degrees 19-25 on 2026-10-16). scripts/verify_tables.jl at 60 digits
+(2026-10-08; degrees 19-25 on 2026-10-16)."""
 
 [[file]]
 path = "disk_d4_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the unit disk, invariant under the 8 symmetries of the square, at odd
-degrees 1-21."""
+degrees 1-49."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_box_seeds.jl (2026-10-08): up to degree 13, a walk
 upwards in point count with random starts on every orbit structure of each count; above it,
 each degree grown from the one below and thinned by node elimination. A short run that
 checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
-point counts were taken from any publication."""
+point counts were taken from any publication.
+Degrees 23-49 were grown by the pooled search, scripts/search_campaign/ (2026-10-08/12)."""
 license = "MIT"
 retrieved = "2026-10-08"
 citation = "none (generated in-house)"
-generator = "scripts/generate_box_seeds.jl"
+generator = "scripts/generate_box_seeds.jl; scripts/search_campaign/ (degrees 23-49)"
 checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+the table (degrees 23-49 on 2026-10-16). scripts/verify_tables.jl at 60 digits
+(2026-10-08; degrees 23-49 on 2026-10-16)."""
 
 [[file]]
 path = "ball_oh_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the unit ball in three dimensions, invariant under the 48 symmetries of
-the cube, at odd degrees 1-13."""
+the cube, at odd degrees 1-21."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_box_seeds.jl (2026-10-08): up to degree 7, a walk
 upwards in point count with random starts on every orbit structure of each count; above it,
 each degree grown from the one below and thinned by node elimination. A short run that
 checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
-point counts were taken from any publication."""
+point counts were taken from any publication.
+Degrees 15-21 were grown by the pooled search, scripts/search_campaign/ (2026-10-08/12)."""
 license = "MIT"
 retrieved = "2026-10-08"
 citation = "none (generated in-house)"
-generator = "scripts/generate_box_seeds.jl"
+generator = "scripts/generate_box_seeds.jl; scripts/search_campaign/ (degrees 15-21)"
 checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+the table (degrees 15-21 on 2026-10-16). scripts/verify_tables.jl at 60 digits
+(2026-10-08; degrees 15-21 on 2026-10-16)."""
 
 [[file]]
 path = "pyramid_c4v_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the pyramid with base [-1, 1]^2 at z = 0 and apex (0, 0, 1), invariant
-under the 8 symmetries of its base, at degrees 1-9."""
+under the 8 symmetries of its base, at degrees 1-14."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_orbit_seeds.jl (2026-10-08): up to degree 6, a walk
@@ -231,59 +255,68 @@ each degree grown from the one below and thinned by node elimination. A short ru
 checks the machinery, not a campaign. Neither numbers nor point counts were taken from any
 publication. The counts were compared afterwards with Witherden & Vincent (2015), who
 tabulate this class to degree 10: they agree at degrees 1-5 and 8; this table has 1 and 2
-points more at degrees 6 and 7, and 3 fewer at degree 9 (59 against 62)."""
+points more at degrees 6 and 7, and 3 fewer at degree 9 (59 against 62).
+Degrees 10-14 were grown by the pooled search, scripts/search_campaign/ (2026-10-08/11); at
+degree 10 it has 3 points fewer than Witherden & Vincent (80 against 83)."""
 license = "MIT"
 retrieved = "2026-10-08"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_orbit_seeds.jl"
+generator = "scripts/generate_orbit_seeds.jl; scripts/search_campaign/ (degrees 10-14)"
 checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+the table (degrees 10-14 on 2026-10-16). scripts/verify_tables.jl at 60 digits
+(2026-10-08; degrees 10-14 on 2026-10-16)."""
 
 [[file]]
 path = "wedge_d3h_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the wedge, the triangle (0,0), (1,0), (0,1) times [-1, 1], invariant
-under its 12 symmetries, at degrees 1-6."""
+under its 12 symmetries, at degrees 1-21."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_orbit_seeds.jl (2026-10-08): a walk upwards in point
 count with random starts on every orbit structure of each count. A short run that checks
 the machinery, not a campaign. Neither numbers nor point counts were taken from any
 publication. The counts were compared afterwards with Witherden & Vincent (2015), who
-tabulate this class to degree 10: they agree at every degree 1-6."""
+tabulate this class to degree 10: they agree at every degree 1-6.
+Degrees 7-21 were grown by the pooled search, scripts/search_campaign/ (2026-10-08/12); at
+degrees 7-10 they have 1, 1, 5 and 9 points more than Witherden & Vincent (36, 47, 65 and 94
+against 35, 46, 60 and 85)."""
 license = "MIT"
 retrieved = "2026-10-08"
 citation = "none (generated in-house); compared with F. D. Witherden and P. E. Vincent, Comput. Math. Appl. 69 (2015) 1232-1241"
-generator = "scripts/generate_orbit_seeds.jl"
+generator = "scripts/generate_orbit_seeds.jl; scripts/search_campaign/ (degrees 7-21)"
 checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+the table (degrees 7-21 on 2026-10-16). scripts/verify_tables.jl at 60 digits
+(2026-10-08; degrees 7-21 on 2026-10-16)."""
 
 [[file]]
 path = "simplex4_s5_seeds.toml"
 description = """
 Float64 seeds (orbit parameters) and orbit structures for fully symmetric, positive,
 interior rules on the reference 4-simplex, invariant under the 120 permutations of the
-barycentric coordinates, at degrees 1-6."""
+barycentric coordinates, at degrees 1-13."""
 authors = "CubatureRules.jl contributors"
 source = """
 Generated in-house by scripts/generate_simplex4_seeds.jl (2026-10-08): up to degree 4, a walk
 upwards in point count with random starts on every orbit structure of each count; above it,
 each degree grown from the one below and thinned by node elimination. A short run that
 checks the machinery, not a campaign: the counts are the smallest it reached. No numbers or
-point counts were taken from any publication."""
+point counts were taken from any publication.
+Degrees 7-13 were grown by the pooled search, scripts/search_campaign/ (2026-10-08/12)."""
 license = "MIT"
 retrieved = "2026-10-08"
 citation = "none (generated in-house)"
-generator = "scripts/generate_simplex4_seeds.jl"
+generator = "scripts/generate_simplex4_seeds.jl; scripts/search_campaign/ (degrees 7-13)"
 checked = """
 scripts/certify_tables.jl, 2026-10-08: every seed is the correctly rounded Float64 value of
 the rule refined to 160 bits, and its defining-equation residual at 256 bits is recorded in
-the table. scripts/verify_tables.jl at 60 digits (2026-10-08)."""
+the table (degrees 7-13 on 2026-10-16). scripts/verify_tables.jl at 60 digits
+(2026-10-08; degrees 7-13 on 2026-10-16)."""
 
 [[file]]
 path = "fast_kernel_validation.toml"

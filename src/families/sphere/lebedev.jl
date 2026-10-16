@@ -16,8 +16,8 @@
 # repository (src/data/PROVENANCE.toml; imported by scripts/import_octahedral_rules.jl, since
 # removed): each rule is grown from the one below by adding orbits, pruned back to a square
 # system — as many unknowns as invariant conditions — and solved with positive weights. Those
-# point counts are not claimed minimal. Nothing between degrees 17 and 133 is tabulated, so a
-# request in that range is answered by the degree-133 rule, the smallest entry above it.
+# point counts are not claimed minimal. Degrees 19-131 were grown from the degree-17 rule by the
+# pooled search (scripts/search_campaign/), so every odd degree from 3 to 201 is tabulated.
 #
 # Only odd degrees are tabulated. Every O_h orbit is centrally symmetric, so the odd
 # harmonics integrate to zero whatever the parameters and a rule of degree 2k is
@@ -56,9 +56,9 @@ shipped rule need not coincide node for node with any published table.
 
 Every odd degree from 133 to 201 is also shipped, with 6074 to 13680 points: square systems,
 with as many unknowns as invariant conditions, found by a continuation search and not
-claimed minimal. A request between degrees 19 and 131 is answered by the degree-133 rule;
-`rule(Sphere{3}(); degree)` takes the product rule up to degree 109 and this one from 111,
-where it has fewer points. `Float64` rules at these
+claimed minimal. Every odd degree from 19 to 131 is shipped too, grown from the degree-17
+rule by the pooled search (scripts/search_campaign/), at most three unknowns above square;
+`rule(Sphere{3}(); degree)` takes these over the product rule at every degree, on node count. `Float64` rules at these
 degrees are served as stored; asking for more digits refines them in an invariant system
 whose condition number is 10⁵⁴ to 10⁸¹, which takes minutes per rule.
 
@@ -206,12 +206,14 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
                seed::SeedSource = TableSeed())
     e = _lebedev_entry(degree)
     continued = e.method == "continuation"
+    pooled = startswith(e.method, "pooled search")          # degrees 19-131
     return build_seeded(e, ctx; seed, family = "Lebedev", domain = Sphere{3}(), symmetry = Oh(),
                         table = "src/data/lebedev_seeds.toml",
                         origin = continued ? "from the degree 133-201 continuation search; see src/data/PROVENANCE.toml" :
+                                 pooled ? "from the pooled search, scripts/search_campaign/; see src/data/PROVENANCE.toml" :
                                  "generated in-house by multistart from the orbit structure",
                         equations = "O_h-invariant moment system in orbit parameters (invariants p₄^a p₆^b, " *
                                     "4a + 6b ≤ $(e.degree))",
-                        citations = continued ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976],
+                        citations = continued || pooled ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976],
                         license = "MIT (seeds generated in-house; no published tables are redistributed)")
 end

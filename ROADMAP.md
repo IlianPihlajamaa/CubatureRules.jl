@@ -385,12 +385,13 @@ gaining enough breadth for the selector to be genuinely discriminating.
 - [x] Octahedral orbit algebra; `Lebedev` seeded and refined to arbitrary precision
       *(seeds generated in-house, degrees 3–17, matching the published counts except at
       degree 13, where the 74-point rule is not positive and the search reports 78)*
-- [ ] Lebedev seeds above degree 17 *(grow-from-below now exists and reaches degree 17
-      from 15 in a second, but degree 19 stalls at a residual near 3e-6 with healthy
-      margins from every structure tried, including Lebedev's own — a local minimum, not
-      a rejected rule; see notes/v0.4-spheres.md for what is left to try. Every odd degree
-      133–201 is now shipped, from an external continuation campaign
-      (imported by scripts/import_octahedral_rules.jl, since removed); 19–131 remain)*
+- [x] Lebedev seeds above degree 17 *(every odd degree 133–201 from an external continuation
+      campaign (imported by scripts/import_octahedral_rules.jl, since removed), and 19–131
+      grown in-house from the degree-17 rule by the pooled search, scripts/search_campaign/.
+      The stall at degree 19 recorded in notes/v0.4-spheres.md had two causes: the Float64
+      fit in p₄ᵃp₆ᵇ is too ill-conditioned there (about 1e19, against 23 in the orthonormal
+      invariant harmonics), and every rule of degree 18 or more needs a 48-point d orbit,
+      since [xyz(x²−y²)(y²−z²)(z²−x²)]² vanishes with its gradient on every other orbit kind)*
 - [x] High-degree octahedral refinement *(`refine_seed` solves the moment equations
       in the orthonormal `O_h`-invariant harmonics (`OctahedralHarmonicSystem`): D4h-invariant
       combinations of P̄_ℓ^m cos mφ averaged over x → y → z, exactly invariant whatever the
@@ -725,15 +726,17 @@ them.
       machinery — 4-cube odd degrees 1–17, disk 1–21, ball 1–13, pyramid 1–9, wedge 1–6,
       4-simplex 1–6, all certified — to be extended by scripts/generate_box_seeds.jl,
       generate_orbit_seeds.jl (which takes a degree range and keeps the stored entries
-      outside it) and generate_simplex4_seeds.jl. The wedge agrees with Witherden & Vincent
+      outside it) and generate_simplex4_seeds.jl. The pooled search (scripts/search_campaign/)
+      has since taken them to 4-cube 25, disk 49, ball 21, pyramid 14, wedge 21 and
+      4-simplex 13. The wedge agrees with Witherden & Vincent
       (2015) at every degree 1–6; the pyramid at 1–5 and 8, has 3 points fewer at 9 (59
       against 62) and 1–2 more at 6 and 7. Growing the 20-point degree-4 rule on the
       4-simplex failed with only the triangle's and tetrahedron's recipes: with 7
       equations, fits with a large surplus of unknowns landed outside or on negative
       weights. Both `grow` and `orbit_grow` now end with single small orbits and one
       unknown to spare, which grows it to 30 points at degree 5. The exactly determined
-      59-point degree-9 pyramid rule still does not grow to degree 10 by any recipe; that
-      degree needs a multistart or a looser degree-9 rule)*
+      59-point degree-9 pyramid rule does not grow to degree 10 by any recipe; the pooled
+      search reached degree 10 (80 points) from the looser rules in its pool)*
 - [ ] Stroud $T_n$ in closed form for arbitrary $d$, carried from v0.4. Low priority while
       `ConicalProduct` covers every degree and `GrundmannMöller` is exactly rational: it
       buys smaller point counts at fixed low degree, not new capability
@@ -754,9 +757,9 @@ them.
       *(multi-chain driver done; no compute budget yet)*
 - [x] Target: an MIT-licensed seed table for at least one domain where the literature runs
       out, which both extends coverage and unwinds the §0.2 dependency *(triangles to degree
-      68 against Xiao & Gimbutas' 50, the square to 75 and the cube to 41 against Witherden &
-      Vincent's 21 and 11, tetrahedra to 30, Lebedev 133–201 beyond Lebedev's 131; all
-      generated in-house)*
+      77 against Xiao & Gimbutas' 50, the square to 75 and the cube to 41 against Witherden &
+      Vincent's 21 and 11, tetrahedra to 31, the sphere at every odd degree 3–201 against
+      Lebedev's 131; all generated in-house)*
 
 **Exit criteria**
 

@@ -55,9 +55,14 @@ The table also holds every odd degree from 133 to 201, from 6074 points at degre
 the next degree by adding orbits, then removes orbits until the system is square — as many
 unknowns as invariant conditions — and solves it with positive weights. They are not claimed
 minimal; their counts are 0.2% to 1.5% above the parameter-count estimate `(d+1)²/3`.
-Degrees 19 to 131 are not tabulated, so `LebedevRule()` answers them with the degree-133
-rule; the selector (`rule(Sphere{3}(); degree)` without a family) picks the product rule up
-to degree 109 and the 6074-point degree-133 rule from 111, where it has fewer points.
+Every odd degree from 19 to 131 is shipped as well: in-house rules grown from the degree-17
+rule by the pooled search (`scripts/search_campaign/`), at most three unknowns above square.
+Their counts equal Lebedev's at degrees 19, 21, 23, 35 and 41 and are at most about 10% above
+his elsewhere; they are not claimed minimal. Every rule from degree 18 on needs at least one
+48-point orbit in general position, since `[xyz(x²−y²)(y²−z²)(z²−x²)]²` is an invariant of
+degree 18 that vanishes, with its gradient, on every other orbit kind. The selector
+(`rule(Sphere{3}(); degree)` without a family) takes these rules over the product rule at
+every degree, on node count.
 `Float64` rules are served as stored. More digits cost minutes per rule at these degrees,
 because the invariant system is conditioned near 10⁵⁴–10⁸¹: refining to 160 bits takes
 about 1 minute at degree 133 and 8 at degree 189. In `Float64` these rules come too close
