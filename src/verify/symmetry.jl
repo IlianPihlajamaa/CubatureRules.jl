@@ -38,6 +38,11 @@ signed_dimension(::Oh) = 3
 signed_dimension(::D4) = 2
 signed_dimension(::B4) = 4
 
+# a node as a vector of its coordinates: a number in one dimension (where `collect` would
+# give a zero-dimensional array, which Julia 1.11 cannot sort)
+node_coordinates(x::Number) = [x]
+node_coordinates(x) = collect(x)
+
 "`n!/∏ mⱼ!` for the runs of equal entries (within `tol`) of the sorted vector `k`: its distinct permutations."
 function permutation_count(k, tol)
     total, run = factorial(length(k)), 1
@@ -106,7 +111,7 @@ function complete_orbits(xs, ws, grp, size, tol, wscale)
         while b < length(byweight) && abs(ws[byweight[b + 1]] - ws[byweight[a]]) <= tol * wscale
             b += 1
         end
-        pts = sort([collect(xs[q]) for q in byweight[a:b]])
+        pts = sort([node_coordinates(xs[q]) for q in byweight[a:b]])
         runs = Int[1]
         for m in 2:length(pts)
             maximum(abs, pts[m] .- pts[m - 1]) <= tol ? (runs[end] += 1) : push!(runs, 1)
