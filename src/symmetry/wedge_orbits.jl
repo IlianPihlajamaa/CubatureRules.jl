@@ -102,6 +102,7 @@ end
 n_wedge_equations(n::Integer) = sum(rk * ((n - k) ÷ 2 + 1) for (k, rk) in zip(0:n, invariant_basis(3, n).ranks))
 n_equations(sys::WedgeMomentSystem) = length(sys.rows)
 n_unknowns(sys::WedgeMomentSystem) = nunknowns(sys.structure)
+moment_system(s::WedgeStructure, n, ::Type{S}, _ = nothing) where {S} = WedgeMomentSystem(s, n, S)
 
 function (sys::WedgeMomentSystem{S})(θ::AbstractVector; jacobian::Bool = true) where {S}
     s = sys.structure

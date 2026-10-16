@@ -50,7 +50,7 @@ function attempt(prev, n, N, seed, log)
         return nothing
     end
     s, θ0, counts = r
-    θ, res, _ = CR.refine_symmetric(s, n, θ0, CR.digits_to_bits(100); basis)
+    θ, res, _ = CR.refine_seed(s, n, θ0, CR.digits_to_bits(100); basis)
     if !res.converged
         logline(log, @sprintf("degree %2d: %d points found but refinement failed", n, CR.npoints(s)))
         return nothing

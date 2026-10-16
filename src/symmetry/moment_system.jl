@@ -91,6 +91,8 @@ TriangleMomentSystem(structure::SymmetricStructure, n::Integer, ::Type{S}, args.
 
 n_equations(sys::SymmetricMomentSystem) = sys.m
 n_unknowns(sys::SymmetricMomentSystem) = nunknowns(sys.structure)
+moment_basis(s::SymmetricStructure, n) = invariant_basis(s.N, n)
+moment_system(s::SymmetricStructure, n, ::Type{S}, basis = moment_basis(s, n)) where {S} = SymmetricMomentSystem(s, n, S, basis)
 
 # The three accumulations of `full_residual`: r += w φ, J[:, col] += φ and
 # J[:, col] += w (G d). For BigFloat they add in place (see core/mpfr.jl), which halves the

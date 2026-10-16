@@ -163,7 +163,7 @@ end
     w = sys5([0.0, 0.0])[2] \ Float64[CR.invariant_moment(0, 0), CR.invariant_moment(1, 0)]
     for digits in (30, 80)
         bits = CR.digits_to_bits(digits)
-        θ, res, guard = CR.refine_octahedral(s5, 5, Float64[w[1], w[2]], bits)
+        θ, res, guard = CR.refine_seed(s5, 5, Float64[w[1], w[2]], bits)
         @test res.converged
         @test guard > 0
         xs, ws = CR.with_bits(() -> CR.expand(s5, θ), bits + guard)

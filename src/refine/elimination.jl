@@ -11,7 +11,7 @@
 #              remaining parameters onto the moment variety. A move is accepted if the fit
 #              converges with positive weights and interior nodes. Stop when no move works.
 #
-# Everything here runs in Float64; the result is a seed for `refine_symmetric`.
+# Everything here runs in Float64; the result is a seed for `refine_seed`.
 
 "A candidate elimination move: the new structure, its starting parameters, points removed."
 struct EliminationMove

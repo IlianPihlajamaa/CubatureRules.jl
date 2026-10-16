@@ -84,6 +84,7 @@ PyramidMomentSystem(s::PyramidStructure, n::Integer, ::Type{S}) where {S} =
     PyramidMomentSystem{S}(s, Int(n), pyramid_terms(n))
 n_equations(sys::PyramidMomentSystem) = length(sys.terms)
 n_unknowns(sys::PyramidMomentSystem) = nunknowns(sys.structure)
+moment_system(s::PyramidStructure, n, ::Type{S}, _ = nothing) where {S} = PyramidMomentSystem(s, n, S)
 
 function (sys::PyramidMomentSystem{S})(θ::AbstractVector; jacobian::Bool = true) where {S}
     s, n = sys.structure, sys.n

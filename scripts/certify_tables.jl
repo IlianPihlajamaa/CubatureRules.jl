@@ -1,5 +1,5 @@
 # Check the shipped Float64 seed tables so that Float64 requests can be served from them
-# without refinement (see `build_symmetric` and the Lebedev `build`).
+# without refinement (see `build_seeded`).
 #
 #     julia --project scripts/certify_tables.jl [table ...]
 #     julia --project scripts/certify_tables.jl triangle:51,52,53 tetrahedron:17,21,22
@@ -39,41 +39,25 @@ const NOTE = "# `residual` is the defining-equation residual of the stored seed 
              "recorded by\n# scripts/certify_tables.jl, which also checks that each seed is the correctly " *
              "rounded Float64\n# value of the rule refined to $REFINE_BITS bits."
 
+"The orbit structure of a table row of the given kind, from its `structure` field as stored."
+function structure_of(kind, N, stored)
+    kind === :box && return CR.BoxStructure(CR.int_lists(stored), N)
+    kind === :round && return CR.BoxStructure(CR.int_lists(stored), N; geometry = CR.RoundGeometry())
+    kind === :pyramid && return CR.PyramidStructure(CR.int_lists(stored))
+    kind === :wedge && return CR.WedgeStructure(CR.int_lists(stored))
+    kind === :octahedral && return CR.OctahedralStructure(Symbol.(stored))
+    return CR.SymmetricStructure(CR.int_lists(stored), N)
+end
+
 function refine_and_residual(e, kind, N)
     n, θ64 = e["degree"], Float64.(e["seed"])
-    if kind === :box
-        s = CR.BoxStructure([Int[x for x in m] for m in e["structure"]], N)
-        θ, res, _ = CR.refine_box(s, n, θ64, REFINE_BITS)
-        system = (θ) -> CR.BoxMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
-    elseif kind === :round
-        s = CR.BoxStructure([Int[x for x in m] for m in e["structure"]], N;
-                            geometry = CR.RoundGeometry())
-        θ, res, _ = CR.refine_round(s, n, θ64, REFINE_BITS)
-        system = (θ) -> CR.RoundMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
-    elseif kind === :pyramid
-        s = CR.PyramidStructure([Int[x for x in m] for m in e["structure"]])
-        θ, res, _ = CR.refine_pyramid(s, n, θ64, REFINE_BITS)
-        system = (θ) -> CR.PyramidMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
-    elseif kind === :wedge
-        s = CR.WedgeStructure([Int[x for x in m] for m in e["structure"]])
-        θ, res, _ = CR.refine_wedge(s, n, θ64, REFINE_BITS)
-        system = (θ) -> CR.WedgeMomentSystem(s, n, BigFloat)(θ; jacobian = false)[1]
-    elseif kind === :octahedral
-        s = CR.OctahedralStructure(Symbol.(e["structure"]))
-        θ, res, _ = CR.refine_octahedral(s, n, θ64, REFINE_BITS)
-        system = (θ) -> CR.OctahedralMomentSystem(s, n, BigFloat)(θ)[1]
-    else
-        s = CR.SymmetricStructure([Int.(m) for m in e["structure"]], N)
-        basis = CR.invariant_basis(N, n)
-        θ, res, _ = CR.refine_symmetric(s, n, θ64, REFINE_BITS; basis)
-        system = (θ) -> CR.SymmetricMomentSystem(s, n, BigFloat, basis)(θ; jacobian = false)[1]
-    end
+    s = structure_of(kind, N, e["structure"])
+    basis = CR.moment_basis(s, n)
+    θ, res, _ = CR.refine_seed(s, n, θ64, REFINE_BITS; basis)
     res.converged || error("degree $n did not converge")
     θr = Float64.(θ)
     ulps = maximum(abs(a - b) / eps(max(abs(a), floatmin())) for (a, b) in zip(θr, θ64))
-    resid = CR.with_bits(RESIDUAL_BITS) do
-        maximum(abs, system(BigFloat.(θr)))
-    end
+    resid = CR.with_bits(() -> CR.moment_residual(s, n, BigFloat.(θr), basis), RESIDUAL_BITS)
     return θr, ulps, Float64(resid)
 end
 

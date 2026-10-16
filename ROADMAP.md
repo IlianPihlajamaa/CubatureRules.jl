@@ -149,7 +149,7 @@ families and tooling on top of what lands here.
 - [x] Per-iteration cond(J) estimate
 - [x] Guard digits set adaptively from cond(J); both recorded in the `Certificate`
 - [x] One refinement driver for every seed-table family *(`refine_system`, behind
-      `refine_symmetric`, `refine_octahedral` and `refine_box`: guard from the seed's
+      `refine_seed`, for every orbit structure: guard from the seed's
       condition number, one re-run if the run asks for more, and a working precision of at
       least twice the guard, so the rank-revealing cut at 2^-(bits/2) stays 32 bits below
       1/κ and never discards a genuine direction. The floor binds for none of the shipped
@@ -391,7 +391,7 @@ gaining enough breadth for the selector to be genuinely discriminating.
       a rejected rule; see notes/v0.4-spheres.md for what is left to try. Every odd degree
       133–201 is now shipped, from an external continuation campaign
       (scripts/import_octahedral_rules.jl); 19–131 remain)*
-- [x] High-degree octahedral refinement *(`refine_octahedral` solves the moment equations
+- [x] High-degree octahedral refinement *(`refine_seed` solves the moment equations
       in the orthonormal `O_h`-invariant harmonics (`OctahedralHarmonicSystem`): D4h-invariant
       combinations of P̄_ℓ^m cos mφ averaged over x → y → z, exactly invariant whatever the
       rounding of their Float64 coefficients. The same unknowns and solutions as the

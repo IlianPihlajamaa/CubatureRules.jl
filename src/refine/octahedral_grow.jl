@@ -14,7 +14,7 @@
 #              orbit type, and refit the rest. Accept whatever still lands on a positive,
 #              non-degenerate rule. Stop when nothing does.
 #
-# Everything here is Float64; the result is a seed for `refine_octahedral`.
+# Everything here is Float64; the result is a seed for `refine_seed`.
 
 "A candidate elimination move: the new structure, its starting parameters, points removed."
 struct OctahedralMove

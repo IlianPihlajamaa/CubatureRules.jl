@@ -100,7 +100,7 @@ function main(mindeg, maxdeg, path)
             continue
         end
         s, θbest, method = best
-        θ, res, _ = CR.refine_symmetric(s, n, θbest, CR.digits_to_bits(100); basis)
+        θ, res, _ = CR.refine_seed(s, n, θbest, CR.digits_to_bits(100); basis)
         res.converged || error("degree $n: refinement to 100 digits failed")
         θ64 = Float64.(θ)
         wmin, λmin = CR.margins(s, θ64)

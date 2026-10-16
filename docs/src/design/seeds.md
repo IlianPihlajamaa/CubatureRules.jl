@@ -15,17 +15,22 @@ Christoffel function.
 
 ## Symmetric rules
 
-The minimal rules on the triangle, tetrahedron and sphere are symmetric under a group, and
-are described by a list of orbits plus a few parameters per orbit (see
-[Orbit algebra](symmetry.md)). Their seed is a value for those parameters. The `seed` keyword
-of [`rule`](@ref) chooses where it comes from:
+The fully symmetric rules are symmetric under a group: on the simplices, the square and the
+cube, the disk and the ball, the pyramid, the wedge, and Lebedev's on the sphere. Each is
+described by a list of orbits plus a few parameters per orbit (see
+[Orbit algebra](symmetry.md)). Its seed is a value for those parameters. All of them are built
+the same way, from a row of their seed table. The `seed` keyword of [`rule`](@ref) chooses
+where the seed comes from:
 
-| Seed source | Where the starting point comes from |
-|---|---|
-| `TableSeed()` (default) | the table shipped with the package |
-| `ExplicitSeed(θ)` | orbit parameters you supply |
-| `MultistartSeed()` | the orbit structure alone, by a multistart search |
-| `LowerDegreeSeed()` | the family's rule one degree lower, grown and then reduced |
+| Seed source | Where the starting point comes from | Families |
+|---|---|---|
+| `TableSeed()` (default) | the table shipped with the package | all |
+| `ExplicitSeed(θ)` | orbit parameters you supply | all |
+| `MultistartSeed()` | the orbit structure alone, by a multistart search | simplices, sphere |
+| `LowerDegreeSeed()` | the family's rule one degree lower, grown and then reduced | simplices |
+
+On the other domains, the searches that produced the tables run from the scripts in
+`scripts/`.
 
 ### Multistart search
 

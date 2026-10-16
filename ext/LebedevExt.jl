@@ -20,7 +20,7 @@ using StaticArrays
 import Lebedev as LebedevPkg
 import CubatureRules: build, npoints, claimed_degree, degree_range, cost_estimate, expand,
                       upstream_lebedev_candidates, upstream_lebedev_table, classify_octahedral,
-                      refine_octahedral, margins, OctahedralMomentSystem,
+                      refine_seed, moment_residual,
                       LebedevRule, LebedevJLSeeds, Sphere, PolynomialDegree, isreference, Oh,
                       BuildContext, Provenance, Certificate, QuadratureRule, Seeded,
                       NoRuleError, RefinementError, LEBEDEV_LAIKOV_1999,
@@ -70,7 +70,7 @@ function build(f::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree::Int, ctx:
             "the order-$ord table from Lebedev.jl does not decompose into whole O_h orbits, " *
             "so it cannot be refined here; ask for Float64 to get it as it stands"))
         structure, θ64 = got
-        θ, res, guard = refine_octahedral(structure, ord, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
+        θ, res, guard = refine_seed(structure, ord, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
         res.converged || throw(RefinementError("Lebedev",
             "Gauss–Newton did not converge on the order-$ord table from Lebedev.jl " *
             "(residual $(Float64(res.residual)))"))
@@ -80,10 +80,7 @@ function build(f::LebedevRule{LebedevJLSeeds}, dom::Sphere{3}, degree::Int, ctx:
         ws = [finalize_number(ctx, w) for w in bws]
         θhat = [finalize_number(ctx, t) for t in θ]
         rbits = 2ctx.bits + guard
-        resid = with_bits(rbits) do
-            r, _ = OctahedralMomentSystem(structure, ord, BigFloat)(BigFloat.(θhat))
-            maximum(abs, r)
-        end
+        resid = with_bits(() -> moment_residual(structure, ord, BigFloat.(θhat)), rbits)
         push!(path, "structure recovered from the points: " * string(structure))
         push!(path, "refined here by Gauss–Newton at $(wbits) bits — a derived work of " *
                     "Lebedev.jl's table, and licensed as one")

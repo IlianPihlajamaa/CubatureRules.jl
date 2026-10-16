@@ -80,7 +80,7 @@ function main(mindeg, maxdeg; maxpts = 600, nstarts = 2048)
             continue
         end
         npts, s, θ, wmin, dmin = got
-        θ, res, guard = CR.refine_octahedral(s, n, θ, CR.digits_to_bits(100))
+        θ, res, guard = CR.refine_seed(s, n, θ, CR.digits_to_bits(100))
         res.converged || error("degree $n: refinement to 100 digits failed")
         θ64 = Float64.(θ)
         published = get(LEBEDEV_COUNTS, n, nothing)

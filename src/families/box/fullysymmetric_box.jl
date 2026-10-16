@@ -11,18 +11,6 @@
 # is what the mass and stiffness matrices of tensor-product (Q_k) elements need; these are for
 # total-degree integrands.
 
-"A stored seed of a fully symmetric rule: its orbit structure (a `BoxStructure`, `PyramidStructure`, ...) and parameters."
-struct OrbitSeedEntry{S}
-    degree::Int
-    npoints::Int
-    structure::S
-    seed::Vector{Float64}
-    status::String
-    note::String
-    residual::Float64            # recorded by scripts/certify_tables.jl; NaN until checked
-    residual_bits::Int
-end
-
 const SQUARE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "square_d4_seeds.toml")
 const CUBE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "cube_oh_seeds.toml")
 const HYPERCUBE_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "hypercube_b4_seeds.toml")
@@ -30,24 +18,9 @@ isfile(SQUARE_SEED_FILE) && include_dependency(SQUARE_SEED_FILE)
 isfile(CUBE_SEED_FILE) && include_dependency(CUBE_SEED_FILE)
 isfile(HYPERCUBE_SEED_FILE) && include_dependency(HYPERCUBE_SEED_FILE)
 
-"""
-    load_orbit_seeds(path, S, structure) -> Vector{OrbitSeedEntry{S}}
-
-The seeds stored in the TOML table at `path`; `structure` makes an `S` from the orbits' lists
-of multiplicities as stored.
-"""
-function load_orbit_seeds(path, ::Type{S}, structure) where {S}
-    isfile(path) || return OrbitSeedEntry{S}[]
-    out = OrbitSeedEntry{S}[]
-    for e in get(TOML.parsefile(path), "rule", Any[])
-        s = structure([Int[x for x in m] for m in e["structure"]])
-        push!(out, OrbitSeedEntry{S}(e["degree"], e["npoints"], s, Float64.(e["seed"]), get(e, "status", "ok"),
-                                     get(e, "note", ""), Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0))))
-    end
-    return sort!(out; by = e -> e.degree)
-end
+"The seed table at `path` of fully symmetric rules on the `D`-cube, or on the `D`-ball with `geometry = RoundGeometry()`."
 load_box_seeds(path, D; geometry::OrbitGeometry = BoxGeometry()) =
-    load_orbit_seeds(path, BoxStructure, m -> BoxStructure(m, D; geometry))
+    load_seeds(path, BoxStructure{typeof(geometry)}, m -> BoxStructure(int_lists(m), D; geometry))
 
 # static package data, parsed once at precompile time
 const SQUARE_SEEDS = load_box_seeds(SQUARE_SEED_FILE, 2)
@@ -55,7 +28,7 @@ const CUBE_SEEDS = load_box_seeds(CUBE_SEED_FILE, 3)
 const HYPERCUBE_SEEDS = load_box_seeds(HYPERCUBE_SEED_FILE, 4)
 
 box_entries(D::Integer) = filter(e -> e.status == "ok", D == 2 ? SQUARE_SEEDS : D == 3 ? CUBE_SEEDS :
-                                                      D == 4 ? HYPERCUBE_SEEDS : OrbitSeedEntry{BoxStructure}[])
+                                                      D == 4 ? HYPERCUBE_SEEDS : empty(SQUARE_SEEDS))
 box_entry_for(D::Integer, degree::Integer) = seed_entry_for(box_entries(D), degree)
 function _box_entry(D, degree)
     e = box_entry_for(D, degree)
@@ -81,55 +54,15 @@ properties(::FullySymmetric, dom::Orthotope{D}, degree) where {D} =
 cost_estimate(f::FullySymmetric, dom::Orthotope{D}, degree, T) where {D} =
     float(npoints(f, dom, degree)) * _precision_factor(T)
 
-"""
-    refine_box(structure, n, θ64, bits; cancel, verbose) -> (θ, result, guard_bits)
+"Where the seed tables of the box, the ball, the pyramid and the wedge come from."
+const ORBIT_TABLE_ORIGIN = "generated in-house: multistart, then grow → eliminate"
 
-Refine a `Float64` seed of a fully symmetric box rule to `bits` bits, by
-[`refine_system`](@ref) on the [`BoxMomentSystem`](@ref).
-"""
-refine_box(structure::BoxStructure, n::Integer, θ64::Vector{Float64}, bits::Integer;
-           cancel = nothing, verbose::Integer = 0) =
-    refine_system(S -> BoxMomentSystem(structure, n, S), θ64, bits; cancel, verbose,
-                  label = "box refinement to degree $n")
-
-function build(f::FullySymmetric, dom::Orthotope{D}, degree::Int, ctx::BuildContext{T};
-               seed::SeedSource = TableSeed()) where {D,T}
-    isexact(ctx) && throw(ArgumentError("fully symmetric box nodes are irrational; $(T) is not supported"))
-    seed isa TableSeed || throw(ArgumentError("FullySymmetric on the $(D)-cube takes only the stored table seed"))
+function build(f::FullySymmetric, dom::Orthotope{D}, degree::Int, ctx::BuildContext; seed::SeedSource = TableSeed()) where {D}
     e = _box_entry(D, degree)
-    n, s = e.degree, e.structure
-    seed_desc = "stored Float64 table $(box_table(D)) (generated in-house: multistart, then grow → eliminate)"
-    shipped = ctx.bits <= 53 && isfinite(e.residual)
-    if shipped
-        # a converged Float64 rule whose residual was checked at high precision when the table
-        # was written: at 53 bits or fewer Newton has nothing to add
-        θ = e.seed
-        steps = ["refine: none — the stored Float64 seed is the rule (residual $(@sprintf("%.1e", e.residual)) " *
-                 "at $(e.residual_bits) bits, recorded in the table)"]
-        guard, cond, iters = 0, 1.0, 0
-    else
-        θ, res, guard = refine_box(s, n, e.seed, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
-        steps = [@sprintf("refine: Gauss–Newton at %d bits (%d guard), %d iterations, cond %.1e",
-                          ctx.bits + guard, guard, res.iterations, res.cond_max)]
-        cond, iters = res.cond, res.iterations
-    end
-    nodes, ws = with_bits(() -> expand(s, θ), max(ctx.bits + guard, 64))
-    xs = [SVector{D,T}(ntuple(j -> finalize_number(ctx, x[j]), D)) for x in nodes]
-    wt = [finalize_number(ctx, w) for w in ws]
-    # the moment equations at the delivered parameters
-    rbits = 2ctx.bits + 32
-    resid = with_bits(rbits) do
-        θd = [BigFloat(finalize_number(ctx, t)) for t in θ]
-        maximum(abs, BoxMomentSystem(s, n, BigFloat)(θd; jacobian = false)[1])
-    end
-    cert = Certificate(equations = "B_$D-invariant moment system (symmetrised even Legendre products, degree ≤ $n)",
-                       residual = BigFloat(resid; precision = 64), residual_bits = rbits,
-                       digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)), cond = cond,
-                       iterations = iters)
-    prov = Provenance(family = "FullySymmetric", derivation = Seeded(),
-                      path = vcat(["seed: " * seed_desc, "structure: " * string([o.mult for o in s.orbits])], steps),
-                      seed_source = seed_desc, citations = [WITHERDEN_VINCENT_2015], symmetry = box_symmetry(D),
-                      license = "MIT (seeds and point counts generated in-house; the citation is the published " *
-                                "rules of the same class, for comparison, not a source)")
-    return QuadratureRule(xs, wt, Orthotope{D}(), PolynomialDegree(n), prov, cert)
+    return build_seeded(e, ctx; seed, family = "FullySymmetric", domain = Orthotope{D}(), symmetry = box_symmetry(D),
+                        table = box_table(D), origin = ORBIT_TABLE_ORIGIN,
+                        equations = "B_$D-invariant moment system (symmetrised even Legendre products, degree ≤ $(e.degree))",
+                        citations = [WITHERDEN_VINCENT_2015],
+                        license = "MIT (seeds and point counts generated in-house; the citation is the published " *
+                                  "rules of the same class, for comparison, not a source)")
 end

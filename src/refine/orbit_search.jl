@@ -4,14 +4,14 @@
 # small interface that each structure type implements:
 #
 #     orbit_types(T), make_structure(T, orbits), general_orbit(T), structure_volume(T)
-#     n_moment_equations(T, n), orbit_system(s, n, S), margins(s, θ)
+#     n_moment_equations(T, n), moment_system(s, n, S), margins(s, θ)
 #     canonicalize(s, θ), random_params(o, rng), loosely_inside(o, v), structure_moves(s, θ)
 #
 # `structure_moves` returns (structure, starting parameters, points removed, score) tuples.
 
 "Fit `(s, θ0)` onto the degree-`n` moment variety; the canonical `(s, θ)` if it is a positive interior rule, else `nothing`."
 function orbit_fit(s, θ0::Vector{Float64}, n::Integer; tol::Float64 = 1e-13, maxiter::Int = 400)
-    sys = orbit_system(s, n, Float64)
+    sys = moment_system(s, n, Float64)
     inside(θ) = all(o_off -> loosely_inside(o_off[1], θ[(o_off[2] + 2):(o_off[2] + nunknowns(o_off[1]))]),
                     zip(s.orbits, param_offsets(s)))
     θ, nr = levenberg_marquardt(sys, θ0; maxiter, tol, accept = inside)
@@ -184,7 +184,6 @@ make_structure(::Type{PyramidStructure}, orbits) = PyramidStructure(collect(Pyra
 general_orbit(::Type{PyramidStructure}) = PyramidOrbit([1, 1])
 structure_volume(::Type{PyramidStructure}) = 4 / 3
 n_moment_equations(::Type{PyramidStructure}, n) = length(pyramid_terms(n))
-orbit_system(s::PyramidStructure, n, ::Type{S}) where {S} = PyramidMomentSystem(s, n, S)
 random_params(o::PyramidOrbit, rng) = vcat(0.03 .+ 0.94 .* rand(rng, nparams(o.base)), 0.03 + 0.94 * rand(rng))
 loosely_inside(o::PyramidOrbit, v) = all(x -> abs(x) < 1.05, v[1:(end - 1)]) && -0.05 < v[end] < 1.05
 
@@ -230,7 +229,6 @@ make_structure(::Type{WedgeStructure}, orbits) = WedgeStructure(collect(WedgeOrb
 general_orbit(::Type{WedgeStructure}) = WedgeOrbit([1, 1, 1], true)
 structure_volume(::Type{WedgeStructure}) = 1
 n_moment_equations(::Type{WedgeStructure}, n) = n_wedge_equations(n)
-orbit_system(s::WedgeStructure, n, ::Type{S}) where {S} = WedgeMomentSystem(s, n, S)
 function random_params(o::WedgeOrbit, rng)
     r = length(o.pattern.mult)
     u = -log.(rand(rng, r))                                   # Dirichlet(1, …, 1), as on the triangle

@@ -66,7 +66,7 @@ function chain(d::SimplexDomain, s, θ, n, seed)
 end
 
 function refine(d::SimplexDomain, s, n, θ64)
-    θ, res, _ = CR.refine_symmetric(s, n, θ64, BITS; basis = basis(d, n))
+    θ, res, _ = CR.refine_seed(s, n, θ64, BITS; basis = basis(d, n))
     return Float64.(θ), res.converged, res.cond
 end
 function entry(d::SimplexDomain, n, s, θr, cond, note)
@@ -112,7 +112,7 @@ function chain(::BoxDomain, s, θ, n, seed)
 end
 
 function refine(::BoxDomain, s, n, θ64)
-    θ, res, _ = CR.refine_box(s, n, θ64, BITS)
+    θ, res, _ = CR.refine_seed(s, n, θ64, BITS)
     return Float64.(θ), res.converged, res.cond
 end
 entry(d::BoxDomain, n, s, θr, cond, note) =

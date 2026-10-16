@@ -278,11 +278,13 @@ end
 n_equations(sys::OctahedralMomentSystem) = length(sys.exps)
 n_unknowns(sys::OctahedralMomentSystem) = nunknowns(sys.structure)
 
-function (sys::OctahedralMomentSystem{S})(θ::AbstractVector) where {S}
+moment_system(s::OctahedralStructure, n, ::Type{S}, _ = nothing) where {S} = OctahedralMomentSystem(s, n, S)
+
+function (sys::OctahedralMomentSystem{S})(θ::AbstractVector; jacobian::Bool = true) where {S}
     L, p = n_equations(sys), n_unknowns(sys)
     length(θ) == p || throw(ArgumentError("expected $p unknowns, got $(length(θ))"))
     r = -copy(sys.rhs)
-    J = zeros(S, L, p)
+    J = zeros(S, L, jacobian ? p : 0)
     offs = param_offsets(sys.structure)
     for (i, o) in enumerate(sys.structure.orbits)
         w = S(θ[offs[i] + 1])
@@ -292,6 +294,7 @@ function (sys::OctahedralMomentSystem{S})(θ::AbstractVector) where {S}
         for (k, (a, b)) in enumerate(sys.exps)
             ψ = p4^a * p6^b
             r[k] += w * n_o * ψ
+            jacobian || continue
             J[k, offs[i] + 1] = n_o * ψ
             for j in 1:nparams(o)
                 # ∂(p₄^a p₆^b), with the b = 0 and a = 0 cases dropped rather than divided
@@ -306,15 +309,11 @@ function (sys::OctahedralMomentSystem{S})(θ::AbstractVector) where {S}
 end
 
 """
-    refine_octahedral(structure, n, θ64, bits; cancel) -> (θ, result, guard_bits)
+    refinement_system(s::OctahedralStructure, n, S)
 
-Refine a `Float64` seed of an `O_h`-symmetric sphere rule to `bits` bits, by
-[`refine_system`](@ref) on the [`OctahedralHarmonicSystem`](@ref). The same unknowns solve
-the [`OctahedralMomentSystem`](@ref) in the invariants `p₄ᵃp₆ᵇ`, but its condition number
-grows like the monomials' (1e54 at degree 133), and each step then needs a `BigFloat` QR;
-in the orthonormal invariant harmonics it stays small.
+On the sphere Gauss–Newton solves the [`OctahedralHarmonicSystem`](@ref). The same unknowns
+solve the [`OctahedralMomentSystem`](@ref) in the invariants `p₄ᵃp₆ᵇ`, but its condition
+number grows like the monomials' (1e54 at degree 133), and each step then needs a `BigFloat`
+QR; in the orthonormal invariant harmonics it stays small.
 """
-refine_octahedral(structure::OctahedralStructure, n::Integer, θ64::Vector{Float64}, bits::Integer;
-                  cancel = nothing, verbose::Integer = 0) =
-    refine_system(S -> OctahedralHarmonicSystem(structure, n, S), θ64, bits; cancel, verbose,
-                  label = "octahedral refinement to degree $n ($(length(structure.orbits)) orbits)")
+refinement_system(s::OctahedralStructure, n, ::Type{S}, _ = nothing) where {S} = OctahedralHarmonicSystem(s, n, S)

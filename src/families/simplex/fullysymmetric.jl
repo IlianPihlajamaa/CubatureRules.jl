@@ -57,8 +57,8 @@ const TETRAHEDRON_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "tetrahedro
 const SIMPLEX4_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "simplex4_s5_seeds.toml")
 isfile(TETRAHEDRON_SEED_FILE) && include_dependency(TETRAHEDRON_SEED_FILE)
 isfile(SIMPLEX4_SEED_FILE) && include_dependency(SIMPLEX4_SEED_FILE)
-const TETRAHEDRON_SEEDS = load_symmetric_seeds(TETRAHEDRON_SEED_FILE, 4)
-const SIMPLEX4_SEEDS = load_symmetric_seeds(SIMPLEX4_SEED_FILE, 5)
+const TETRAHEDRON_SEEDS = load_simplex_seeds(TETRAHEDRON_SEED_FILE, 4)
+const SIMPLEX4_SEEDS = load_simplex_seeds(SIMPLEX4_SEED_FILE, 5)
 
 simplex_entries(D::Integer) = filter(e -> e.status == "ok", D == 3 ? TETRAHEDRON_SEEDS : D == 4 ? SIMPLEX4_SEEDS :
                                                           empty(TETRAHEDRON_SEEDS))
@@ -93,10 +93,11 @@ cost_estimate(f::FullySymmetric, dom::Simplex{D}, degree, T) where {D} =
 function build(f::FullySymmetric, dom::Simplex{D}, degree::Int, ctx::BuildContext;
                seed::SeedSource = TableSeed()) where {D}
     e = _simplex_entry(D, degree)
-    return build_symmetric("FullySymmetric", e, ctx; seed, lower = seed_entry_below(simplex_entries(D), e.degree),
-                           table = simplex_table(D),
-                           citations = D == 3 ? [WITHERDEN_VINCENT_2015, ZHANG_CUI_LIU_2009] : Citation[],
-                           license = D == 3 ? "MIT (seeds and point counts generated in-house; the citations are " *
-                                              "the published rules of the same class, for comparison, not a source)" :
-                                              "MIT (seeds and point counts generated in-house)")
+    return build_seeded(e, ctx; seed, lower = seed_entry_below(simplex_entries(D), e.degree), family = "FullySymmetric",
+                        domain = Simplex{D}(), symmetry = SymmetricGroup{D + 1}(), table = simplex_table(D),
+                        origin = SIMPLEX_ORIGIN, equations = simplex_equations(D + 1, e.degree),
+                        citations = D == 3 ? [WITHERDEN_VINCENT_2015, ZHANG_CUI_LIU_2009] : Citation[],
+                        license = D == 3 ? "MIT (seeds and point counts generated in-house; the citations are " *
+                                           "the published rules of the same class, for comparison, not a source)" :
+                                           "MIT (seeds and point counts generated in-house)")
 end

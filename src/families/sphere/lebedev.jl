@@ -151,56 +151,15 @@ const LEBEDEV_1976 = Citation(
 
 # --- the seed table ---------------------------------------------------------------------
 
-"""
-    OctahedralSeedEntry
-
-One row of the sphere seed table: the degree it serves, its point count, the orbit structure
-and the `Float64` parameters found for it.
-"""
-struct OctahedralSeedEntry
-    degree::Int
-    npoints::Int
-    structure::OctahedralStructure
-    seed::Vector{Float64}
-    status::String
-    note::String
-    cond::Float64
-    residual::Float64          # as for SymmetricSeedEntry: recorded by scripts/certify_tables.jl
-    residual_bits::Int
-    method::String             # "multistart" (degrees 3-17) or "continuation" (133-201)
-    next_error::Float64        # the miss at degree + 1, measured at high precision (NaN if not recorded)
-end
-
 const LEBEDEV_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "lebedev_seeds.toml")
 isfile(LEBEDEV_SEED_FILE) && include_dependency(LEBEDEV_SEED_FILE)
 
-function load_octahedral_seeds(path)
-    isfile(path) || return OctahedralSeedEntry[]
-    t = TOML.parsefile(path)
-    out = OctahedralSeedEntry[]
-    for e in get(t, "rule", Any[])
-        s = OctahedralStructure(Symbol.(e["structure"]))
-        push!(out, OctahedralSeedEntry(e["degree"], e["npoints"], s, Float64.(e["seed"]),
-                                       get(e, "status", "ok"), get(e, "note", ""), Float64(get(e, "cond", NaN)),
-                                       Float64(get(e, "residual", NaN)), Int(get(e, "residual_bits", 0)),
-                                       get(e, "method", "multistart"), Float64(get(e, "next_error", NaN))))
-    end
-    sort!(out; by = e -> e.degree)
-    return out
-end
-
-# Static package data, parsed once at precompile time (not a cache of rules: see §7).
-const LEBEDEV_SEEDS = load_octahedral_seeds(LEBEDEV_SEED_FILE)
+# Static package data, parsed once at precompile time (not a cache of rules: see §7). Each row
+# records its `method`: "multistart" (degrees 3-17) or "continuation" (133-201).
+const LEBEDEV_SEEDS = load_seeds(LEBEDEV_SEED_FILE, OctahedralStructure, m -> OctahedralStructure(Symbol.(m)))
 
 lebedev_entries() = filter(e -> e.status == "ok", LEBEDEV_SEEDS)
-
-"The entry serving a request for `degree`: fewest points, then highest degree."
-function lebedev_entry_for(degree::Integer)
-    es = filter(e -> e.degree >= degree, lebedev_entries())
-    isempty(es) && return nothing
-    return first(sort(es; by = e -> (e.npoints, -e.degree)))
-end
-
+lebedev_entry_for(degree::Integer) = seed_entry_for(lebedev_entries(), degree)
 function _lebedev_entry(degree)
     e = lebedev_entry_for(degree)
     e === nothing && throw(ArgumentError("no Lebedev seed covers degree $degree " *
@@ -243,77 +202,16 @@ cost_estimate(f::LebedevRule{InHouseSeeds}, dom, degree, T) =
 
 # --- construction -------------------------------------------------------------------------
 
-function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::BuildContext{T};
-               seed::SeedSource = TableSeed()) where {T}
-    isexact(ctx) && throw(ArgumentError("Lebedev nodes are irrational; $(T) is not supported"))
+function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::BuildContext;
+               seed::SeedSource = TableSeed())
     e = _lebedev_entry(degree)
-    n = e.degree
-    structure, θ64 = e.structure, e.seed
-    seed_desc = "stored Float64 table src/data/lebedev_seeds.toml " *
-                (e.method == "continuation" ?
-                 "(from the degree 133-201 continuation search; see src/data/PROVENANCE.toml)" :
-                 "(generated in-house by multistart from the orbit structure)")
-    citations = e.method == "continuation" ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976]
-    if seed isa MultistartSeed
-        found = multistart_octahedral(structure, n; nstarts = seed.nstarts, rng_seed = seed.rng_seed,
-                                      first_only = false, cancel = ctx.cancel)
-        isempty(found) && throw(RefinementError("Lebedev",
-            "multistart found no valid degree-$n rule with structure $structure in $(seed.nstarts) starts"))
-        best = argmax(t -> (t[2], t[3]), found)
-        θ64 = best[1]
-        seed_desc = describe(seed) * "; $(length(found)) valid rule(s) found, largest minimum weight kept"
-    elseif seed isa ExplicitSeed
-        length(seed.θ) == nunknowns(structure) || throw(ArgumentError(
-            "an explicit seed for degree $n needs $(nunknowns(structure)) parameters (structure $structure)"))
-        θ64, seed_desc = seed.θ, describe(seed)
-    end
-    if seed isa TableSeed && ctx.bits <= 53 && isfinite(e.residual)
-        # as for the simplex tables (see build_symmetric): a checked Float64 rule needs no
-        # refinement at 53 bits or fewer, so ship it as stored, or rounded
-        ctx.verbose >= 1 && @info "shipping the stored Float64 rule for degree $n (no refinement needed at $(ctx.bits) bits)"
-        xs, ws = with_bits(() -> expand(structure, BigFloat.(θ64)), 128)
-        if ctx.bits >= 53
-            resid, rbits = e.residual, e.residual_bits
-            steps = [@sprintf("shipped as stored, without refinement: residual %.1e at %d bits, checked when the table was written",
-                              resid, rbits)]
-        else
-            θhat = [finalize_number(ctx, t) for t in θ64]
-            resid, rbits = maximum(abs, OctahedralMomentSystem(structure, n, Float64)(Float64.(θhat))[1]), 53
-            steps = ["rounded to $T from the stored Float64 rule, without refinement; residual evaluated in Float64"]
-        end
-        guard_digits, cond, iterations = 0, e.cond, 0
-    else
-        θ, res, guard = refine_octahedral(structure, n, θ64, ctx.bits; cancel = ctx.cancel, verbose = ctx.verbose)
-        res.converged || throw(RefinementError("Lebedev",
-            "Gauss–Newton did not converge at degree $n (residual $(Float64(res.residual)) after " *
-            "$(res.iterations) iterations); the seed is not returned unrefined"))
-        wbits = ctx.bits + guard
-        xs, ws = with_bits(() -> expand(structure, θ), wbits)
-        wmin, dmin = margins(structure, θ)
-        (wmin > 0 && dmin > 0) || throw(RefinementError("Lebedev",
-            "refined degree-$n rule left the admissible set (min weight $(Float64(wmin)), margin $(Float64(dmin)))"))
-        θhat = [finalize_number(ctx, t) for t in θ]
-        rbits = 2ctx.bits + guard
-        resid = with_bits(rbits) do
-            r, _ = OctahedralMomentSystem(structure, n, BigFloat)(BigFloat.(θhat))
-            maximum(abs, r)
-        end
-        steps = ["refine: Gauss–Newton with rank-revealing solve at $(wbits) bits",
-                 @sprintf("guard: %d bits from measured cond(J) = %.2e", guard, res.cond_max)]
-        guard_digits, cond, iterations = floor(Int, guard * log10(2)), res.cond, res.iterations
-    end
-    nodes = [SVector{3,T}(ntuple(j -> finalize_number(ctx, x[j]), 3)) for x in xs]
-    wt = [finalize_number(ctx, w) for w in ws]
-    cert = Certificate(equations = "O_h-invariant moment system in orbit parameters " *
-                                   "(invariants p₄^a p₆^b, 4a + 6b ≤ $n)",
-                       residual = BigFloat(resid; precision = 64), residual_bits = rbits,
-                       digits = target_digits(ctx), guard_digits = guard_digits, cond = cond,
-                       iterations = iterations,
-                       # at degrees 133-201 a Float64 rule cannot show that it misses degree n+1
-                       next_error = isfinite(e.next_error) ? BigFloat(e.next_error; precision = 64) : nothing)
-    prov = Provenance(family = "Lebedev", derivation = Seeded(),
-                      path = vcat(["seed: " * seed_desc, "structure: " * string(structure)], steps),
-                      seed_source = seed_desc, citations = citations, symmetry = Oh(),
-                      license = "MIT (seeds generated in-house; no published tables are redistributed)")
-    return QuadratureRule(nodes, wt, Sphere{3}(), PolynomialDegree(n), prov, cert)
+    continued = e.method == "continuation"
+    return build_seeded(e, ctx; seed, family = "Lebedev", domain = Sphere{3}(), symmetry = Oh(),
+                        table = "src/data/lebedev_seeds.toml",
+                        origin = continued ? "from the degree 133-201 continuation search; see src/data/PROVENANCE.toml" :
+                                 "generated in-house by multistart from the orbit structure",
+                        equations = "O_h-invariant moment system in orbit parameters (invariants p₄^a p₆^b, " *
+                                    "4a + 6b ≤ $(e.degree))",
+                        citations = continued ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976],
+                        license = "MIT (seeds generated in-house; no published tables are redistributed)")
 end

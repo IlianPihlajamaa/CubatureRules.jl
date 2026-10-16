@@ -203,6 +203,7 @@ function BoxMomentSystem(structure::BoxStructure, n::Integer, ::Type{S}) where {
 end
 n_equations(sys::BoxMomentSystem) = length(sys.exps)
 n_unknowns(sys::BoxMomentSystem) = nunknowns(sys.structure)
+moment_system(s::BoxStructure{BoxGeometry}, n, ::Type{S}, _ = nothing) where {S} = BoxMomentSystem(s, n, S)
 
 # orthonormal Legendre p_j(x) = √((2j+1)/2) P_j(x) and its derivative, j = 0 … n, from the
 # classical recurrence (2j + 1, 0, j, j + 1), whose coefficients are integers

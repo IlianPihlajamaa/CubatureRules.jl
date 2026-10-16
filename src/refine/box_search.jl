@@ -3,10 +3,8 @@
 # at low degree, and grow → eliminate above it, as for the simplex (refine/elimination.jl), on
 # the orbits of symmetry/box.jl. The orbits are the same on the box and the ball; what differs
 # is the moment system and where an orbit's values may lie, which an `OrbitGeometry` supplies.
-# The results are seeds for `refine_box` and `refine_round`.
+# The results are seeds for `refine_seed`.
 
-orbit_system(::BoxGeometry, s, n, ::Type{S}) where {S} = BoxMomentSystem(s, n, S)
-orbit_system(::RoundGeometry, s, n, ::Type{S}) where {S} = RoundMomentSystem(s, n, S)
 orbit_equations(::BoxGeometry, D, n) = length(box_exponents(D, n))
 orbit_equations(::RoundGeometry, D, n) = length(round_terms(D, n))
 orbit_volume(::BoxGeometry, D) = 2.0^D
@@ -21,7 +19,7 @@ loosely_inside(::RoundGeometry, o, v) = sum((o.mult[i] * v[i]^2 for i in eachind
 "Fit `(s, θ0)` onto the degree-`n` moment variety; the canonical `(s, θ)` if it is a positive interior rule, else `nothing`."
 function box_fit(s::BoxStructure, θ0::Vector{Float64}, n::Integer; tol::Float64 = 1e-13, maxiter::Int = 400)
     geom = geometry(s)
-    sys = orbit_system(geom, s, n, Float64)
+    sys = moment_system(s, n, Float64)
     inside(θ) = all(o_off -> loosely_inside(geom, o_off[1], [θ[o_off[2] + 1 + i] for i in 1:nparams(o_off[1])]),
                     zip(s.orbits, param_offsets(s)))
     θ, nr = levenberg_marquardt(sys, θ0; maxiter, tol, accept = inside)

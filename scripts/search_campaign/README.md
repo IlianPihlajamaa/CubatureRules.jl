@@ -107,7 +107,7 @@ its target degree:
 
 **Candidates.** Any degree-`n` rule with fewer points than the best known, at any excess, is a
 candidate:
-- it is refined to 100 digits by the package (`refine_symmetric`, `refine_box`);
+- it is refined to 100 digits by the package (`refine_seed`);
 - it is checked to be positive and interior, with no two nodes closer than 1e-6 (as
   `scripts/verify_tables.jl` requires; closer nodes mean two orbits are merging, which is a
   move for the prune and finish tasks rather than a rule);
@@ -224,7 +224,7 @@ doesn't have yet for those domains; at present it has only their conical and pro
 
 **Both** also need:
 - first rules from multistart at low degree, as `generate_box_seeds.jl` does;
-- a refinement function (Gauss–Newton with the precision floor of `refine_box`);
+- a refinement function (Gauss–Newton with the precision floor of `refine_seed`);
 - a seed table with provenance.
 
 This search then extends them.

@@ -96,6 +96,26 @@ read by the searches and the eliminations.
 """
 function margins end
 
+"""
+    moment_system(s::OrbitStructure, n, S, basis = moment_basis(s, n))
+
+The defining equations of a fully symmetric rule with orbit structure `s` and exactness
+degree `n`, in arithmetic `S`. Callable: `sys(θ) -> (r, J)`, or `sys(θ; jacobian = false)`.
+The seed tables record its residual, and the certificates quote it.
+"""
+function moment_system end
+
+"What the degree-`n` moment systems of `s` in every arithmetic share, computed once: nothing, except on the simplex."
+moment_basis(::OrbitStructure, n) = nothing
+
+"""
+    refinement_system(s::OrbitStructure, n, S, basis = moment_basis(s, n))
+
+The system Gauss–Newton solves for the rule: the [`moment_system`](@ref) itself, except where
+another set of equations with the same roots is better conditioned.
+"""
+refinement_system(s::OrbitStructure, n, ::Type{S}, basis = moment_basis(s, n)) where {S} = moment_system(s, n, S, basis)
+
 "Offsets of each orbit's block in the parameter vector."
 function param_offsets(s::OrbitStructure)
     offs = Vector{Int}(undef, length(s.orbits))

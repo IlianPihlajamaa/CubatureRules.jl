@@ -53,7 +53,7 @@ end
     # and it is a real rule once refined, which is what the seed is for: the Float64 fit
     # stops at 1e-12 on the invariants, below what verification at Float64 demands
     bits = CR.digits_to_bits(30)
-    θb, res, guard = CR.refine_octahedral(s, 17, θ, bits)
+    θb, res, guard = CR.refine_seed(s, 17, θ, bits)
     @test res.converged
     # rounded to the output precision, as the family does through `finalize_number`. The
     # weights are copied out of θ without arithmetic, so without rounding they keep their

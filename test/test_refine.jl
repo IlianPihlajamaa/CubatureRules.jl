@@ -132,7 +132,7 @@ end
     end
     said = join(string.(getproperty.(logs, :message)), "\n")
     @test occursin("building", said)                    # before the expensive part starts
-    @test occursin("symmetric refinement to degree 9", said)
+    @test occursin("refinement to degree 9 (SymmetricStructure, 6 orbits)", said)
     @test occursin("Gauss–Newton", said)
     @test occursin("iter  1:", said)                    # one line per iteration, with timing
     @test occursin("converged after", said)

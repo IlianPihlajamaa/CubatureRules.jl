@@ -114,6 +114,7 @@ function RoundMomentSystem(structure::BoxStructure, n::Integer, ::Type{S}) where
 end
 n_equations(sys::RoundMomentSystem) = length(sys.terms)
 n_unknowns(sys::RoundMomentSystem) = nunknowns(sys.structure)
+moment_system(s::BoxStructure{RoundGeometry}, n, ::Type{S}, _ = nothing) where {S} = RoundMomentSystem(s, n, S)
 
 # the invariant polynomials at x and their derivatives along each direction in dxs
 function round_values(sys::RoundMomentSystem{S}, x::SVector{D,S}, dxs) where {S,D}
