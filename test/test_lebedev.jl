@@ -73,8 +73,8 @@ end
         # more needs: [xyz(x²−y²)(y²−z²)(z²−x²)]² vanishes on every other orbit kind
         @test 0 <= CR.nunknowns(e.structure) - length(CR.invariant_exponents(e.degree)) <= 3
         @test any(o -> o.kind === :d, e.structure.orbits)
-        wmin, dmin = CR.octahedral_margins(e.structure, e.seed)
-        @test wmin > 0 && dmin > 0
+        m = CR.margins(e.structure, e.seed)
+        @test m.weight > 0 && m.gap > 0
         # within 15% of the parameter-count estimate (d+1)²/3, which is not a proven bound
         @test e.npoints <= 1.15 * (e.degree + 1)^2 / 3
         @test e.residual < 1e-14 && e.residual_bits >= 256

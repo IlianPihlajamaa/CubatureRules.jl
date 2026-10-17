@@ -2,7 +2,7 @@
 # Degrees 3-17 generated in-house by scripts/generate_lebedev_seeds.jl; degrees 19-131 grown
 # in-house from the degree-17 rule by scripts/search_campaign/; degrees 133-201 from
 # the continuation search described in src/data/PROVENANCE.toml, imported by
-# scripts/import_octahedral_rules.jl (removed after commit 165f243). No published numbers
+# scripts/import_octahedral_rules.jl (removed after commit c69cc47). No published numbers
 # appear in the table.
 # Last written: 2026-10-16
 #

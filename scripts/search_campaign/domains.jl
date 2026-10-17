@@ -93,13 +93,13 @@ table_file(d::BoxDomain) = d.round ? ("disk_d4_seeds.toml", "ball_oh_seeds.toml"
                            ("square_d4_seeds.toml", "cube_oh_seeds.toml", "hypercube_b4_seeds.toml")[d.D - 1]
 degree_step(::BoxDomain) = 2
 n_equations(d::BoxDomain, n) = CR.orbit_equations(geom(d), d.D, n)
-structure(d::BoxDomain, mults) = CR.BoxStructure(d.D, [CR.BoxOrbit(Int.(m), d.D) for m in mults])
+structure(d::BoxDomain, mults) = CR.BoxStructure(d.D, [CR.BoxOrbit(Int.(m), d.D) for m in mults]; geometry = geom(d))
 orbit_mults(::BoxDomain, s) = [o.mult for o in s.orbits]
 const _BOX_TYPES = Dict(D => CR.box_orbit_types(D) for D in (2, 3, 4))
 family(d::BoxDomain, s) = Tuple(count(o -> o.mult == t.mult, s.orbits) for t in _BOX_TYPES[d.D])
 
-fit(d::BoxDomain, s, θ0, n) = CR.box_fit(s, θ0, n; geom = geom(d))
-system(d::BoxDomain, s, n) = CR.orbit_system(geom(d), s, n, Float64)
+fit(::BoxDomain, s, θ0, n) = CR.box_fit(s, θ0, n)       # the structure carries its geometry
+system(::BoxDomain, s, n) = CR.moment_system(s, n, Float64)
 weight_indices(::BoxDomain, s) = [off + 1 for off in CR.param_offsets(s)]
 inside(d::BoxDomain, s, θ) = all(o_off -> CR.loosely_inside(geom(d), o_off[1], [θ[o_off[2] + 1 + i] for i in 1:CR.nparams(o_off[1])]),
                                  zip(s.orbits, CR.param_offsets(s)))
@@ -111,7 +111,7 @@ volume(d::BoxDomain) = CR.orbit_volume(geom(d), d.D)
 random_orbit(d::BoxDomain, o, rng) = (o, vcat(0.02 * volume(d) / CR.orbit_size(o), CR.random_values(geom(d), o.mult, rng)))
 function with_orbits(d::BoxDomain, s, θ, new)
     blocks = [(o, θ[(off + 1):(off + CR.nunknowns(o))]) for (o, off) in zip(s.orbits, CR.param_offsets(s))]
-    return CR.from_box_blocks(d.D, vcat(blocks, new))
+    return CR.from_box_blocks(d.D, vcat(blocks, new), geom(d))
 end
 margin(::BoxDomain, s, θ) = (m = CR.margins(s, θ); (m.weight, min(m.interior, m.gap)))
 function chain(::BoxDomain, s, θ, n, seed)
@@ -146,7 +146,7 @@ orbit_mults(::OrbitDomain{CR.WedgeStructure}, s) = CR.wedge_structure_lists(s)
 family(::OrbitDomain{T}, s) where {T} = Tuple(count(==(t), s.orbits) for t in CR.orbit_types(T))
 
 fit(::OrbitDomain, s, θ0, n) = CR.orbit_fit(s, θ0, n)
-system(::OrbitDomain, s, n) = CR.orbit_system(s, n, Float64)
+system(::OrbitDomain, s, n) = CR.moment_system(s, n, Float64)
 weight_indices(::OrbitDomain, s) = [off + 1 for off in CR.param_offsets(s)]
 inside(::OrbitDomain, s, θ) = all(o_off -> CR.loosely_inside(o_off[1], θ[(o_off[2] + 2):(o_off[2] + CR.nunknowns(o_off[1]))]),
                                   zip(s.orbits, CR.param_offsets(s)))
@@ -161,14 +161,14 @@ function with_orbits(::OrbitDomain{T}, s, θ, new) where {T}
     blocks = vcat([(o, θ[(off + 1):(off + CR.nunknowns(o))]) for (o, off) in zip(s.orbits, CR.param_offsets(s))], new)
     return CR.canonicalize(CR.make_structure(T, [b[1] for b in blocks]), reduce(vcat, (b[2] for b in blocks); init = Float64[]))
 end
-margin(::OrbitDomain, s, θ) = (m = CR.structure_margins(s, θ); (m[1], min(m[2], m[3])))
+margin(::OrbitDomain, s, θ) = (m = CR.margins(s, θ); (m.weight, min(m.interior, m.gap)))
 function chain(::OrbitDomain, s, θ, n, seed)
     r = CR.orbit_grow_and_eliminate(s, θ, n; chains = 1, rng_seed = seed)
     return r === nothing ? nothing : (r[1], r[2])
 end
 
 function refine(::OrbitDomain{T}, s, n, θ64) where {T}
-    θ, res, _ = (T === CR.PyramidStructure ? CR.refine_pyramid : CR.refine_wedge)(s, n, θ64, BITS)
+    θ, res, _ = CR.refine_seed(s, n, θ64, BITS)
     return Float64.(θ), res.converged, res.cond
 end
 entry(d::OrbitDomain, n, s, θr, cond, note) =
@@ -207,7 +207,7 @@ function (w::SafeSphereSystem)(θ; jacobian::Bool = true)
         return fill(1e10, m), jacobian ? zeros(m, u) : zeros(0, 0)
     end
 end
-sphere_inside(s, θ) = try CR.octahedral_margins(s, θ)[2] > -0.02 catch e; e isa DomainError || rethrow(); false end
+sphere_inside(s, θ) = try CR.margins(s, θ).gap > -0.02 catch e; e isa DomainError || rethrow(); false end
 
 function fit(::SphereDomain, s, θ0, n)
     sphere_inside(s, θ0) || return nothing             # a start outside an orbit's domain is no start
@@ -216,7 +216,7 @@ function fit(::SphereDomain, s, θ0, n)
     nr <= 1e-10 || return nothing
     res = CR.gauss_newton(sys, θ; step_tol = 1e-15, res_floor = 1e-13, rank_rtol = 1e-13, maxiter = 10)
     res.residual <= 1e-12 || return nothing
-    wmin, dmin = CR.octahedral_margins(s, res.θ)
+    wmin, dmin = CR.margins(s, res.θ)
     (wmin > 0 && dmin > 1e-6 && CR.node_separation(s, res.θ) > 1e-6) || return nothing
     return s, CR.canonical_octahedral(s, res.θ)
 end
@@ -235,7 +235,7 @@ function with_orbits(::SphereDomain, s, θ, new)
     w = 0.5 * 4π / CR.npoints(s)
     return CR.from_octahedral_blocks(vcat(CR.octahedral_blocks(s, θ), [(k, vcat(w, p[2:end])) for (k, p) in new]))
 end
-margin(::SphereDomain, s, θ) = CR.octahedral_margins(s, θ)
+margin(::SphereDomain, s, θ) = Tuple(CR.margins(s, θ))   # (weight, gap)
 # A grow → eliminate chain with the fit above (the package's grow_and_eliminate_octahedral uses
 # the monomial fit). Growth always adds a d orbit: from degree 18 on every exact rule needs one,
 # since the square of the product of the nine mirror planes' linear forms is an invariant of
@@ -270,11 +270,11 @@ function chain(d::SphereDomain, s, θ, n, seed)
 end
 
 function refine(::SphereDomain, s, n, θ64)
-    θ, res, _ = CR.refine_octahedral(s, n, θ64, BITS)
+    θ, res, _ = CR.refine_seed(s, n, θ64, BITS)       # in the harmonics: refinement_system
     return Float64.(θ), res.converged, res.cond
 end
 function entry(d::SphereDomain, n, s, θr, cond, note)
-    wmin, dmin = CR.octahedral_margins(s, θr)
+    wmin, dmin = CR.margins(s, θr)
     return Dict{String,Any}("degree" => n, "npoints" => CR.npoints(s), "structure" => orbit_mults(d, s),
                             "seed" => θr, "status" => "ok", "note" => note, "method" => "pooled search",
                             "min_weight" => wmin, "min_margin" => dmin, "cond" => cond)
