@@ -110,18 +110,43 @@ and `b.fallbacks` counts it.
 
 ## Results
 
-The record is src/data/fast_kernel_validation.toml. Two findings of the sweep changed the
-code before it was recorded: the pieces' edge vectors are now taken from the Float64x2 apex
-(with them from the rounded apex, the finite part of `1/r³` at degree 0 was off by 5e-14
-where the rounded certified rule is right to 6e-17: the edge vectors moved `x₀` by
-`eps |X|` rather than `eps |a|`), and the angular line count has a floor on its degree term
-(the gradient kernel at degree 0, 1.3e-12 before, 3.7e-15 with four more lines). For `1/r`
-the worst error over 72 geometries is 7e-16 to 2e-14 from degree 0 to 7, within a factor of
-three of the rounded certified rule; the finite-part kernels are within that factor at every
-degree but 0, where the rounded certified rule is exact to rounding (one node per ray, so
-nothing to round but the weights) and the fast rule is backward stable rather than exact: its
-weights come from edge vectors rounded once, and the gradient kernel's principal value cancels
-between the pieces (1e-13 at worst).
+The record is src/data/fast_kernel_validation.toml: every kernel at degrees 0–19, each over
+72 random geometries (24 points on the triangle, 48 off it), less the few outside the
+validated range, which the builder hands to the certified construction (2–7 per entry).
+
+| kernel | worst error, degrees 1–19 | largest ratio to the rounded certified rule | degree 0 (rounded certified) | median build |
+|---|---|---|---|---|
+| `1/r` | 3e-15 – 5e-14 | 3.3 | 7e-16 (7e-17) | 96–648 µs |
+| `1/r³` (finite part) | 4e-13 – 2e-10 | 1.9 | 3e-15 (6e-17) | 122–740 µs |
+| gradient of `1/r` | 1e-13 – 2e-11 | 2.5 | 4e-13 (5e-16) | 116–638 µs |
+
+The errors of the finite-part kernels look large only because the integrals cancel: the
+rounded certified rule loses as much, and no `Float64` rule can do better. At degree 0 the
+certified rule is exact to rounding (one node per ray, so nothing to round but the weights),
+and the fast rule is backward stable rather than exact: its weights come from edge vectors
+rounded once, and for `x₀` inside the panel the gradient's principal value cancels between
+the pieces, which costs it 4e-13.
+
+Three findings of the sweep changed the code before it was recorded:
+
+- The pieces' edge vectors are taken from the Float64x2 apex. With them from the rounded
+  apex, the finite part of `1/r³` at degree 0 was off by 5e-14 where the rounded certified
+  rule is right to 6e-17: the edge vectors moved `x₀` by `eps |X|` rather than `eps |a|`.
+- The angular line count has a floor on its degree term. The gradient kernel at degree 0 was
+  off by 1.3e-12 before, and by 3.7e-15 with four more lines.
+- For `1/r³` and the gradient, the angular line count grows with the strength `η/κ²` of the
+  far edge's singularity, which sits on the edge of the strip after the sinh substitution.
+  For `x₀` just above the inside of a thin triangle, close to two long edges (η ≈ κ ≈ 0.006),
+  the gradient at degree 0 was off by 6e-12 without it.
+
+The ratio in the table compares worst cases: the worst error of the fast rule against the
+worst of the rounded certified rule over the same geometries. Point by point the fast rule
+can sit further above its own floor. Beside a vertex of the thinnest triangle of the sweep
+(`κ` down to 6e-6, at heights from 1e-10 to 1e-1 of the distance), it is off by 3e-13 at
+degree 5 where the rounded certified rule is right to 3e-15–7e-14; more angular lines do not
+change that. It stays well below the recorded worst at that degree, which is what
+`validation(b)` reports. The sweep's own points reach `κ` = 5e-6, close to the 1e-6 below
+which the builder hands a piece on.
 
 ## Not covered
 

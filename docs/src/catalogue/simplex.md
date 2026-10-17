@@ -353,10 +353,14 @@ against the certified rules, those are the quantities whose rounding `Float64` c
 Such a rule shows nothing for itself, so the builder was validated against the certified
 rules offline, over random triangles from thin to obtuse with `x₀` at vertices, on edges,
 inside and close to edges, and at heights from `1e-12` to three diameters above and beside
-them (`scripts/validate_fast_kernel_rules.jl`). For every kernel and degree the worst error in
-the integrals of the orthonormal polynomials is within a small factor of what the certified
-rule loses by being rounded to `Float64`; `CubatureRules.validation(b)` reports it, and the
-certificate of `rule(b, T, k)` quotes it. A geometry outside the validated range — a piece of
+them (`scripts/validate_fast_kernel_rules.jl`). For every kernel and every degree from 1 to
+19, the worst error in the integrals of the orthonormal polynomials is within a factor of 3.3
+of the worst that the certified rule loses by being rounded to `Float64` over the same
+geometries. At degree 0 the certified rule
+has one node per ray and loses almost nothing; there the fast rules are off by at most 7e-16
+for `1/r`, 3e-15 for `1/r³`, and 4e-13 for the gradient with `x₀` inside the panel, where its
+principal value cancels between the pieces. `CubatureRules.validation(b)` reports the worst
+error for the builder's kernel and degree, and the certificate of `rule(b, T, k)` quotes it. A geometry outside the validated range — a piece of
 the panel thinner than the sweep covered, or `x₀` closer to an edge than `1e-3` of its length
 for the finite parts — is built by the certified construction instead, and `b.fallbacks`
 counts such calls.

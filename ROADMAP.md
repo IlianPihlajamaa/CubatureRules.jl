@@ -617,7 +617,8 @@ gaining enough breadth for the selector to be genuinely discriminating.
       advance from where the singularities lie, the near-singular rules two to four times
       smaller than the certified ones. No rule is verified one by one: an offline sweep against
       the certified rules (scripts/validate_fast_kernel_rules.jl, 72 geometries per kernel and
-      degree) is recorded in src/data/fast_kernel_validation.toml and quoted by each rule's
+      degree; at degrees 1–19 within 3.3× of the worst the certified rule loses to rounding) is
+      recorded in src/data/fast_kernel_validation.toml and quoted by each rule's
       certificate, and geometries outside its range go to the certified construction.
       notes/fast-kernel-rules.md)*
 

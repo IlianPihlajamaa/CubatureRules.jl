@@ -57,6 +57,17 @@ end
     @test integrate(y -> 1.0, b, S, k) ≈ ref rtol = 1e-11
 end
 
+@testset "x₀ just above a thin triangle, close to two long edges" begin
+    # the far edges' singularities are η/κ² ≈ 170 times the integral; without that in the
+    # angular line count, the gradient here was off by 4.5e-12
+    S = SurfaceTriangle((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.45, 0.012, 0.0))
+    k = InverseDistanceGradient((0.45, 0.006, 1e-9), Tuple(normalize([1.0, 0.3, 0.01])))
+    b = KernelRuleBuilder(InverseDistanceGradient, 0)
+    ref = integrate(y -> 1.0, rule(WeightedDomain(S, k); degree = 0, digits = 20))
+    @test abs(integrate(y -> 1.0, b, S, k) - ref) < 1e-13
+    @test b.place === :near
+end
+
 @testset "triangles in the plane" begin
     P = Simplex((0.0, 0.0), (1.0, 0.0), (0.3, 0.8))
     for K in (InverseDistance, InverseDistanceCubed), x0 in ((0.4, 0.3), (0.5, -0.02), (0.0, 0.0))

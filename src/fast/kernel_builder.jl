@@ -190,7 +190,7 @@ const FAST_MIN_ETA_FINITEPART = 1e-3    # DuffyFinitePart
 const FAST_MIN_KAPPA_SINH = 1e-6        # DuffySinh: x₀'s distance from the far edge's line, over |d|
 
 """
-    sinh_angular_lines(K, L) -> n
+    sinh_angular_lines(K, L, strength = 1) -> n
 
 Gauss–Legendre lines per piece for DuffySinh's angular direction, exact to degree `K`, `L`
 half the length of the interval in `v`: the integrand is analytic in the strip
@@ -199,11 +199,18 @@ ellipse in it; calibrated with a margin against the certified rules. The degree 
 floor: at degree 0 the gradient kernel, whose angular integrand behaves like `q^{-3/2}` with a
 logarithm and cancels as a principal value for `e` in the plane, needed four lines more than
 the formula without it gave.
+
+The singularity on the strip's edge is the far edge's point nearest `x₀`. For `1/r` it is
+logarithmic; for `1/r³` and its gradient it is `strength = η/κ²` times larger than the
+integral (`η` the piece's in-plane distance to the far edge, `κ` the distance in space, both
+over the edge's length), and the error grows with it. This term matters for `x₀` just above
+the inside of a thin triangle, close to two long edges: there η ≈ κ ≈ 0.006, and without it
+the gradient at degree 0 was off by 6e-12 where the rounded certified rule is right to 3e-16.
 """
-function sinh_angular_lines(K, L)
+function sinh_angular_lines(K, L, strength = 1.0)
     b = π / (2L)
     ρ = b + sqrt(1 + b^2)
-    return fast_gl_size(ceil(Int, 4 + max(K, 6) / 1.5 + 0.85 * log(1 / 4e-15) / (2log(ρ))))
+    return fast_gl_size(ceil(Int, 4 + max(K, 6) / 1.5 + 0.85 * log(max(strength, 1.0) / 4e-15) / (2log(ρ))))
 end
 
 function fast_duffygauss!(b::KernelRuleBuilder{K,D}, g) where {K,D}
@@ -246,7 +253,7 @@ function fast_duffysinh!(b::KernelRuleBuilder{K,D}, g, kernel) where {K,D}
         κ >= FAST_MIN_KAPPA_SINH || return false
         v0, v1 = asinh(-ctr / κ), asinh((1 - ctr) / κ)
         vm, hv = (v0 + v1) / 2, (v1 - v0) / 2
-        nt = sinh_angular_lines(b.claimed, hv)
+        nt = sinh_angular_lines(b.claimed, hv, power == 3 ? J / dd / κ^2 : 1.0)
         vx, _, vw = fast_gl(nt)
         for (vk, wk) in zip(vx, vw)
             sv = vm + hv * vk
