@@ -9,6 +9,9 @@ using TOML, Printf
 
 const PKG = normpath(joinpath(@__DIR__, "..", ".."))
 const FILES = Dict("triangle" => "triangle_s3_seeds.toml", "tetrahedron" => "tetrahedron_s4_seeds.toml",
+                   "sphere" => "lebedev_seeds.toml", "simplex4" => "simplex4_s5_seeds.toml",
+                   "hypercube4" => "hypercube_b4_seeds.toml", "disk" => "disk_d4_seeds.toml",
+                   "ball" => "ball_oh_seeds.toml", "pyramid" => "pyramid_c4v_seeds.toml", "wedge" => "wedge_d3h_seeds.toml",
                    "square" => "square_d4_seeds.toml", "cube" => "cube_oh_seeds.toml")
 
 function status(root)

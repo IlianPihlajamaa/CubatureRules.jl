@@ -2,7 +2,8 @@
 #
 #     julia --project scripts/search_campaign/launch.jl [--root DIR] SPEC [SPEC ...]
 #
-# Each SPEC is DOMAIN:MODE:COUNT[:FROM-TO], e.g.
+# Each SPEC is DOMAIN:MODE:COUNT[:FROM-TO], where DOMAIN may be a comma-separated list for a worker
+# that takes the domains in turn, an hour each (see campaign.jl), e.g.
 #
 #     triangle:extend:2 triangle:improve:1 tetrahedron:extend:2 square:extend:1 cube:extend:1
 #
@@ -22,11 +23,13 @@ function launch(root, specs)
         domain, mode, count = parts[1], parts[2], parse(Int, parts[3])
         range = length(parts) >= 4 ? split(parts[4], "-") : String[]
         for _ in 1:count
-            id = (next_id[domain] = get(next_id, domain, existing_workers(root, domain)) + 1)
+            # a comma-separated DOMAIN rotates over several; its id must be new in each of them
+            doms = split(domain, ",")
+            id = (next_id[domain] = get(next_id, domain, maximum(existing_workers(root, dm) for dm in doms)) + 1)
             args = ["--root", root, "--worker", string(id), "--mode", mode]
             isempty(range) || append!(args, ["--from", range[1], "--to", range[2]])
-            mkpath(joinpath(root, domain, "logs"))
-            out = joinpath(root, domain, "logs", "worker$(id).out")
+            mkpath(joinpath(root, first(doms), "logs"))
+            out = joinpath(root, first(doms), "logs", "worker$(id).out")
             cmd = detach(`$julia --project=$project --threads=1 --heap-size-hint=2G $script $domain $args`)
             p = run(pipeline(cmd; stdin = devnull, stdout = out, stderr = out); wait = false)
             pid = getpid(p)

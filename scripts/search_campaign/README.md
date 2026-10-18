@@ -1,7 +1,8 @@
 # Pooled search for fully symmetric rules
 
-A long-running search for new and smaller seeded rules on the triangle, tetrahedron, square
-and cube. Many single-threaded workers share one pool of exact rules on disk, instead of each
+A long-running search for new and smaller seeded rules for every fully symmetric family: the
+triangle, tetrahedron and 4-simplex; the square, cube and 4-cube; the disk and ball; the pyramid
+and wedge; and the sphere. Many single-threaded workers share one pool of exact rules on disk, instead of each
 running its own chains of eliminations. This follows the procedure that took the octahedral
 sphere rules from degree 191 to 201, generalized to any domain with an adapter.
 
@@ -23,6 +24,9 @@ julia --project scripts/search_campaign/status.jl
 touch campaign/pooled/STOP          # or campaign/pooled/<domain>/STOP for one domain
 ```
 
+A DOMAIN may be a comma-separated list, `disk,ball:extend:1`: that worker takes the domains in
+turn, an hour each (`--slice H`), which keeps seven workers enough for eleven domains.
+
 To run a single worker, for testing or by hand:
 
 ```sh
@@ -39,6 +43,10 @@ julia --project --heap-size-hint=2G scripts/search_campaign/campaign.jl triangle
   but with 673 points at degree 58 against 576 at degree 57.
 - `improve` works at degrees between `--from` and `--to` (default: the top four of the best
   table), looking for rules with fewer points.
+- `fill` closes a gap in a table, working upwards from `--from` to `--to`: at the lowest
+  missing degree (grown from the one below) or the lowest unsettled one, as extend does; once
+  the gap is closed, it improves within it. It is what the sphere uses for degrees 19–131 (see
+  [The sphere](#the-sphere)).
 - `--blind N` makes a worker ignore the shipped entries from degree `N` up. That's how the
   benchmarks below time a rediscovery.
 
@@ -72,7 +80,7 @@ degree `n`. That gives `m` equations for `u` unknowns.
   or a node outside the domain.
 
 The pooled search keeps every intermediate rule, so the endgame becomes shared work. A worker
-repeatedly picks one of four tasks:
+repeatedly picks one of five tasks:
 
 1. **Chain** (25% of the time). One of the package's own chains, from the best rule one degree step
    down. Where a chain costs seconds (boxes, lower degrees) these are hard to beat; see the
@@ -98,12 +106,24 @@ repeatedly picks one of four tasks:
      1.5e-2.
    - **Fit:** alternately with the package's fit and with the positive-weight solve below.
    - A success that still has unknowns to spare goes back into the pool.
+5. **Kick** (basin hopping). Prune and finish only ever remove points, so a rule they have
+   exhausted is a dead end. A kick leaves it instead:
+   - each worker keeps a current rule per degree, at first (and in 10% of kicks again) the best
+     one known;
+   - it adds one to three orbits (70% general ones) at random places, fits, and prunes back as
+     far as any move succeeds, which often removes a different orbit than the one added;
+   - the result becomes the current rule if it has no more points, and otherwise with
+     probability exp(−ΔN / T), with T half a general orbit's worth of points (3 on the triangle,
+     12 on the tetrahedron, 4 on the square, 24 on the cube).
+
+   This is a Metropolis walk over local minima: it can cross a plateau of equal point counts, or
+   climb out of a minimum, where every other task only descends.
 
 **Choosing a task.** Apart from the 25% of chains, a worker chooses by what the pool holds at
 its target degree:
 - *grow* while the pool is nearly empty;
 - *prune* while nothing there is near square;
-- otherwise mostly *finish*, with some grow and prune to keep the pool varied.
+- otherwise a *kick* a quarter of the time, and mostly *finish* the rest, with some grow.
 
 **Candidates.** Any degree-`n` rule with fewer points than the best known, at any excess, is a
 candidate:
@@ -151,6 +171,34 @@ the rule from the degree below, just as the chains did. "Table" is the shipped p
 - Both methods beat the cube rule then shipped at degree 13: 154 points against 160. The
   table has had a 154-point rule since.
 
+### Kicks, and two ideas that did not help
+
+Three additions were tried as options against the engine without them, on the same 15-minute,
+single-core, blind runs, with different seeds (worker numbers):
+
+- **kick**: basin hopping, as described above;
+- **adaptive**: tasks chosen by Thompson sampling of each task's rate of results within one
+  general orbit of the best, per second;
+- **ucb**: the finish task choosing orbit families by UCB1 on refit success, instead of evenly.
+
+| Problem (table) | Without | kick | kick + ucb | ucb | adaptive |
+|---|---|---|---|---|---|
+| tetrahedron 16 (250) | 250, 265, 258, 250 | **248**, 259, **248**, 259 | –, –, 259, 259 | 250, 259 | 250, 265 |
+| cube 19 (380) | 384, 386 | 374, 376 | 378, **369** | | |
+| triangle 40 (291) | 292, 292 | 292, 291 | 291, 291 | | |
+| square 41 (305) | 304, 304 | 304, 304 | 305, 304 | | |
+| triangle 35 (225) | 226, 226 | 226, 226 | | 226, 226 | 226, 226 |
+
+- **Kicks help.** On cube 19 they end about 10 points lower, on the tetrahedron 2–7 points
+  lower on average, and on triangle 40 they reach the table more often. They are never worse.
+  They are now a regular task.
+- **ucb** is mixed: the best cube result, but the tetrahedron runs were no better than kicks alone.
+- **adaptive** changed nothing: in these runs the best counts came from chains and grows in the
+  first minutes, before there was anything to adapt to.
+
+Neither of the last two was kept. Three of these runs beat the shipped tables (tetrahedron 16:
+248 points against 250; cube 19: 369 against 380; square 41: 304 against 305).
+
 ## Layout
 
 ```
@@ -183,8 +231,8 @@ campaign/pooled/
 | File | Contents |
 |---|---|
 | `campaign.jl` | one worker: options, then `run_worker` |
-| `engine.jl` | the pool, the four tasks, the positive-weight solve, candidates |
-| `domains.jl` | one adapter per domain, over the package's orbit machinery |
+| `engine.jl` | the pool, the five tasks, the positive-weight solve, candidates |
+| `domains.jl` | one adapter per domain (triangle, tetrahedron, square, cube, sphere), over the package's orbit machinery |
 | `launch.jl`, `status.jl` | start workers; summarise a campaign |
 
 The engine is domain-independent. Each domain is an adapter in `domains.jl` of about 35 lines,
@@ -197,41 +245,61 @@ covering:
 - wrappers for the package's fit, moment system, moves, orbit growth, chain, margins and
   100-digit refinement.
 
-## Extending it to wedges and pyramids
+## The sphere
 
-The engine needs nothing new. A wedge or pyramid adapter does need orbit machinery the package
-doesn't have yet for those domains; at present it has only their conical and product rules.
+The package's own O_h-symmetric sphere rules stop at degree 17 and resume at 133: Lebedev's
+published rules cover the degrees between, but only through Lebedev.jl, whose licence the
+package cannot pass on. Everything from 19 to 131 was answered by the 6000-point degree-133
+rule. `sphere:fill:1:19-131` grows in-house rules through that gap from the degree-17 rule.
 
-**Wedge** (triangular prism, `T × [-1, 1]`).
-- *Symmetry:* S₃ × Z₂, of order 12.
-- *Orbits:* a triangle orbit (centroid, vertex type or general) times a height of either
-  `z = 0` or `±z`, so six orbit types in all.
-- *Invariant basis:* the invariant polynomials are products of S₃-invariant polynomials on the
-  triangle and even polynomials in `z`. An orthonormal invariant basis is therefore the
-  triangle's `invariant_basis` times even orthonormal Legendre polynomials, with no new
-  projection to compute.
-- *Rest:* the moment system, margins and moves follow the box code, with one more kind of
-  move: sending `z` to zero.
+Two things had kept the package's own search (`grow_and_eliminate_octahedral`) at degree 17,
+where `notes/v0.4-spheres.md` records a stall at degree 19 with a residual near 3e-6:
 
-**Pyramid** (square base, apex on the axis).
-- *Symmetry:* C₄ᵥ, of order 8, acting on each horizontal slice as on the square.
-- *Orbits:* a square orbit of the slice (centre, `(a, 0)`, `(a, a)` or `(a, b)`, scaled by
-  `1 − z`) at a height `z`.
-- *Invariant basis:* this has to be computed as on the simplex: the Reynolds projection of an
-  orthonormal pyramid basis, block by block in degree, checked against its Molien series.
-  Options for the basis are the rational Bergot–Cohen–Duruflé functions or a polynomial basis
-  that is exact on the pyramid's polynomial space.
+- **The fit was ill-conditioned.** `fit_octahedral` solves the moment equations in the
+  invariants p₄ᵃp₆ᵇ, whose Jacobian has condition number 6e5 at the degree-17 rule, about 1e19
+  one orbit later and 1e48 at degree 133. Float64 cannot solve that. In the orthonormal
+  invariant harmonics (`OctahedralHarmonicSystem`, which the 100-digit refinement already uses)
+  it is 23 at degree 17 and 2.6e3 at degree 133. The sphere adapter fits in those.
+- **Every rule of degree 18 or more needs a d orbit**, the only kind with points off the nine
+  mirror planes of O_h. The product of the planes' linear forms, xyz(x²−y²)(y²−z²)(z²−x²), has
+  degree 9 and changes sign under the group; its square is an invariant of degree 18 that is
+  zero, with zero gradient, at every point of every other orbit kind, and has a positive
+  integral, so no rule without a d orbit can integrate it. From the degree-17 rule, every
+  growth without a d orbit stalls at the same residual (2.2 in the harmonics) and every one with
+  it can converge. Lebedev's 146-point degree-19 rule is a₁, a₂, a₃, three 24-point orbits and
+  one d orbit. The adapter's chain always adds a d orbit first.
 
-**Both** also need:
-- first rules from multistart at low degree, as `generate_box_seeds.jl` does;
-- a refinement function (Gauss–Newton with the precision floor of `refine_seed`);
-- a seed table with provenance.
+A first 15-minute run from degree 17 reached degree 77, matching Lebedev's counts at degrees
+19, 21 and 23 (146, 170 and 194 points) and 2–16% above them higher up, where the fill mode had
+moved on as soon as each degree was near square:
 
-This search then extends them.
+| Degree | 19 | 21 | 23 | 25 | 31 | 41 | 53 | 65 | 77 |
+|---|---|---|---|---|---|---|---|---|---|
+| Found | 146 | 170 | 194 | 266 | 362 | 638 | 1034 | 1518 | 2094 |
+| Lebedev | 146 | 170 | 194 | 230 | 350 | 590 | 974 | 1454 | 2030 |
+
+## The newer domains
+
+The 4-cube, disk, ball, pyramid, wedge and 4-simplex tables (main, 74b73a9) start at low
+degree. Their adapters are thin: the 4-cube, disk and ball are the box adapter with `D = 4` or
+the package's round geometry (`refine/box_search.jl`); the pyramid and wedge go through the
+package's generic orbit search (`refine/orbit_search.jl`); the 4-simplex is the simplex adapter
+with `N = 5`. A first six-minute run of each, all six at once on a busy machine, reached: wedge
+7–14, disk 23–29, ball 15, pyramid 10 and 4-cube 19. The 4-simplex did not get past degree 6:
+grown from the degree-6 rule, the degree-7 fits converge, but to rules outside the simplex or
+with a negative weight; multistart over the structures of a point count, as
+`scripts/generate_simplex4_seeds.jl` does to degree 4, is the likelier way in.
+
+## Extending it to other domains
+
+The engine needs nothing new: a domain needs only an adapter in `domains.jl` over the
+package's orbit machinery for it (orbit types, moment system, fit, moves, grow → eliminate,
+margins, refinement) and a seed table in `src/data` to start from.
 
 ## Notes
 
 - The search state is the pool. Workers can be stopped and started at any time, and a new
   worker picks up from wherever the pool is.
-- The older single-process scripts, `scripts/search_campaign.jl` and
-  `scripts/search_box_campaign.jl`, remain. They run the package's chains directly.
+- This replaces the single-process scripts `scripts/search_campaign.jl` and
+  `scripts/search_box_campaign.jl`, which ran the package's chains back to back; the chain task
+  runs the same chains. They are in the history up to commit c69cc47.

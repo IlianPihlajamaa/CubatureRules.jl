@@ -113,16 +113,21 @@ end
           Float64(sum(abs, weights(exact)) / sum(weights(exact))) rtol = 1e-12
     @test CR.weight_amplification(GrundmannMöller(), Simplex{3}(), 1) == 1
     @test CR.weight_amplification(XiaoGimbutas(), Simplex{2}(), 10) == 1
-    @test family(rule(Simplex{3}(); degree = 31)) == "ConicalProduct"
-    a = available(Simplex{3}(); degree = 31)
+    # selection, past the symmetric tetrahedron table (degree 32: Grundmann–Möller 4845 points,
+    # the conical product 4913)
+    d3 = last(degree_range(FullySymmetric(), Simplex{3}())) + 1
+    @test family(rule(Simplex{3}(); degree = d3)) == "ConicalProduct"
+    a = available(Simplex{3}(); degree = d3)
     @test first(a).family == "ConicalProduct(GaussJacobi)" && first(a).amplification == "1"
-    @test any(r -> r.family == "GrundmannMöller" && r.amplification == "1.3e+05", a)
-    # far apart in points the smaller rule stays, and rule says what it costs
+    @test any(r -> r.family == "GrundmannMöller" && parse(Float64, r.amplification) > 1e4, a)
+    # far apart in points the smaller rule stays, and rule says what it costs; past the
+    # symmetric 4-simplex table (Grundmann–Möller has 792 points at degree 14, the conical 4096)
+    d4 = last(degree_range(FullySymmetric(), Simplex{4}())) + 1
     CR.selection_warnings!(true)
-    r = @test_logs (:warn, r"not all positive.*Σ\|w\|/Σw = 35.*positive = true") match_mode = :any rule(Simplex{4}(); degree = 9)
+    r = @test_logs (:warn, r"not all positive.*Σ\|w\|/Σw = .*positive = true") match_mode = :any rule(Simplex{4}(); degree = d4)
     @test family(r) == "GrundmannMöller"
-    @test family(rule(Simplex{4}(); degree = 9, positive = true)) == "ConicalProduct"
-    @test_logs rule(Simplex{4}(); degree = 9)                     # once per family and degree
+    @test family(rule(Simplex{4}(); degree = d4, positive = true)) == "ConicalProduct"
+    @test_logs rule(Simplex{4}(); degree = d4)                    # once per family and degree
     # exact arithmetic has no positive alternative, so no preference and no warning
     @test_logs rule(Simplex{3}(); degree = 31, T = Rational{BigInt})
     @test occursin("positive rule ahead", provenance(rule(Simplex{3}(); degree = 31)).selection)

@@ -53,13 +53,15 @@ end
     @test monomial_error(rule(Wedge(); degree = 8), wedge_moment, 8) < 1e-14
     r = rule(Wedge(); degree = 10, digits = 40)
     @test passed(verify(r)) && monomial_error(r, wedge_moment, 10) < 1e-39
-    # the triangle factor follows the triangle table, and the conical rule beyond it
-    @test npoints(rule(Wedge(); degree = 10)) == npoints(rule(XiaoGimbutas(), Simplex{2}(); degree = 10)) * 6
+    # beyond the symmetric table the product: the triangle factor follows the triangle table,
+    # and the conical rule beyond it
+    dw = last(CR.degree_range(FullySymmetric(), Wedge())) + 1
+    @test npoints(rule(Wedge(); degree = dw)) == npoints(rule(XiaoGimbutas(), Simplex{2}(); degree = dw)) * cld(dw + 1, 2)
     dmax = last(CR.degree_range(XiaoGimbutas(), Simplex{2}()))
     r = rule(Wedge(); degree = dmax + 1)
     @test occursin("ConicalProduct", provenance(r).path[2]) && degree(r) >= dmax + 1
     @test monomial_error(r, wedge_moment, 6) < 1e-13
-    @test npoints(WedgeProduct(), Wedge(), 10) == npoints(rule(Wedge(); degree = 10))
+    @test npoints(WedgeProduct(), Wedge(), dw) == npoints(rule(Wedge(); degree = dw))
 end
 
 @testset "pyramid rules" begin

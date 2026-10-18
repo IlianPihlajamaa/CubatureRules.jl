@@ -32,14 +32,14 @@ end
     @test any(c -> !selectable(c.family), CR.gather(Sphere{3}(), 19, Float64; all = true))
     # compare shows at least what available lists
     @test "Lebedev (Lebedev.jl, GPL-3)" in [row.family for row in compare(Sphere{3}(); degree = 11)]
-    # at degree 19 our table stops, so the default is the product rule — with a warning,
-    # because a smaller rule existed and was passed over for its licence
-    r = @test_logs (:warn, r"licence is not one") match_mode=:any rule(Sphere{3}(); degree = 19)
-    @test family(r) == "SphereProduct"
+    # at degree 25 our rule has 254 points and theirs 230, so the default is ours — with a
+    # warning, because a smaller rule existed and was passed over for its licence
+    r = @test_logs (:warn, r"licence is not one") match_mode=:any rule(Sphere{3}(); degree = 25)
+    @test family(r) == "Lebedev" && !occursin("GPL", provenance(r).license)
     # asked for explicitly, the smaller rule comes back
-    r2 = rule(Sphere{3}(); degree = 19, copyleft = true)
+    r2 = rule(Sphere{3}(); degree = 25, copyleft = true)
     @test family(r2) == "Lebedev"
-    @test npoints(r2) == 146
+    @test npoints(r2) == 230
     @test npoints(r2) < npoints(r)
     @test occursin("copyleft = true", provenance(r2).selection)
     # the warning can be switched off
@@ -113,7 +113,7 @@ end
     @test CR.family_license(LebedevRule()) == ""
     @test provenance(rule(LebedevRule(), Sphere{3}(); degree = 11)).license != ""
     # and the stamp survives the selector's own route
-    r2 = rule(Sphere{3}(); degree = 19, copyleft = true)
+    r2 = rule(Sphere{3}(); degree = 25, copyleft = true)
     @test occursin("GPL-3.0", provenance(r2).license)
 end
 
