@@ -39,8 +39,10 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - name: Load time
         shell: bash
-        # target: under one second; fails above three, which no runner should need
+        # target: under one second; fails above three, which no runner should need. The first
+        # load precompiles (buildpkg does not); the second, in a fresh process, is timed.
         run: |
+          julia --project -e 'using CubatureRules'
           julia --project -e 't = @elapsed using CubatureRules
                                 println("using CubatureRules: ", round(t; digits = 2), " s")
                                 t < 1 || @warn "above the one-second target"
