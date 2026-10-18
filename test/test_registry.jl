@@ -47,7 +47,7 @@ end
     a0 = available(Simplex{2}())
     @test length(a0) >= 3
     @test any(row -> row.family == "XiaoGimbutas" && first(row.degrees) == 0 && last(row.degrees) >= 20, a0)
-    c = compare(Simplex{2}(), 17)
+    c = compare(Simplex{2}(); degree = 17)
     @test length(c) >= 3
     @test any(row -> row.exact_rational, c)
 end
@@ -101,9 +101,6 @@ end
     @test_throws NoRuleError rule(Simplex{2}(); degree = 3, family = GrundmannMöller(), positive = true)
     @test_throws NoRuleError rule(Interval(-1, 1); degree = 5, family = Lobatto(), interior = true)
     @test npoints(rule(Simplex{2}(); degree = 3, family = GrundmannMöller())) > 0
-    @test_throws CR.NotYetImplemented Polytope{3}()
-    # a domain with no family at all names itself and says when it is coming
-    @test occursin("Polytope", try rule(Polytope{3,Float64}()) catch e; sprint(showerror, e) end)
     @test_throws ArgumentError rule(Simplex{2}(); degree = -1)
     @test_throws ArgumentError rule(Simplex{2}(); npoints = 5)
 end

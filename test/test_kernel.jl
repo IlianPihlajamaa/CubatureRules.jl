@@ -72,7 +72,7 @@ end
     # in Float64 and Float32, verified at the rules' own precision
     for T in (Float64, Float32), k in (PrincipalValue(0.3), FinitePart(0.3; α = 1 // 2))
         r = rule(WeightedDomain(Interval(-1, 1), k); degree = 12, T)
-        @test eltype(r) == T && passed(verify(r))
+        @test numbertype(r) == T && passed(verify(r))
         @test T(0.3) in nodes(r)
     end
     @test measure(WeightedDomain(Interval(-1, 1), PrincipalValue(1 // 3))) ≈ -log(2)

@@ -32,7 +32,7 @@ end
 
 function Sphere(centre, radius)
     D = length(centre)
-    T = promote_type(eltype(centre), typeof(radius))
+    T = _coordinate_type(centre, (radius,))
     return Sphere{D,T}(SVector{D,T}(centre), T(radius))
 end
 Sphere{D}() where {D} = Sphere{D,Int}(SVector{D,Int}(ntuple(_ -> 0, D)), 1)

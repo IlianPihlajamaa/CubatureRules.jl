@@ -53,7 +53,7 @@ function _integrate_batch(f, r::QuadratureRule)
 end
 
 function integrate(f::F, r::QuadratureRule, dom::Domain) where {F}
-    A, b, J = _affine(domain(r), dom, _maptype(eltype(r), _coordtype(dom)))
+    A, b, J = _affine(domain(r), dom, _maptype(numbertype(r), _coordtype(dom)))
     x = nodes(r)
     w = weights(r)
     @inbounds acc = (w[1] * J) * f(A * x[1] + b)
@@ -104,13 +104,23 @@ end
 _coordtype(s::Simplex) = eltype(eltype(s.vertices))
 _coordtype(t::SurfaceTriangle) = eltype(eltype(t.vertices))
 
-"Arithmetic type of a mapped evaluation: exact inputs stay exact (Int → Rational{BigInt})."
+"""
+Arithmetic type of a mapped evaluation. A floating-point rule keeps its own type whatever
+the domain's coordinates are: the domain is converted to it. Promoting instead would turn a
+`Float64` rule on a mesh stored in `BigFloat` into a `BigFloat` rule at the ambient
+precision, with the accuracy of a `Float64` one. An exact rule takes the domain's type, and
+exact inputs stay exact (Int → Rational{BigInt}).
+"""
 @inline function _maptype(::Type{R}, ::Type{C}) where {R,C}
     S = promote_type(R, C)
     return S <: Integer ? Rational{BigInt} : S
 end
+# by dispatch, so that the type is known at compile time on the hot path
+_maptype(::Type{R}, ::Type{C}) where {R<:AbstractFloat,C} = R
+_maptype(::Type{Complex{R}}, ::Type{C}) where {R<:AbstractFloat,C} = Complex{R}
 _coordtype(d::Interval) = typeof(d.a)
 _coordtype(d::Orthotope) = eltype(d.lo)
 _coordtype(d::Union{Wedge,Pyramid}) = eltype(eltype(d.vertices))
 _coordtype(d::Union{Ball,Sphere}) = promote_type(eltype(d.centre), typeof(d.radius))
+_coordtype(d::WeightedDomain) = _coordtype(d.base)
 

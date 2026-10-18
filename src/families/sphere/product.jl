@@ -102,16 +102,18 @@ function build(f::SphereProduct, dom::Sphere{D}, degree::Int, ctx::BuildContext{
     n, m = sphere_product_shape(reference(dom), degree)
     guard = gj_guard_bits(max(n, m)) + 8
     xs, ws = sphere_product_work(D, n, m, ctx.bits + guard)
-    res = with_bits(ctx.bits + guard) do
-        maximum(x -> abs(sum(abs2, x) - 1), xs)
-    end
     xout = [SVector{D,T}(ntuple(j -> finalize_number(ctx, x[j]), D)) for x in xs]
     wout = [finalize_number(ctx, w) for w in ws]
+    # how far the delivered nodes are from the sphere, at twice the precision
+    rbits = 2ctx.bits + guard
+    res = with_bits(rbits) do
+        maximum(x -> abs(sum(xi -> BigFloat(xi)^2, x) - 1), xout)
+    end
     path = D == 2 ? ["trapezoid rule, $m equally spaced points"] :
            ["Gauss–Jacobi in each of the $(D - 2) polar angles, $n points each",
             "trapezoid rule in the azimuth, $m points"]
     cert = Certificate(equations = "|x| = 1 at every node (deviation of the delivered nodes)",
-                       residual = BigFloat(res; precision = 64), residual_bits = ctx.bits + guard,
+                       residual = BigFloat(res; precision = 64), residual_bits = rbits,
                        digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)))
     prov = Provenance(family = "SphereProduct", derivation = Derived(), path = path,
                       seed_source = "none (closed form × Gauss–Jacobi)",

@@ -38,7 +38,8 @@ ExponentialProduct() = ExponentialProduct(SphereProduct())
 
 derivation(::Type{<:ExponentialProduct}) = Derived()
 family_name(::ExponentialProduct) = "ExponentialProduct"
-describe_family(f::ExponentialProduct) = "ExponentialProduct(" * family_name(f.angular) * ")"
+describe_family(f::ExponentialProduct) = "ExponentialProduct(" * describe_family(f.angular) * ")"
+inner_families(f::ExponentialProduct) = (f.angular,)
 
 function candidates(::Type{<:ExponentialProduct}, dom::ExponentialDomain{D}, c::PolynomialDegree) where {D}
     (isreference(dom) && D >= 2) || return ExponentialProduct[]
@@ -126,7 +127,8 @@ function build(f::ExponentialProduct, dom::ExponentialDomain{D}, degree::Int, ct
                               "odd degrees vanish through the angular factor, so only even ones " *
                               "reach the radial rule"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971, WHEELER_1974]), symmetry = NoSymmetry())
+                      citations = vcat(provenance(ang).citations, [STROUD_1971, WHEELER_1974]), symmetry = NoSymmetry(),
+                      license = provenance(ang).license)
     return QuadratureRule(xout, wout, ExponentialSpace(D), PolynomialDegree(claimed_degree(f, dom, degree)),
                           prov, cert)
 end

@@ -38,7 +38,8 @@ GaussianProduct() = GaussianProduct(SphereProduct())
 
 derivation(::Type{<:GaussianProduct}) = Derived()
 family_name(::GaussianProduct) = "GaussianProduct"
-describe_family(f::GaussianProduct) = "GaussianProduct(" * family_name(f.angular) * ")"
+describe_family(f::GaussianProduct) = "GaussianProduct(" * describe_family(f.angular) * ")"
+inner_families(f::GaussianProduct) = (f.angular,)
 
 function candidates(::Type{<:GaussianProduct}, dom::GaussianDomain{D}, c::PolynomialDegree) where {D}
     (isreference(dom) && D >= 2) || return GaussianProduct[]
@@ -110,7 +111,8 @@ function build(f::GaussianProduct, dom::GaussianDomain{D}, degree::Int, ctx::Bui
                               "odd degrees vanish through the angular factor, so only even ones " *
                               "reach the radial rule"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry())
+                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry(),
+                      license = provenance(ang).license)
     return QuadratureRule(xout, wout, GaussianSpace(D), PolynomialDegree(claimed_degree(f, dom, degree)),
                           prov, cert)
 end

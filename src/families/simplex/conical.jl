@@ -21,6 +21,7 @@ ConicalProduct() = ConicalProduct(GaussJacobi())
 derivation(::Type{<:ConicalProduct}) = Derived()
 family_name(::ConicalProduct) = "ConicalProduct"
 describe_family(f::ConicalProduct) = "ConicalProduct(" * family_name(f.inner) * ")"
+inner_families(f::ConicalProduct) = (f.inner,)
 
 # Combinators recurse into the leaf families (PLAN §2.5), to nesting depth 1.
 function candidates(::Type{<:ConicalProduct}, dom::Simplex, c::PolynomialDegree)

@@ -27,7 +27,7 @@ end
 
 function Ball(centre, radius)
     D = length(centre)
-    T = promote_type(eltype(centre), typeof(radius))
+    T = _coordinate_type(centre, (radius,))
     return Ball{D,T}(SVector{D,T}(centre), T(radius))
 end
 Ball{D}() where {D} = Ball{D,Int}(SVector{D,Int}(ntuple(_ -> 0, D)), 1)

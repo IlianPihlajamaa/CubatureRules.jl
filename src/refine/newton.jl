@@ -37,24 +37,97 @@ end
 """
     estimate_cond(J)
 
-Condition number `σ₁/σ_min` of `J`. Computed from a Float64 copy (cheap, and ample for a
-number whose only uses are choosing guard digits and being reported); if that copy is
-too ill-conditioned for Float64 to resolve, it is estimated in 256-bit arithmetic from a
-pivoted QR, by power and inverse iteration on `R` ([`triangular_cond_mp`](@ref)).
+Condition number `σ₁/σ_min` of `J`, which guard digits are chosen from. The working precision
+follows from it, so it must come out the same on every platform, and no LAPACK or BLAS is
+used: a pivoted QR of a `Float64` copy in plain loops ([`pivoted_qr64`](@ref)), then power
+and inverse iteration on its `R`, in plain loops too. If that copy is too ill-conditioned
+for `Float64` to resolve, the same is done in 256-bit arithmetic on a pivoted QR in `BigFloat`
+([`triangular_cond_mp`](@ref)). The iterations converge from below, so the result is a lower
+bound, in practice within a small factor; the guard rounds `log₂ κ` up to a multiple of 8.
 """
 function estimate_cond(J::AbstractMatrix)
-    σ = svdvals(Float64.(J))
-    κ = iszero(σ[end]) ? Inf : σ[1] / σ[end]
+    # R of a pivoted QR has the singular values of J. An underdetermined J is factored
+    # transposed, which has the same singular values and a square R.
+    tall(A) = size(A, 1) < size(A, 2) ? permutedims(A) : A
+    A = tall(Float64.(J))
+    n = size(A, 2)
+    n == 0 && return 1.0
+    κ = triangular_cond64(pivoted_qr64(A).QR, n)
     if !(κ < 1e12) && !(eltype(J) <: Float64)
-        # R of a pivoted QR has the singular values of J; iterating on it costs O(n²) a step,
-        # where a BigFloat SVD cost O(n³) and was most of a large Lebedev build. An
-        # underdetermined J is factored transposed, which has the same singular values and
-        # a square R.
         κ = with_bits(256) do
-            triangular_cond_mp(pivoted_qr_mp(size(J, 1) < size(J, 2) ? permutedims(J) : J)[1])
+            triangular_cond_mp(pivoted_qr_mp(tall(J))[1])
         end
     end
     return κ
+end
+
+"""
+    triangular_cond64(R, n; iterations = 12) -> Float64
+
+`σ₁ / σ_min` of the upper triangle of `R[1:n, 1:n]` by power and inverse iteration, as
+[`triangular_cond_mp`](@ref), in `Float64` and in plain loops, so that it is the same on every
+platform.
+"""
+function triangular_cond64(R::AbstractMatrix{Float64}, n::Int; iterations::Int = 12)
+    any(i -> iszero(R[i, i]), 1:n) && return Inf
+    function nrm(v)                        # no `sum`: it may vectorise, and reassociate
+        s = 0.0
+        for vi in v
+            s += vi * vi
+        end
+        return sqrt(s)
+    end
+    # (the helpers name their arrays differently from the loops below: a nested function that
+    # assigns a name of the enclosing one assigns that variable)
+    function rmul(v)                       # R v
+        out = zeros(n)
+        for i in 1:n, j in i:n
+            out[i] += R[i, j] * v[j]
+        end
+        return out
+    end
+    function rtmul(v)                      # Rᵀ v
+        out = zeros(n)
+        for j in 1:n, i in 1:j
+            out[j] += R[i, j] * v[i]
+        end
+        return out
+    end
+    function rsolve(v)                     # R \ v
+        z = copy(v)
+        for i in n:-1:1
+            for j in (i + 1):n
+                z[i] -= R[i, j] * z[j]
+            end
+            z[i] /= R[i, i]
+        end
+        return z
+    end
+    function rtsolve(v)                    # Rᵀ \ v
+        z = copy(v)
+        for j in 1:n
+            for i in 1:(j - 1)
+                z[j] -= R[i, j] * z[i]
+            end
+            z[j] /= R[j, j]
+        end
+        return z
+    end
+    start() = [1 + i / (2n) for i in 1:n]
+    x, σ1² = start(), 0.0
+    for _ in 1:iterations
+        y = rtmul(rmul(x))
+        σ1² = nrm(y) / nrm(x)
+        x = y / nrm(y)
+    end
+    x, σn⁻² = start(), 0.0
+    for _ in 1:iterations
+        y = rsolve(rtsolve(x))
+        σn⁻² = nrm(y) / nrm(x)
+        x = y / nrm(y)
+    end
+    κ = sqrt(σ1² * σn⁻²)
+    return isfinite(κ) ? κ : Inf
 end
 
 """
@@ -445,7 +518,7 @@ The returned `guard_bits` count every bit worked beyond `bits`.
 function refine_system(make_sys, θ64::Vector{Float64}, bits::Integer; cancel = nothing,
                        verbose::Integer = 0, label::AbstractString = "refinement")
     r64, J64 = make_sys(Float64)(θ64)
-    κ0 = seed_cond(lsq_step(J64, r64; rank_rtol = 1e-14)[2], () -> make_sys(BigFloat)(BigFloat.(θ64))[2])
+    κ0 = seed_cond(estimate_cond(J64), () -> make_sys(BigFloat)(BigFloat.(θ64))[2])
     guard = guard_bits_from_cond(κ0)
     verbose >= 1 && @info @sprintf("%s: %d unknowns, %d equations, seed cond %.2e",
                                    label, length(θ64), length(r64), κ0)

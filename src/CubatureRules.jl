@@ -22,7 +22,6 @@ import InteractiveUtils
 import SpecialFunctions
 import TOML
 import QuadGK
-import Test
 
 # core types
 include("core/claims.jl")
@@ -133,12 +132,12 @@ export Domain, Interval, Simplex, Orthotope, Sphere, Ball, Disk, WeightedDomain,
        InverseDistance, InverseDistanceCubed, InverseDistanceGradient, SurfaceTriangle,
        QuadraticTriangle, CurvedInverseDistance,
        HalfLine, RealLine, RealSpace, LaguerreRay, HermiteLine, GaussianSpace, ExponentialSpace,
-       Polytope, Wedge, Pyramid
+       Wedge, Pyramid
 export ExactnessClaim, PolynomialDegree, SpanOf, NoClaim
 export measure, indomain, isinterior
 # rules
 export QuadratureRule, nodes, weights, domain, exactness, provenance, certificate,
-       npoints, degree, family
+       npoints, degree, family, numbertype
 # families and the registry
 export RuleFamily, GaussJacobi, GaussLegendre, ConicalProduct, TensorProduct,
        NewtonCotes, Fejer, GaussPatterson, TanhSinh, Lobatto, Radau, ClenshawCurtis, GaussKronrod,
@@ -169,13 +168,13 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        rule_hash, validation,
        SymmetryGroup, NoSymmetry, Reflection, SymmetricGroup, Oh, D4, B4, C4v, D3h, check_invariance, group_orbits,
        Provenance, Certificate, Verification, Citation, Derived, Seeded,
-       CombinatorFamily, ⊗,
+       CombinatorFamily, inner_families, check_weight, ⊗,
        candidates, properties, degree_range, cost_estimate, selectable, family_license,
        selection_warnings!, unloaded_alternatives, weight_amplification, POSITIVE_PREFERENCE,
        derivation,
        # the rest of the family interface: what docs/src/tutorial/families.md tells authors to use
        build, BuildContext, outtype, isexact, finalize_number, checkcancel, claimed_degree,
-       degree_for_npoints, supports_type, describe_family, reference, verification_basis,
+       degree_for_npoints, exact_npoints, supports_type, describe_family, reference, verification_basis,
        verify_convergence, classify_octahedral,
        CancellationToken, cancel!, CancelledError,
        SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed,

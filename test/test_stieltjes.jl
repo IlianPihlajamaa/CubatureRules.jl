@@ -45,7 +45,7 @@ end
     @test occursin("Gautschi", sprint(show, MIME"text/plain"(), r))
     # and in Float64
     r64 = rule(WeightedDomain(Interval(0, 2), w); degree = 11)
-    @test eltype(r64) == Float64 && passed(verify(r64))
+    @test numbertype(r64) == Float64 && passed(verify(r64))
     @test measure(WeightedDomain(Interval(0, 2), w)) ≈ 1 - exp(-2) + 1 / 2
 end
 

@@ -22,6 +22,7 @@ derivation(::Type{<:WedgeProduct}) = Derived()
 derivation(f::WedgeProduct) = derivation(f.tri) isa Seeded || derivation(f.line) isa Seeded ? Seeded() : Derived()
 family_name(::WedgeProduct) = "WedgeProduct"
 describe_family(f::WedgeProduct) = "WedgeProduct(" * describe_family(f.tri) * " × " * describe_family(f.line) * ")"
+inner_families(f::WedgeProduct) = (f.tri, f.line)
 
 # every triangle family, and the conical one, which is itself a combinator and so is not a
 # leaf; on the line Gauss–Legendre, which no other line family beats on points
@@ -51,8 +52,8 @@ cost_estimate(f::WedgeProduct, dom, degree, T) =
     cost_estimate(f.tri, Simplex{2}(), degree, T) + cost_estimate(f.line, Interval(), degree, T)
 
 function build(f::WedgeProduct, dom::Wedge, degree::Int, ctx::BuildContext{T}) where {T}
-    t = build(f.tri, Simplex{2}(), degree, ctx)
-    l = build(f.line, Interval(), degree, ctx)
+    t = _stamp_license(f.tri, build(f.tri, Simplex{2}(), degree, ctx))
+    l = _stamp_license(f.line, build(f.line, Interval(), degree, ctx))
     nt, nl = npoints(t), npoints(l)
     xs = Vector{SVector{3,T}}(undef, nt * nl)
     ws = Vector{T}(undef, nt * nl)
@@ -67,19 +68,15 @@ function build(f::WedgeProduct, dom::Wedge, degree::Int, ctx::BuildContext{T}) w
         end
     end
     claim = PolynomialDegree(min(exactness(t).d, exactness(l).d))
-    certs = [c for c in (certificate(t), certificate(l)) if c !== nothing]
-    cert = isempty(certs) ? nothing :
-           Certificate(equations = join(("$(n): " * c.equations for (n, c) in zip(("triangle", "line"), certs)), "; "),
-                       residual = maximum(c -> c.residual, certs), residual_bits = maximum(c -> c.residual_bits, certs),
-                       digits = target_digits(ctx), guard_digits = minimum(c -> c.guard_digits, certs),
-                       cond = maximum(c -> c.cond, certs), iterations = maximum(c -> c.iterations, certs))
+    named = [(n, c) for (n, c) in (("triangle", certificate(t)), ("line", certificate(l))) if c !== nothing]
+    cert = combine_certificates(last.(named), join(("$(n): " * c.equations for (n, c) in named), "; "), target_digits(ctx))
     prov = Provenance(family = "WedgeProduct", derivation = derivation(f),
                       path = vcat(["product of a triangle rule and a rule on [-1, 1]",
                                    "triangle: $(describe_family(f.tri)), $(nt) points, degree $(exactness(t).d)",
                                    "line: $(describe_family(f.line)), $(nl) points, degree $(exactness(l).d)"],
                                   ["triangle " * s for s in provenance(t).path]),
-                      seed_source = provenance(t).seed_source,
+                      seed_source = join(unique((provenance(t).seed_source, provenance(l).seed_source)), "; "),
                       citations = unique(vcat(provenance(t).citations, provenance(l).citations)),
-                      license = provenance(t).license)
+                      license = join_licenses((provenance(t).license, provenance(l).license)))
     return QuadratureRule(xs, ws, Wedge(), claim, prov, cert)
 end

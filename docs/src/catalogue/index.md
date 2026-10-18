@@ -69,8 +69,3 @@ Not listed above:
   [`InverseDistanceCubed`](@ref) or [`InverseDistanceGradient`](@ref) kernel; `DuffyCone`,
   which applies to tetrahedra with an [`InverseDistance`](@ref) kernel; and `DuffyCurved`, which
   applies to the reference triangle with a [`CurvedInverseDistance`](@ref) kernel.
-
-## Planned domains
-
-`Polytope` is defined so that requests for it give a clear error naming the release in which
-it is planned.

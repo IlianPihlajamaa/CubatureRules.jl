@@ -19,8 +19,7 @@ function Base.show(io::IO, ::MIME"text/plain", r::QuadratureRule{D,T}) where {D,
     println(io, "  exactness : ", claimtxt)
     inside = all(x -> isinterior(x, r.domain), r.nodes)
     println(io, "  points    : ", npoints(r), inside ? ", all interior" : ", not all interior")
-    sign = eltype(r.weights) <: Complex ? "complex" : all(>(0), r.weights) ? "all positive" : "some negative"
-    println(io, "  weights   : ", sign, ", Σw = ", _short(sum(r.weights)))
+    println(io, "  weights   : ", _weight_signs(r.weights, T), ", Σw = ", _short(sum(r.weights)))
     if c !== nothing
         prec = _is_exact_type(T) ? "exact rational" : "$(c.digits) digits"
         extra = String[]
@@ -38,8 +37,18 @@ function Base.show(io::IO, ::MIME"text/plain", r::QuadratureRule{D,T}) where {D,
     end
 end
 
+# A weight that underflowed to zero (Gauss–Laguerre at a few hundred points in Float64) is
+# not a negative one.
+function _weight_signs(w, T)
+    eltype(w) <: Complex && return "complex"
+    all(>(0), w) && return "all positive"
+    any(<(0), w) && return "some negative"
+    nz = count(iszero, w)
+    return "non-negative, $(nz) zero" * (_is_exact_type(T) ? "" : " after rounding to $T")
+end
+
 _short(x::Rational) = string(x)
-_short(x::BigFloat) = string(BigFloat(x; precision = 100))[1:min(end, 32)]
+_short(x::BigFloat) = @sprintf("%.25g", x)          # significant digits, with the exponent
 _short(z::Complex) = string(_short(real(z)), signbit(imag(z)) ? " - " : " + ", _short(abs(imag(z))), "im")
 _short(x) = string(x)
 

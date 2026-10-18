@@ -21,6 +21,7 @@ TensorProduct(f::RuleFamily, D::Integer) = TensorProduct(ntuple(_ -> f, Int(D)))
 derivation(::Type{<:TensorProduct}) = Derived()
 derivation(f::TensorProduct) = any(fi -> derivation(fi) isa Seeded, f.families) ? Seeded() : Derived()
 family_name(::TensorProduct) = "TensorProduct"
+inner_families(f::TensorProduct) = f.families
 function describe_family(f::TensorProduct)
     names = unique(describe_family.(f.families))
     return "TensorProduct(" * (length(names) == 1 ? only(names) : join(names, " ⊗ ")) * ")"
@@ -51,12 +52,12 @@ function properties(f::TensorProduct, dom, degree)
             symmetry = NoSymmetry(), nested = all(p -> p.nested, ps))
 end
 cost_estimate(f::TensorProduct, dom, degree, T) =
-    sum(cost_estimate(fi, Interval(), degree, T) for fi in f.families) * _precision_factor(T)
+    sum(cost_estimate(fi, Interval(), degree, T) for fi in f.families)        # each already includes the precision factor
 
 function build(f::TensorProduct, dom::Orthotope{D}, degree::Int, ctx::BuildContext{T}) where {D,T}
     length(f.families) == D ||
         throw(ArgumentError("TensorProduct with $(length(f.families)) factors cannot build on $(dom)"))
-    parts = [build(fi, Interval(), degree, ctx) for fi in f.families]
+    parts = [_stamp_license(fi, build(fi, Interval(), degree, ctx)) for fi in f.families]
     ms = [npoints(p) for p in parts]
     xs = Vector{SVector{D,T}}(undef, prod(ms))
     ws = Vector{T}(undef, prod(ms))
@@ -70,18 +71,14 @@ function build(f::TensorProduct, dom::Orthotope{D}, degree::Int, ctx::BuildConte
     end
     claim = PolynomialDegree(minimum(exactness(p).d for p in parts))   # `degree` is the argument here
     certs = [certificate(p) for p in parts if certificate(p) !== nothing]
-    cert = isempty(certs) ? nothing :
-           Certificate(equations = "per axis: " * first(certs).equations,
-                       residual = maximum(c -> c.residual, certs), residual_bits = first(certs).residual_bits,
-                       digits = target_digits(ctx), guard_digits = maximum(c -> c.guard_digits, certs),
-                       cond = maximum(c -> c.cond, certs), iterations = maximum(c -> c.iterations, certs))
+    cert = combine_certificates(certs, isempty(certs) ? "" : "per axis: " * first(certs).equations, target_digits(ctx))
     prov = Provenance(family = "TensorProduct", derivation = derivation(f),
                       path = vcat(["tensor product of $D one-dimensional rules"],
                                   ["axis $j: " * describe_family(f.families[j]) for j in 1:D],
                                   ["claim: conservative total degree $(claim.d), not the tensor-product space"]),
                       seed_source = join(unique(provenance(p).seed_source for p in parts), "; "),
                       citations = unique(reduce(vcat, [provenance(p).citations for p in parts])),
-                      license = "MIT")
+                      license = join_licenses(provenance(p).license for p in parts))
     return QuadratureRule(xs, ws, Orthotope{D}(), claim, prov, cert)
 end
 
@@ -96,23 +93,30 @@ function ⊗(a::QuadratureRule{Da,Ta}, b::QuadratureRule{Db,Tb}) where {Da,Ta,Db
         throw(ArgumentError("⊗ combines rules on intervals or boxes; got $(a.domain) and $(b.domain)"))
     D = Da + Db
     T = promote_type(Ta, Tb)
-    xs = Vector{SVector{D,T}}(undef, npoints(a) * npoints(b))
-    ws = Vector{T}(undef, npoints(a) * npoints(b))
-    k = 0
-    for i in 1:npoints(a), j in 1:npoints(b)
-        k += 1
-        xs[k] = SVector{D,T}(ntuple(l -> l <= Da ? T(node_vector(a, i)[l]) : T(node_vector(b, j)[l - Da]), D))
-        ws[k] = T(weights(a)[i]) * T(weights(b)[j])
+    # BigFloats at the finer of the two rules' precisions, never the ambient one
+    bits = max(_rule_precision(a), _rule_precision(b))
+    body() = begin
+        xs = Vector{SVector{D,T}}(undef, npoints(a) * npoints(b))
+        ws = Vector{T}(undef, npoints(a) * npoints(b))
+        k = 0
+        for i in 1:npoints(a), j in 1:npoints(b)
+            k += 1
+            xs[k] = SVector{D,T}(ntuple(l -> l <= Da ? T(node_vector(a, i)[l]) : T(node_vector(b, j)[l - Da]), D))
+            ws[k] = T(weights(a)[i]) * T(weights(b)[j])
+        end
+        lo = SVector{D,T}(ntuple(l -> l <= Da ? T(_box_lo(a.domain)[l]) : T(_box_lo(b.domain)[l - Da]), D))
+        hi = SVector{D,T}(ntuple(l -> l <= Da ? T(_box_hi(a.domain)[l]) : T(_box_hi(b.domain)[l - Da]), D))
+        xs, ws, lo, hi
     end
-    lo = SVector{D,T}(ntuple(l -> l <= Da ? T(_box_lo(a.domain)[l]) : T(_box_lo(b.domain)[l - Da]), D))
-    hi = SVector{D,T}(ntuple(l -> l <= Da ? T(_box_hi(a.domain)[l]) : T(_box_hi(b.domain)[l - Da]), D))
+    xs, ws, lo, hi = T === BigFloat ? with_bits(body, bits) : body()
     claim = _tensor_claim(a.exactness, b.exactness)
     prov = Provenance(family = "TensorProduct", derivation = derivation(a) isa Seeded || derivation(b) isa Seeded ?
                                                              Seeded() : Derived(),
                       path = ["⊗ of $(family(a)) and $(family(b))",
                               "claim: conservative total degree, not the tensor-product space"],
                       seed_source = provenance(a).seed_source * "; " * provenance(b).seed_source,
-                      citations = unique(vcat(provenance(a).citations, provenance(b).citations)))
+                      citations = unique(vcat(provenance(a).citations, provenance(b).citations)),
+                      license = join_licenses((provenance(a).license, provenance(b).license)))
     return QuadratureRule(xs, ws, Orthotope{D,T}(lo, hi), claim, prov, nothing)
 end
 

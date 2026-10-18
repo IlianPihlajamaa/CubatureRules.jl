@@ -14,7 +14,7 @@ const CR = CubatureRules
     # exact rational rules stay exact under rational maps
     g = rule(GrundmannMöller(), Simplex{2}(); degree = 5, T = Rational{BigInt})
     gm = map_to(g, Simplex((0, 0), (2, 0), (0, 3)))
-    @test eltype(gm) == Rational{BigInt}
+    @test numbertype(gm) == Rational{BigInt}
     @test check(gm).exact
     li = map_to(rule(Interval(); degree = 7), Interval(0.0, 5.0))
     @test exactness(li) == PolynomialDegree(7)

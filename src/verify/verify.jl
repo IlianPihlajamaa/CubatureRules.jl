@@ -170,12 +170,6 @@ function exactness_test(refdom::Domain, d, test_sharp, ::Type{S}, exact) where {
     basis, name = verification_basis(refdom, test_sharp ? d + 1 : d, S, exact)
     return (test_sharp ? sharpness_basis(basis, d, S) : basis), name, d + 1
 end
-function exactness_test(refdom::Simplex{D}, d, test_sharp, ::Type{S}, exact) where {D,S}
-    D <= 3 && return invoke(exactness_test, Tuple{Domain,Any,Any,Type{S},Any}, refdom, d, test_sharp, S, exact)
-    basis, name = verification_basis(refdom, test_sharp ? [d, d + 1] : [d], S, exact)
-    return basis, name, 1
-end
-
 # In one dimension on an orthonormal basis, sharpness is tested on p_a p_b rather than
 # p_{d+1}; see ProductTop.
 sharpness_basis(basis, d, ::Type{S}) where {S} = basis
@@ -186,7 +180,7 @@ function verify(r::QuadratureRule, c::PolynomialDegree; degree = nothing, bits =
                 integrals = nothing, use_symmetry::Bool = true)
     d = degree === nothing ? c.d : Int(degree)
     test_sharp = degree === nothing || d == c.d
-    exact = _is_exact_type(eltype(r))
+    exact = _is_exact_type(numbertype(r))
     pbits = _rule_precision(r)
     cbits = bits === nothing ? max(2pbits, 128) : Int(bits)
     S = exact ? Rational{BigInt} : BigFloat
@@ -235,7 +229,7 @@ function verify(r::QuadratureRule, c::PolynomialDegree; degree = nothing, bits =
         wsum = sum(ws)
         wsum_ok = exact ? wsum == μ : abs(wsum - μ) <= 16ε * sum(abs, ws) + floor_tol
         interior = all(x -> isinterior(x, r.domain), r.nodes)
-        positive = eltype(r.weights) <: Real && all(>(0), r.weights)
+        positive = eltype(r.weights) <: Real && all(>=(0), r.weights)   # an underflowed weight is zero, not negative
         # the orbit grouping is itself a complete invariance check, done in O(N log N)
         symmetric = orbits !== nothing ? true :
                     check_invariance(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
@@ -252,7 +246,7 @@ function verify(r::QuadratureRule, c::SpanOf; integrals = nothing, bits = nothin
                 use_symmetry::Bool = true)
     integrals === nothing && throw(ArgumentError("verifying a SpanOf claim needs the exact `integrals` of the basis"))
     length(integrals) == length(c.basis) || throw(DimensionMismatch("one integral per basis function"))
-    exact = _is_exact_type(eltype(r))
+    exact = _is_exact_type(numbertype(r))
     pbits = _rule_precision(r)
     cbits = bits === nothing ? max(2pbits, 128) : Int(bits)
     with_bits(cbits) do
@@ -292,7 +286,7 @@ The result is flagged `empirical` and records the errors.
 """
 function verify_convergence(rules::AbstractVector{<:QuadratureRule}, f, reference; rtol = nothing)
     r1 = first(rules)
-    exact = _is_exact_type(eltype(r1))
+    exact = _is_exact_type(numbertype(r1))
     pbits = _rule_precision(r1)
     # the rules' own precision, not the global BigFloat precision: a 50-digit rule evaluated
     # at the default 256 bits would otherwise be held to rounding it cannot reach
@@ -320,11 +314,13 @@ end
     @test_exact rule degree
 
 A `Test.@test` that `rule` integrates every polynomial up to `degree` exactly (to rounding),
-for use in users' own test suites.
+for use in users' own test suites, after `using Test`.
 """
 macro test_exact(r, d)
-    ex = :($(check)($(esc(r)); degree = $(esc(d))).exact)
-    return Expr(:macrocall, GlobalRef(Test, Symbol("@test")), __source__, ex)
+    # all of it in the caller's scope, so that `Test` is the caller's: this package does not
+    # depend on Test, a test suite does; `check` is reached through a GlobalRef
+    ex = :($(GlobalRef(@__MODULE__, :check))($r; degree = $d).exact)
+    return esc(Expr(:macrocall, Expr(:., :Test, QuoteNode(Symbol("@test"))), __source__, ex))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", v::Verification)

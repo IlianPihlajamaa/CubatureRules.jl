@@ -5,7 +5,10 @@
 """
     Citation
 
-A bibliographic reference. `cite(rule)` renders these.
+A bibliographic reference. `cite(rule)` renders these. `kind` is `:article` (a journal
+paper), `:book`, or `:software`, a package or data set, whose `journal` names where it is
+published (GitHub, Zenodo) and `url` where; left at `:auto` it is an article when it has a
+volume or pages, and a book otherwise.
 """
 Base.@kwdef struct Citation
     key::String
@@ -16,6 +19,8 @@ Base.@kwdef struct Citation
     volume::String = ""
     pages::String = ""
     doi::String = ""
+    kind::Symbol = :auto
+    url::String = ""
 end
 
 """
@@ -98,6 +103,21 @@ Base.@kwdef struct Certificate
 end
 
 """
+    combine_certificates(certs, equations, digits) -> Certificate or nothing
+
+The certificate of a rule assembled from parts that each have one (a product rule): the
+largest residual and condition number, the fewest guard digits and residual bits, the most
+iterations. `nothing` when no part has a certificate.
+"""
+function combine_certificates(certs, equations::AbstractString, digits::Integer)
+    isempty(certs) && return nothing
+    return Certificate(; equations = String(equations), residual = maximum(c -> c.residual, certs),
+                       residual_bits = minimum(c -> c.residual_bits, certs), digits = Int(digits),
+                       guard_digits = minimum(c -> c.guard_digits, certs), cond = maximum(c -> c.cond, certs),
+                       iterations = maximum(c -> c.iterations, certs))
+end
+
+"""
     Verification
 
 The outcome of checking a rule against a basis of its claimed space (PLAN §8): *is this
@@ -109,8 +129,11 @@ rule what it claims to be?*
 - `exact` — exactness passed
 - `sharp` — not exact at `degree + 1` (`nothing` if not tested, or not resolvable; see `sharp_note`)
 - `sharp_residual` — the degree-`d+1` residual
-- `weights_sum_ok`, `interior`, `positive`, `symmetric` — structural invariants
-  (`nothing` where the invariant is not claimed / not applicable)
+- `weights_sum_ok` — the weights sum to the measure of the domain
+- `interior` — every node lies inside the domain
+- `positive` — no weight is negative (a weight that underflowed to zero is not)
+- `symmetric` — the rule is invariant under the symmetry its provenance records (`nothing`
+  when it records none)
 - `method` — `:exact_integration` or `:convergence_sweep`
 - `empirical` — whether the result is empirical rather than certified
 - `sharp_note` — why sharpness was left undecided, when it was tested but could not be resolved
@@ -141,7 +164,8 @@ end
 """
     passed(v::Verification)
 
-Whether exactness, sharpness (when tested), the weight sum and symmetry (when claimed) all
-hold. Positivity and interiority are reported but only fail a check when claimed.
+Whether exactness, sharpness (when tested), the weight sum and symmetry (when recorded) all
+hold. Positivity and interiority are reported, not required: a rule with negative weights or
+nodes on the boundary can be exactly what it claims to be.
 """
 passed(v::Verification) = v.exact && v.sharp !== false && v.weights_sum_ok && v.symmetric !== false

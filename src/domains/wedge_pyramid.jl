@@ -18,9 +18,6 @@ function _same_edge(a::SVector{3,T}, b::SVector{3,T}, scale) where {T}
 end
 _vertex_scale(vs) = maximum(v -> maximum(abs, v), vs)
 
-# the type affine maps of a shape with coordinates of type T are computed in
-_frametype(::Type{T}) where {T} = T <: Integer ? Rational{BigInt} : T <: Rational ? Rational{BigInt} : T
-
 """
     Wedge()
     Wedge(v₁, v₂, v₃, v₄, v₅, v₆)
@@ -50,7 +47,7 @@ Wedge() = Wedge{Int}(REF_WEDGE_VERTICES)
 function Wedge(vs::Union{Tuple,AbstractVector}...)
     length(vs) == 6 || throw(ArgumentError("a wedge has 6 vertices, got $(length(vs))"))
     all(v -> length(v) == 3, vs) || throw(ArgumentError("wedge vertices need 3 coordinates each"))
-    T = promote_type((eltype(v) for v in vs)...)
+    T = _coordinate_type(vs...)
     return Wedge{T}(SVector{6,SVector{3,T}}(ntuple(i -> SVector{3,T}(Tuple(vs[i])), 6)))
 end
 
@@ -81,7 +78,7 @@ Pyramid() = Pyramid{Int}(REF_PYRAMID_VERTICES)
 function Pyramid(vs::Union{Tuple,AbstractVector}...)
     length(vs) == 5 || throw(ArgumentError("a pyramid has 5 vertices, got $(length(vs))"))
     all(v -> length(v) == 3, vs) || throw(ArgumentError("pyramid vertices need 3 coordinates each"))
-    T = promote_type((eltype(v) for v in vs)...)
+    T = _coordinate_type(vs...)
     return Pyramid{T}(SVector{5,SVector{3,T}}(ntuple(i -> SVector{3,T}(Tuple(vs[i])), 5)))
 end
 

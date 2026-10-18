@@ -10,8 +10,14 @@
 # so a new family is never missed. The cache is emptied in `__init__`, since a value saved
 # while precompiling would carry a world age from another session.
 
+#
+# `rule` may be called from many threads at once (a boundary-element assembly does), so the
+# registry's two pieces of mutable global state, this cache and the set of warnings already
+# given, are only touched under REGISTRY_LOCK.
+
+const REGISTRY_LOCK = ReentrantLock()
 const FAMILIES_CACHE = Ref{Tuple{UInt,Vector{Any}}}((typemax(UInt), Any[]))
-reset_families_cache() = (FAMILIES_CACHE[] = (typemax(UInt), Any[]); nothing)
+reset_families_cache() = (@lock REGISTRY_LOCK FAMILIES_CACHE[] = (typemax(UInt), Any[]); nothing)
 
 """
     families() -> Vector
@@ -22,7 +28,7 @@ by walking `subtypes(RuleFamily)` through abstract layers. Sorted by name, becau
 """
 function families()
     world = Base.get_world_counter()
-    cached = FAMILIES_CACHE[]
+    cached = @lock REGISTRY_LOCK FAMILIES_CACHE[]
     cached[1] == world && return copy(cached[2])
     out = Any[]
     stack = Any[RuleFamily]
@@ -33,7 +39,7 @@ function families()
         end
     end
     sort!(out; by = F -> string(F))
-    FAMILIES_CACHE[] = (world, out)
+    @lock REGISTRY_LOCK FAMILIES_CACHE[] = (world, out)
     return copy(out)
 end
 
@@ -49,6 +55,7 @@ struct Candidate
     family::RuleFamily
     name::String
     npoints::Int
+    npoints_exact::Bool                        # false: npoints is the fewest the rule can have
     degree::Int
     derivation::DerivationClass
     positive::Bool
@@ -60,10 +67,14 @@ end
 
 function Candidate(f::RuleFamily, dom, degree::Integer, T)
     p = properties(f, dom, degree)
-    return Candidate(f, describe_family(f), npoints(f, dom, degree), claimed_degree(f, dom, degree),
+    return Candidate(f, describe_family(f), npoints(f, dom, degree), exact_npoints(f, dom, degree),
+                     claimed_degree(f, dom, degree),
                      derivation(f), p.positive, p.interior, p.symmetry, cost_estimate(f, dom, degree, T),
                      weight_amplification(f, dom, degree))
 end
+
+"The candidate's size as the selector reports it: `≥` where the construction decides it."
+_points(c::Candidate) = (c.npoints_exact ? "" : "≥ ") * "$(c.npoints) points"
 
 "Documented total order: node count, then derived before seeded, then family name."
 rank_key(c::Candidate) = (c.npoints, c.derivation isa Derived ? 0 : 1, c.name)
@@ -142,7 +153,7 @@ warnings back on clears that memory.
 """
 function selection_warnings!(on::Bool)
     SELECTION_WARNINGS[] = on
-    on && empty!(SELECTION_WARNED)
+    on && @lock REGISTRY_LOCK empty!(SELECTION_WARNED)
     return on
 end
 const SELECTION_WARNINGS = Ref(true)
@@ -160,8 +171,10 @@ unloaded_alternatives(dom, degree) = NamedTuple[]
 
 # warn once per kind, family and degree
 function _first_warning(kind::Symbol, name, degree)
-    (kind, name, degree) in SELECTION_WARNED && return false
-    push!(SELECTION_WARNED, (kind, name, degree))
+    @lock REGISTRY_LOCK begin
+        (kind, name, degree) in SELECTION_WARNED && return false
+        push!(SELECTION_WARNED, (kind, name, degree))
+    end
     return true
 end
 
@@ -279,7 +292,7 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
     isempty(ok) && throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, positive, interior, cands)))
     chosen = first(ok)
     _warn_suboptimal(dom, degree, Tout, chosen, copyleft, allc)
-    selection = "selected by rule(): " * join(("$(c.name) ($(c.npoints) points)" for c in ok), " < ") *
+    selection = "selected by rule(): " * join(("$(c.name) ($(_points(c)))" for c in ok), " < ") *
                 "; ranked by (npoints, derived before seeded, family name), a positive rule ahead of a " *
                 "smaller one with negative weights if within $(POSITIVE_PREFERENCE)× its points" *
                 (positive ? "; positive = true" : "") * (interior ? "; interior = true" : "") *
@@ -321,7 +334,16 @@ function rule(f::RuleFamily, dom::Domain; degree = nothing, npoints = nothing, T
     (positive && !c.positive) && throw(NoRuleError("$(c.name) at degree $degree does not have positive weights"))
     (interior && !c.interior) && throw(NoRuleError("$(c.name) at degree $degree has boundary nodes"))
     r = _build(f, dom, degree, Tout, bits, cancel, seed, verbosity(verbose))
-    r = with_provenance(r, with_selection(r.provenance, "family chosen explicitly by the caller"))
+    # A family builds on its own home domain; named for another, it would answer a different
+    # question (GaussJacobi(1, 1) asked for the plain interval integrates (1 - x)(1 + x) f).
+    same_domain(r.domain, reference(dom)) ||
+        throw(NoRuleError("$(describe_family(f)) builds rules on $(r.domain), not on $(reference(dom)); " *
+                          "ask for the family's own domain, or leave out `family` to let `rule` choose"))
+    how = "family chosen explicitly by the caller"
+    # a family whose construction decides its size may need more points than were asked for
+    (npoints !== nothing && length(r.weights) != npoints) &&
+        (how *= "; npoints = $(npoints) asked, the construction needed $(length(r.weights))")
+    r = with_provenance(r, with_selection(r.provenance, how))
     return isreference(dom) ? r : map_to(r, dom)
 end
 
@@ -353,7 +375,7 @@ enough on its own; nothing further is required of the author.
 """
 function _stamp_license(f, r::QuadratureRule)
     lic = family_license(f)
-    (isempty(lic) || r.provenance.license == lic) && return r
+    (isempty(lic) || occursin(lic, r.provenance.license)) && return r
     return with_provenance(r, Provenance(r.provenance; license = lic))
 end
 
@@ -421,7 +443,7 @@ function no_degree_message(dom::Domain; only = nothing)
     insts = only === nothing ? applicable_instances(dom) : [only]
     ref = reference_domain(dom)
     if isempty(insts) || ref === nothing
-        print(io, " No loaded family answers a degree request on ", dom, ".", _planned(dom))
+        print(io, " No loaded family answers a degree request on ", dom, ".")
         _claimless_hint(io, dom)
     else
         print(io, " Available on ", dom, ":")
@@ -434,8 +456,6 @@ function no_degree_message(dom::Domain; only = nothing)
     return String(take!(io))
 end
 
-_planned(dom) = ""
-_planned(::Polytope) = " That domain is scheduled for a later release."
 
 function unsatisfiable_message(dom, degree, T, positive, interior, cands; only = nothing)
     io = IOBuffer()
@@ -448,7 +468,6 @@ function unsatisfiable_message(dom, degree, T, positive, interior, cands; only =
     print(io, "No ", what, who, " exists on ", dom, " at degree ", degree, " among the loaded families.")
     ref = reference_domain(dom)
     if ref === nothing
-        print(io, _planned(dom))
         return String(take!(io))
     end
     # reasons for candidates at this degree that were filtered out
@@ -549,12 +568,12 @@ function available(dom::Domain; degree = nothing, positive::Bool = false, interi
 end
 
 """
-    compare(domain, degree)
+    compare(domain; degree, T = Float64)
 
 Side-by-side properties of every candidate at `degree`, including those `available` would
 filter out, with a rough construction-cost estimate.
 """
-function compare(dom::Domain, degree::Integer; T = Float64)
+function compare(dom::Domain; degree::Integer, T = Float64)
     cands = gather(dom, degree, T; all = true)          # everything `available` lists, selectable or not
     rows = NamedTuple[(family = c.name, npoints = c.npoints, degree = c.degree, derivation = c.derivation,
                        positive = c.positive, interior = c.interior, symmetry = c.symmetry,

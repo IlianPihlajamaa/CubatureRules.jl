@@ -40,7 +40,7 @@ end
     dom = WeightedDomain(TRI, InverseDistance((1//2, 0)))
     for (kw, T) in (((T = Float32,), Float32), ((T = Float64,), Float64), ((digits = 50,), BigFloat))
         r = rule(dom; degree = 11, kw...)
-        @test eltype(r) == T && check(r).exact
+        @test numbertype(r) == T && check(r).exact
     end
     # the kernel's x₀ is read exactly: 0.3 is the binary number nearest 0.3
     @test CR.kernel_geometry(WeightedDomain(Simplex((0.0, 0.0), (0.6, 0.0), (0.0, 1.0)), InverseDistance((0.3, 0.0)))).place === :edge

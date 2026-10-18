@@ -34,8 +34,6 @@ conical_compatible(::Type{<:GaussJacobi}) = true
 describe_family(f::GaussJacobi) = iszero(f.α) && iszero(f.β) ? "GaussLegendre" : "GaussJacobi($(f.α), $(f.β))"
 family_name(::GaussJacobi) = "GaussJacobi"
 
-const JacobiInterval = WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}
-
 candidates(::Type{<:GaussJacobi}, dom::Interval, ::PolynomialDegree) = [GaussJacobi()]
 candidates(::Type{<:GaussJacobi}, dom::JacobiInterval, ::PolynomialDegree) =
     isreference(dom.base) ? [GaussJacobi(dom.weight.α, dom.weight.β)] : GaussJacobi[]
@@ -44,7 +42,9 @@ gj_points(degree) = max(1, cld(degree + 1, 2))
 npoints(::GaussJacobi, dom, degree::Integer) = gj_points(degree)
 claimed_degree(::GaussJacobi, dom, degree) = 2gj_points(degree) - 1
 degree_range(::GaussJacobi, dom) = 0:typemax(Int)
-properties(::GaussJacobi, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
+properties(f::GaussJacobi, dom, degree) = (positive = true, interior = true, symmetry = gj_symmetry(f), nested = false)
+# with α = β the weight is even, and the Gauss driver mirrors the nodes exactly
+gj_symmetry(f::GaussJacobi) = f.α == f.β ? Reflection() : NoSymmetry()
 degree_for_npoints(::GaussJacobi, dom, n::Integer) = 2n - 1
 
 gj_domain(f::GaussJacobi) = iszero(f.α) && iszero(f.β) ? Interval() : WeightedDomain(Interval(), JacobiWeight(f.α, f.β))
@@ -93,6 +93,6 @@ function build(f::GaussJacobi, dom, degree::Int, ctx::BuildContext{T}) where {T}
                               "refine: Newton on the three-term recurrence at $(ctx.bits + guard) bits",
                               "weights: Christoffel function"],
                       seed_source = "Golub–Welsch (Float64)",
-                      citations = [GOLUB_WELSCH_1969, SZEGO_1939])
+                      citations = [GOLUB_WELSCH_1969, SZEGO_1939], symmetry = gj_symmetry(f))
     return QuadratureRule(xs, ws, gj_domain(f), PolynomialDegree(2n - 1), prov, cert)
 end

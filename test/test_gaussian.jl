@@ -89,7 +89,8 @@ end
     # family it can — which on S² is Lebedev, not the product rule
     names = [row.family for row in available(GaussianSpace(3); degree = 5)]
     @test "GaussianProduct(SphereProduct)" in names
-    @test first(names) == "GaussianProduct(Lebedev)"
+    # (Lebedev.jl may be loaded by now; its GPL variant is listed, with its terms in the name)
+    @test first(n for n in names if !occursin("GPL", n)) == "GaussianProduct(Lebedev)"
     rl = rule(GaussianSpace(3); degree = 5)
     @test passed(check(rl))
     @test npoints(rl) < npoints(rule(GaussianProduct(SphereProduct()), GaussianSpace(3); degree = 5))

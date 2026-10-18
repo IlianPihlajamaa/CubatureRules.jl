@@ -170,3 +170,6 @@ function measure(d::OscillatoryDomain)
     end
     return m isa Complex ? Complex{BigFloat}(m) : BigFloat(m)
 end
+
+check_weight(::Interval, ::OscillatoryWeight) = nothing
+check_weight(base::Domain, w::OscillatoryWeight) = _wrong_base(w, "an Interval", base)

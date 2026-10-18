@@ -22,9 +22,19 @@ abstract type RuleFamily end
     CombinatorFamily <: RuleFamily
 
 A family built from other families (conical, tensor, Smolyak products). The registry
-expands combinators over the leaf families to nesting depth 1.
+expands combinators over the leaf families to nesting depth 1. A combinator defines
+[`inner_families`](@ref), and its terms follow from theirs.
 """
 abstract type CombinatorFamily <: RuleFamily end
+
+"""
+    inner_families(f::CombinatorFamily) -> Tuple
+
+The families a combinator builds its rules from. Its terms follow from theirs: it is
+[`selectable`](@ref) only if all of them are, and its rules carry every
+[`family_license`](@ref) they declare.
+"""
+function inner_families end
 
 """
     candidates(::Type{F}, domain, claim) -> Vector
@@ -45,9 +55,20 @@ function build end
 """
     npoints(f, domain, degree)
 
-Number of nodes the rule of `f` at `degree` would have, without constructing it.
+Number of nodes the rule of `f` at `degree` would have, without constructing it: exactly, or,
+where [`exact_npoints`](@ref) says not, the fewest it can have.
 """
 function npoints end
+
+"""
+    exact_npoints(f, domain, degree) -> Bool
+
+Whether [`npoints`](@ref) is the size of the rule `f` builds. False for the families whose
+construction decides it, refining until two resolutions agree or moving a node away from a
+singular point; for them `npoints` is the fewest the rule can have. The selector ranks by it
+all the same, and records it as `≥ n points`.
+"""
+exact_npoints(::RuleFamily, dom, degree) = true
 
 """
     properties(f, domain, degree) -> NamedTuple
@@ -180,3 +201,11 @@ carries none. Recorded in the built rule's [`Provenance`](@ref) so that the term
 with the rule rather than living in a README.
 """
 family_license(::RuleFamily) = ""
+
+# A combinator passes on the terms of everything inside it: a rule that contains a rule
+# under copyleft terms is under them too, whatever wraps it.
+selectable(f::CombinatorFamily) = all(selectable, inner_families(f))
+family_license(f::CombinatorFamily) = join_licenses(map(family_license, inner_families(f)))
+
+"The licences of the parts of a rule, each once, in order; empty ones dropped."
+join_licenses(lics) = join(unique(filter(!isempty, collect(lics))), "; ")

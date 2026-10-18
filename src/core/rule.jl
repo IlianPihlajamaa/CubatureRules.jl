@@ -117,8 +117,19 @@ The name of the family that built the rule.
 """
 family(r::QuadratureRule) = r.provenance.family
 derivation(r::QuadratureRule) = r.provenance.derivation
-Base.eltype(::Type{<:QuadratureRule{D,T}}) where {D,T} = T
+
+"""
+    numbertype(r) -> Type
+
+The number type of the rule's nodes and weights: `Float64`, `BigFloat`, `Rational{BigInt}`, …
+(the weights of an oscillatory rule may be complex over it).
+"""
+numbertype(::QuadratureRule{D,T}) where {D,T} = T
+
+# A rule is a collection of (node, weight) pairs: `for (x, w) in r`.
 Base.length(r::QuadratureRule) = npoints(r)
+Base.eltype(::Type{<:QuadratureRule{D,T,Dom,C,S,W}}) where {D,T,Dom,C,S,W} = Tuple{eltype(S),eltype(W)}
+Base.iterate(r::QuadratureRule, i::Int = 1) = i > npoints(r) ? nothing : ((r.nodes[i], r.weights[i]), i + 1)
 
 "Node `i` as an `SVector{D}` (also in 1D, where [`nodes`](@ref) stores scalars)."
 node_vector(r::QuadratureRule{1}, i) = SVector(r.nodes[i])
@@ -152,8 +163,10 @@ job (PLAN §5 item 9).
 """
 function rule_hash(r::QuadratureRule)
     io = IOBuffer()
-    print(io, family(r), '|', r.domain, '|', describe(r.exactness), '|', eltype(r))
-    eltype(r) === BigFloat && print(io, '|', precision(real(first(r.weights))))
+    print(io, family(r), '|')
+    _canonical(io, r.domain)
+    print(io, '|', describe(r.exactness), '|', numbertype(r))
+    numbertype(r) === BigFloat && print(io, '|', precision(real(first(r.weights))))
     for i in eachindex(r.weights)
         print(io, '|')
         for c in node_vector(r, i)
@@ -169,8 +182,31 @@ _exact_string(x::AbstractFloat) = repr(x)
 _exact_string(x::Rational) = string(numerator(x), "//", denominator(x))
 _exact_string(x) = string(x)
 
+# A domain as `rule_hash` sees it: the name of its type and its fields, recursively, numbers
+# written exactly. `show` is for people and may change; this may not, without changing every
+# hash. A weight given by a function, which has no stable name, is written as its label.
+_canonical(io::IO, x::Number) = print(io, _exact_string(x))     # the value, not its type: Int is Int32 on some platforms
+_canonical(io::IO, x::Union{Symbol,AbstractString}) = print(io, repr(x))
+_canonical(io::IO, ::Nothing) = print(io, "nothing")
+function _canonical(io::IO, x::Union{Tuple,AbstractArray})
+    print(io, '[')
+    foreach(y -> (_canonical(io, y); print(io, ',')), x)
+    print(io, ']')
+end
+_canonical(io::IO, w::Union{FunctionWeight,MomentWeight}) = print(io, nameof(typeof(w)), '(', repr(w.label), ')')
+function _canonical(io::IO, x)
+    T = typeof(x)
+    (isstructtype(T) && !(x isa Function)) || throw(ArgumentError("rule_hash cannot write a $T canonically"))
+    print(io, nameof(T), '(')
+    for i in 1:fieldcount(T)
+        _canonical(io, getfield(x, i))
+        print(io, ',')
+    end
+    print(io, ')')
+end
+
 
 _is_exact_type(::Type{T}) where {T} = T <: Rational || T <: Integer
 "The precision of a rule's numbers in bits: 0 for exact rationals, a BigFloat's own precision."
-_rule_precision(r::QuadratureRule) = _is_exact_type(eltype(r)) ? 0 :
-                                     eltype(r) === BigFloat ? precision(real(first(r.weights))) : bits_of(eltype(r))
+_rule_precision(r::QuadratureRule) = _is_exact_type(numbertype(r)) ? 0 :
+                                     numbertype(r) === BigFloat ? precision(real(first(r.weights))) : bits_of(numbertype(r))

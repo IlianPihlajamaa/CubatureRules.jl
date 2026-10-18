@@ -157,3 +157,13 @@ monomial_moment(d::GaussianDomain{D}, α::NTuple{D,<:Integer}) where {D} =
 "`∫₀^∞ x^α e^{-x} dx = Γ(α + 1)`, exact for integer α."
 laguerre_mass(α::Integer) = factorial(big(α))
 laguerre_mass(α) = SpecialFunctions.gamma(big(α) + 1)
+
+check_weight(::HalfLine, ::ExponentialWeight) = nothing
+check_weight(base::Domain, w::ExponentialWeight) = _wrong_base(w, "the half-line", base)
+check_weight(::RealSpace, ::Union{GaussianWeight,RadialExponentialWeight}) = nothing
+check_weight(base::Domain, w::Union{GaussianWeight,RadialExponentialWeight}) = _wrong_base(w, "RealSpace", base)
+
+# weights on any one-dimensional domain, here because the half-line and the real line are
+check_weight(::Union{Interval,HalfLine,RealSpace{1}}, ::Union{FunctionWeight,MomentWeight}) = nothing
+check_weight(base::Domain, w::Union{FunctionWeight,MomentWeight}) =
+    _wrong_base(w, "an Interval, the half-line or the real line", base)

@@ -31,7 +31,7 @@ end
     @test all(c -> selectable(c.family), CR.gather(Sphere{3}(), 19, Float64))
     @test any(c -> !selectable(c.family), CR.gather(Sphere{3}(), 19, Float64; all = true))
     # compare shows at least what available lists
-    @test "Lebedev (Lebedev.jl, GPL-3)" in [row.family for row in compare(Sphere{3}(), 11)]
+    @test "Lebedev (Lebedev.jl, GPL-3)" in [row.family for row in compare(Sphere{3}(); degree = 11)]
     # at degree 19 our table stops, so the default is the product rule — with a warning,
     # because a smaller rule existed and was passed over for its licence
     r = @test_logs (:warn, r"licence is not one") match_mode=:any rule(Sphere{3}(); degree = 19)
@@ -72,7 +72,7 @@ end
     # refining is allowed: a caller may work with data they hold. What travels with the
     # result is the licence, because the refined rule is a derived work of their table.
     r = rule(UpstreamLebedev(), Sphere{3}(); degree = 29, digits = 40)
-    @test eltype(r) === BigFloat
+    @test numbertype(r) === BigFloat
     @test npoints(r) == 302
     v = check(r)
     @test v.exact && v.sharp === true && v.positive && v.symmetric === true
@@ -126,4 +126,30 @@ end
     @test occursin("orbit representatives", fast.basis)
     @test passed(fast) && passed(full)
     @test (fast.exact, fast.sharp, fast.symmetric) == (full.exact, full.sharp, full.symmetric)
+end
+
+@testset "combinators carry the terms of what is inside them" begin
+    # Every candidate the selector sees on a domain whose rules can wrap Lebedev.jl's is either
+    # held back or says so in its licence, and a rule chosen without `copyleft` carries none.
+    for dom in (Ball{3}(), GaussianSpace(3), ExponentialSpace(3)), d in (19, 29, 59, 125)
+        for c in CR.gather(dom, d, Float64; all = true)
+            lic = CR.family_license(c.family)
+            @test CR.selectable(c.family) || occursin("GPL-3.0", lic)
+            occursin("Lebedev.jl", c.name) && @test !CR.selectable(c.family) && occursin("GPL-3.0", lic)
+        end
+    end
+    CR.selection_warnings!(false)                  # (it warns that a smaller rule was held back)
+    r = rule(Ball{3}(); degree = 29)
+    CR.selection_warnings!(true)
+    @test !occursin("GPL", provenance(r).license) && !occursin("Lebedev.jl", family(r) * provenance(r).seed_source)
+    for dom in (Ball{3}(), GaussianSpace(3), ExponentialSpace(3))
+        rc = rule(dom; degree = 29, copyleft = true)
+        @test occursin("GPL-3.0", provenance(rc).license) == occursin("Lebedev.jl", provenance(rc).seed_source)
+    end
+    @test occursin("GPL-3.0", provenance(rule(BallProduct(UpstreamLebedev()), Ball{3}(); degree = 11)).license)
+    # and every combinator says what it is made of, so that this cannot be forgotten
+    for F in CR.families()
+        F <: CR.CombinatorFamily || continue
+        @test hasmethod(CR.inner_families, Tuple{F})
+    end
 end

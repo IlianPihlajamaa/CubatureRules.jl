@@ -38,7 +38,7 @@ christoffel_base(d::Interval) =
     (legendre_monic(d.a, d.b), T -> T(d.b) - T(d.a), d, d.a, d.b, "1 on [$(d.a), $(d.b)]")
 function christoffel_base(d::WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight})
     isreference(d.base) ||
-        throw(ArgumentError("a JacobiWeight is defined on [-1, 1], but was paired with $(d.base)"))
+        throw(ArgumentError("christoffel modifies the Jacobi weight on [-1, 1], not on $(d.base); map the result"))
     α, β = d.weight.α, d.weight.β
     rec = jacobi_recurrence(α, β)
     return (monic(rec), rec.mass, d.base, -1, 1, "(1-x)^$α (1+x)^$β on [-1, 1]")

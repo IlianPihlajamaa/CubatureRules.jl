@@ -80,7 +80,7 @@ end
     @test isempty(candidates(TensorProduct, Simplex{2}(), PolynomialDegree(3)))
     # exact rational box rules: a tensor product over Newton–Cotes
     q = rule(Orthotope{2}(); degree = 3, T = Rational{BigInt})
-    @test eltype(q) == Rational{BigInt}
+    @test numbertype(q) == Rational{BigInt}
     @test sum(weights(q)) == 4
     @test integrate(x -> x[1]^2 * x[2]^2, q) == (2 // 3)^2
     @test check(q).exact

@@ -41,6 +41,7 @@ candidates(::Type{DuffyCone}, dom::InverseDistanceTetDomain, ::PolynomialDegree)
     tet_kernel_geometry(dom).inside ? [DuffyCone()] : DuffyCone[]
 npoints(::DuffyCone, dom, degree::Integer) =
     duffy_m(degree + 1) * sum((npoints(DuffySinh(), fd, degree) for (fd, _) in cone_faces(dom, Float64)); init = 0)
+exact_npoints(::DuffyCone, dom, degree) = false          # its faces are DuffySinh rules
 claimed_degree(::DuffyCone, dom, degree) = min(2duffy_m(degree) - 1, 2duffy_m(degree + 1) - 2)
 degree_range(::DuffyCone, dom) = 0:typemax(Int)
 properties(::DuffyCone, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
@@ -51,10 +52,12 @@ function build(f::DuffyCone, dom::InverseDistanceTetDomain, degree::Int, ctx::Bu
     g.inside || throw(ArgumentError("DuffyCone is for x₀ in the tetrahedron; $(Tuple(dom.weight.x0)) is outside it"))
     ms = duffy_m(degree + 1)                       # Gauss–Legendre in s, exact to degree 2ms − 1 ≥ d + 1
     wbits = ctx.bits + 16
-    # the face rules to the target precision, no more: the radial direction is exact and the
-    # weights positive, so combining them loses nothing, and DuffySinh's size grows with the
-    # precision asked of it (BigFloat nodes, so that the combination rounds once)
-    fctx = BuildContext{BigFloat}(ctx.bits; cancel = ctx.cancel, verbose = max(ctx.verbose - 1, 0))
+    # the face rules converged to the target precision, no more: the radial direction is exact
+    # and the weights positive, so combining them loses nothing, and DuffySinh's size grows
+    # with the precision asked of it. They are delivered at the working precision, so that the
+    # combination below is the only rounding.
+    fctx = BuildContext{BigFloat}(ctx.bits; output_bits = wbits, cancel = ctx.cancel,
+                                  verbose = max(ctx.verbose - 1, 0))
     faces = with_bits(() -> cone_faces(dom, BigFloat), wbits)
     frules = [build(DuffySinh(), fd, degree, fctx) for (fd, _) in faces]
     K = min(minimum(r -> exactness(r).d, frules), 2ms - 2)

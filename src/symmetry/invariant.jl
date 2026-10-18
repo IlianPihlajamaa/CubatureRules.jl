@@ -61,7 +61,7 @@ against the Molien series; a mismatch is an error, not a warning.
 """
 function invariant_basis(N::Integer, n::Integer)
     D = N - 1
-    D in (2, 3, 4) || throw(NotYetImplemented("invariant bases for S_$N", "a later release"))
+    D in (2, 3, 4) || throw(ArgumentError("invariant bases are built for S_3, S_4 and S_5 (simplices of dimension 2 to 4), not S_$N"))
     # A deterministic Float64 matrix that takes seconds at high degree (3 s for the
     # tetrahedron at degree 20) and is needed by every refinement at that degree, so it is
     # kept. This caches an intermediate, not a rule; see "No caching" in the design notes.

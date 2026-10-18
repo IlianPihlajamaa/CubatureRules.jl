@@ -22,7 +22,7 @@ provenance(rule(Simplex{2}(); degree = 17)).selection
 exact rational rules, and a rough estimate of how expensive it is to construct.
 
 ```@repl choosing
-compare(Simplex{2}(), 17)
+compare(Simplex{2}(); degree = 17)
 ```
 
 ## Positive weights and interior nodes

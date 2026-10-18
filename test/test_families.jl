@@ -65,7 +65,7 @@ end
     for D in 1:4, d in (1, 3, 5, 7)
         D == 1 && continue
         r = rule(GrundmannMöller(), Simplex{D}(); degree = d, T = Rational{BigInt})
-        @test eltype(r) == Rational{BigInt}
+        @test numbertype(r) == Rational{BigInt}
         @test sum(weights(r)) == 1 // factorial(D)
         @test npoints(r) == npoints(GrundmannMöller(), Simplex{D}(), d)
         v = check(r)
@@ -179,7 +179,7 @@ end
         @test v.exact && v.sharp === true && v.symmetric === true
         @test v.interior == open
         @test v.positive == properties(f, Interval(), d).positive
-        @test eltype(r) == Rational{BigInt}
+        @test numbertype(r) == Rational{BigInt}
     end
     # floating output is the exact rule rounded once
     rf = rule(NewtonCotes(), Interval(); degree = 7, digits = 50)

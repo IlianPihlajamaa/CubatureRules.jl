@@ -30,7 +30,7 @@ end
 
 function EmbeddedRule(fine::QuadratureRule{D,T}, coarse::QuadratureRule{D}) where {D,T}
     w = zeros(T, npoints(fine))
-    tol = eltype(fine) <: AbstractFloat ? 1024 * eps(real(float(T))) : zero(T)
+    tol = numbertype(fine) <: AbstractFloat ? 1024 * eps(real(float(T))) : zero(T)
     for j in 1:npoints(coarse)
         xj = node_vector(coarse, j)
         i = findfirst(k -> _same_node(node_vector(fine, k), xj, tol), 1:npoints(fine))
@@ -118,7 +118,8 @@ function embedded(f::GaussKronrod, dom::Interval; degree::Integer, T = nothing, 
     prov = Provenance(family = "GaussJacobi", derivation = Derived(), path = ["Gauss subset of the Kronrod rule"],
                       seed_source = "QuadGK.jl", citations = [QUADGK_JL], symmetry = Reflection())
     coarse = QuadratureRule(xs, ws, Interval(), PolynomialDegree(2n - 1), prov)
-    return EmbeddedRule(fine, coarse)
+    # the fine rule comes mapped onto `dom` by `rule`, so the coarse one has to follow it
+    return EmbeddedRule(fine, isreference(dom) ? coarse : map_to(coarse, dom))
 end
 
 # Each Gauss–Patterson rule contains the one below it, so the pair is the rule at the level

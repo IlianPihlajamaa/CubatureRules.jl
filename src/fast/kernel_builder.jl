@@ -48,6 +48,7 @@ mutable struct KernelRuleBuilder{K,D}
     fχ::Vector{Float64}
     fallbacks::Int
     place::Symbol
+    fallback_rule::Any          # the certified rule of the last fallback, which `rule(b, T, k)` returns
 end
 
 const FAST_KERNELS = (InverseDistance, InverseDistanceCubed, InverseDistanceGradient)
@@ -68,7 +69,7 @@ function KernelRuleBuilder(kernel::Type, degree::Integer; dim::Integer = 3)
     fs, fω, fχ = kernel === InverseDistance ? (Float64[], Float64[], Float64[]) : finitepart_radial_weights(kernel, d)
     mmax = max(msinh, m, cld(d + 2, 2), 2) + 1
     return KernelRuleBuilder{kernel,dim}(d, claimed, m, QuadraticWeightWork(mmax), SVector{dim,Float64}[], Float64[],
-                                         sx, sw, fs, fω, fχ, 0, :none)
+                                         sx, sw, fs, fω, fχ, 0, :none, nothing)
 end
 
 Base.show(io::IO, b::KernelRuleBuilder{K,D}) where {K,D} =
@@ -379,6 +380,7 @@ function (b::KernelRuleBuilder{K,D})(T::Union{SurfaceTriangle,Simplex{2}}, kerne
     # outside the validated range: the certified construction
     b.fallbacks += 1
     r = rule(WeightedDomain(T, kernel); degree = b.degree)
+    b.fallback_rule = r
     empty!(b.nodes)
     empty!(b.weights)
     append!(b.nodes, nodes(r))
@@ -410,7 +412,7 @@ residual of its own: `check` verifies it like any other rule.
 """
 function rule(b::KernelRuleBuilder{K,D}, T::Union{SurfaceTriangle,Simplex{2}}, kernel::PointKernel{D}) where {K,D}
     x, w = b(T, kernel)
-    b.place === :fallback && return rule(WeightedDomain(T, kernel); degree = b.degree)
+    b.place === :fallback && return b.fallback_rule       # built just now, by the call above
     fam = b.place === :near ? "DuffySinh" : K === InverseDistance ? "DuffyGauss" : "DuffyFinitePart"
     val = validation(b)
     worst = val === nothing ? NaN : val.worst

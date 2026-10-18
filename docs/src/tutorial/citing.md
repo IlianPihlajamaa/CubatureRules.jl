@@ -37,11 +37,14 @@ provenance(r).license
 
 Rules built from this package's own tables are MIT licensed. A rule built from data supplied
 by another package carries that package's licence instead. For example, a Lebedev rule
-refined from the tables in Lebedev.jl is GPL-3:
+refined from the tables in Lebedev.jl is GPL-3, and `provenance(r).license` of such a rule
+says so:
 
-```julia
-julia> provenance(rule(UpstreamLebedev(), Sphere{3}(); degree = 29)).license
-"GPL-3.0-or-later, via Lebedev.jl; not covered by CubatureRules.jl's MIT licence"
+```jldoctest
+julia> using CubatureRules
+
+julia> CubatureRules.family_license(UpstreamLebedev())
+"GPL-3.0, via Lebedev.jl. This rule is seeded from that package's table and is not covered by CubatureRules.jl's MIT licence; it may not be redistributed under it. Lebedev & Laikov (1999) ask to be cited."
 ```
 
 This matters if you publish the nodes and weights themselves. Such rules are never chosen

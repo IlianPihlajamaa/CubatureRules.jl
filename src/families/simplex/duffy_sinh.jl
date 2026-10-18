@@ -57,6 +57,7 @@ candidates(::Type{DuffySinh}, dom::PointKernelDomain, ::PolynomialDegree) =
 # linear along each line and takes one degree
 sinh_radial(dom, degree) = dom.weight isa InverseDistanceGradient ? duffy_m(degree + 1) : duffy_m(degree)
 npoints(::DuffySinh, dom, degree::Integer) = npatches(dom) * sinh_radial(dom, degree) * (sinh_radial(dom, degree) + 2)
+exact_npoints(::DuffySinh, dom, degree) = false          # the angular direction is refined until it converges
 claimed_degree(::DuffySinh, dom, degree) = 2sinh_radial(dom, degree) - (dom.weight isa InverseDistanceGradient ? 2 : 1)
 degree_range(::DuffySinh, dom) = 0:typemax(Int)
 properties(::DuffySinh, dom, degree) =
@@ -244,6 +245,7 @@ function build(f::DuffySinh, dom::PointKernelDomain, degree::Int, ctx::BuildCont
     prev = moments(xs, ws)
     gap = BigFloat(Inf)
     for _ in 1:12
+        checkcancel(ctx.cancel)
         nt2 = ceil(Int, 1.5nt)
         xs2, ws2 = assemble(nt2)
         cur = moments(xs2, ws2)

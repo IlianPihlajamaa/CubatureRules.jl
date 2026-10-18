@@ -340,3 +340,9 @@ end
 `∫_F dA/|z − x₀|` (see [`cone_faces`](@ref)).
 """
 measure(d::InverseDistanceTetDomain) = sum(h / 2 * measure(fd) for (fd, h) in cone_faces(d, BigFloat))
+
+check_weight(::Simplex{2}, ::PointKernel{2}) = nothing
+check_weight(::SurfaceTriangle, ::PointKernel{3}) = nothing
+check_weight(::Simplex{3}, ::InverseDistance{3}) = nothing
+check_weight(base::Domain, w::PointKernel) =
+    _wrong_base(w, "a triangle in the plane or in space (or, for InverseDistance, a tetrahedron)", base)

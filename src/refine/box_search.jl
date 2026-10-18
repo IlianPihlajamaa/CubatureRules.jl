@@ -85,9 +85,9 @@ function box_multistart(n::Integer, D::Integer; npts, nstarts::Integer = 200, sl
     for N in npts
         found = Any[]
         for s in box_structures(N, n, D; slack, geom)
+            checkcancel(cancel)           # between batches: inside a threaded loop it would surface as a TaskFailedException
             results = Vector{Any}(nothing, nstarts)
             Threads.@threads :static for t in 1:nstarts
-                checkcancel(cancel)
                 rng = start_rng(rng_seed + N, t)
                 results[t] = box_fit(s, random_box_start(s, rng), n)
             end

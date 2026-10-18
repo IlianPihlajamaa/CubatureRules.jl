@@ -59,7 +59,10 @@ struct FunctionWeight
     pieces::Vector{WeightPiece}
     atoms::Vector{Tuple{Real,Real}}   # (location, mass)
     label::String
+    masses::Dict{Int,BigFloat}        # the measure, at each precision asked for: one discretisation each
+    lock::ReentrantLock
 end
+FunctionWeight(pieces, atoms, label) = FunctionWeight(pieces, atoms, label, Dict{Int,BigFloat}(), ReentrantLock())
 
 function FunctionWeight(g, a::Real, b::Real; α::Real = 0, β::Real = 0, rate::Real = 1, label::AbstractString = "")
     a < b || throw(ArgumentError("a piece needs a < b, got [$a, $b]"))
@@ -219,14 +222,7 @@ computed by discretisation. [`verify`](@ref) tests rules on a [`FunctionDomain`]
 against these.
 """
 function verification_weight(w::FunctionWeight)
-    lo, hi = support(w)
-    aux = if isfinite(lo) && isfinite(hi)
-        shift(monic(jacobi_recurrence(0, 0)), lo, hi)
-    elseif isfinite(lo)
-        MonicRecurrence((k, T) -> T(2k + 1) + T(lo), (k, T) -> T(k)^2)
-    else
-        MonicRecurrence((k, T) -> zero(T), (k, T) -> T(k) / 2)
-    end
+    aux = _auxiliary(w)
     cache = Dict{Tuple{Int,Int},Vector{BigFloat}}()
     lock = ReentrantLock()
     function moment(k, ::Type{T}) where {T}
@@ -240,4 +236,17 @@ function verification_weight(w::FunctionWeight)
     return MomentWeight(aux, moment; label = w.label)
 end
 
-measure(d::FunctionDomain) = verification_weight(d.weight).moments(0, BigFloat)
+# the auxiliary polynomials the moments are taken against: shifted Legendre, Laguerre or Hermite
+function _auxiliary(w::FunctionWeight)
+    lo, hi = support(w)
+    isfinite(lo) && isfinite(hi) && return shift(monic(jacobi_recurrence(0, 0)), lo, hi)
+    isfinite(lo) && return MonicRecurrence((k, T) -> T(2k + 1) + T(lo), (k, T) -> T(k)^2)
+    return MonicRecurrence((k, T) -> zero(T), (k, T) -> T(k) / 2)
+end
+
+"The total mass at the ambient precision; discretised once per precision and kept with the weight."
+function measure(d::FunctionDomain)
+    w, bits = d.weight, precision(BigFloat)
+    m = @lock w.lock get!(() -> first(discretized_moments(w, _auxiliary(w), 0, bits)), w.masses, bits)
+    return BigFloat(m; precision = bits)
+end

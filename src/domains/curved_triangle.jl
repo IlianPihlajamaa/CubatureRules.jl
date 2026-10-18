@@ -22,7 +22,7 @@ end
 function QuadraticTriangle(ps::Vararg{Any,6})
     D = length(ps[1])
     all(p -> length(p) == D, ps) || throw(DimensionMismatch("the six points need the same dimension"))
-    T = promote_type((eltype(collect(p)) for p in ps)...)
+    T = _coordinate_type(ps...)
     return QuadraticTriangle{D,T}(SVector{6,SVector{D,T}}(ntuple(i -> SVector{D,T}(Tuple(ps[i])), 6)))
 end
 Base.show(io::IO, t::QuadraticTriangle) = print(io, "QuadraticTriangle(", join((Tuple(p) for p in t.p), ", "), ")")
@@ -214,3 +214,6 @@ end
 precision (see `polar_curved_integrals`).
 """
 measure(d::CurvedKernelDomain) = only(polar_curved_integrals(d, 1, BigFloat, (out, ξ) -> (out[1] = one(BigFloat))))
+
+check_weight(::Simplex{2}, ::CurvedInverseDistance) = nothing
+check_weight(base::Domain, w::CurvedInverseDistance) = _wrong_base(w, "the reference triangle", base)

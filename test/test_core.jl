@@ -28,7 +28,6 @@ end
     @test measure(Interval(0, 3)) == 3
     @test isreference(Interval())
     @test_throws ArgumentError Interval(1, 0)
-    @test_throws CR.NotYetImplemented Polytope{3}()
     w = WeightedDomain(Interval(), JacobiWeight(1, 0))
     @test measure(w) == 2
 end

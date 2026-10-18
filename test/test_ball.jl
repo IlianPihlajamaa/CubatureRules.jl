@@ -53,7 +53,8 @@ end
     # fully symmetric rules smaller still
     avail = available(Ball{3}(); degree = 9)
     @test first(avail).family == "FullySymmetric"
-    @test first(a.family for a in avail if startswith(a.family, "BallProduct")) == "BallProduct(Lebedev)"
+    @test first(a.family for a in avail if startswith(a.family, "BallProduct") && !occursin("GPL", a.family)) ==
+          "BallProduct(Lebedev)"
     # the disk
     rd = rule(Disk(); degree = 5)
     @test passed(check(rd))

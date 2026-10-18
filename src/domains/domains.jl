@@ -16,6 +16,12 @@ dimension(::Type{<:Domain{D}}) where {D} = D
 The total mass of the domain: its length, area or volume, or on a weighted domain the
 integral of the weight. The weights of a rule on `dom` add up to this. Unbounded unweighted
 domains return `Inf`.
+
+The value is exact where it can be: a `Rational` (or an integer) for domains with integer or
+rational coordinates and weights with rational moments. Otherwise it is a `BigFloat` at the
+ambient precision, which callers set with `setprecision` — a complex one for an oscillatory
+weight — or, for coordinates in a floating-point type, a number of that type. Compare with a
+rule's `sum(weights(r))` after converting both to one type.
 """
 function measure end
 
@@ -42,6 +48,15 @@ function reference end
 The vertices of the simplex, as a tuple of `SVector`s.
 """
 function vertices end
+
+"""
+The type of a domain's coordinates given as tuples or vectors: each entry promoted, so that
+`(0, 0.5)` gives `Float64` and not the `Real` that `eltype` of the tuple would.
+"""
+_coordinate_type(vs...) = promote_type((typeof(x) for v in vs for x in v)...)
+
+# the type affine maps of a shape with coordinates of type T are computed in
+_frametype(::Type{T}) where {T} = T <: Integer ? Rational{BigInt} : T <: Rational ? Rational{BigInt} : T
 
 # ---------------------------------------------------------------------------------------
 # Interval
@@ -89,7 +104,10 @@ struct Simplex{D,T,N} <: Domain{D,T}
     vertices::SVector{N,SVector{D,T}}
     function Simplex{D,T,N}(v::SVector{N,SVector{D,T}}) where {D,T,N}
         N == D + 1 || throw(ArgumentError("a $D-simplex has $(D+1) vertices, got $N"))
-        return new{D,T,N}(v)
+        s = new{D,T,N}(v)
+        iszero(det(SMatrix{D,D,_frametype(T)}(edge_matrix(s)))) &&
+            throw(ArgumentError("degenerate simplex: its vertices $(Tuple(Tuple.(v))) span no volume"))
+        return s
     end
 end
 
@@ -104,7 +122,7 @@ function Simplex(vs::Union{Tuple,AbstractVector}...)
     D = N - 1
     all(v -> length(v) == D, vs) ||
         throw(ArgumentError("a simplex with $N vertices needs $D coordinates per vertex"))
-    T = promote_type((eltype(v) for v in vs)...)
+    T = _coordinate_type(vs...)
     sv = SVector{N,SVector{D,T}}(ntuple(i -> SVector{D,T}(Tuple(vs[i])), N))
     return Simplex{D,T,N}(sv)
 end
@@ -147,9 +165,10 @@ end
     return h, S(d.a) + h, abs(h)
 end
 
-function measure(s::Simplex{D}) where {D}
+function measure(s::Simplex{D,T}) where {D,T}
     isreference(s) && return 1 // factorial(D)
-    A = edge_matrix(s)
+    # in exact arithmetic for integer and rational vertices, so the measure keeps their exactness
+    A = SMatrix{D,D,_frametype(T)}(edge_matrix(s))
     return abs(det(A)) / factorial(D)
 end
 
@@ -229,7 +248,7 @@ end
 function Orthotope(lo, hi)
     length(lo) == length(hi) || throw(ArgumentError("lo and hi need the same length"))
     D = length(lo)
-    T = promote_type(eltype(lo), eltype(hi))
+    T = _coordinate_type(lo, hi)
     return Orthotope{D,T}(SVector{D,T}(lo), SVector{D,T}(hi))
 end
 Orthotope{D}() where {D} = Orthotope{D,Int}(SVector{D,Int}(ntuple(_ -> -1, D)), SVector{D,Int}(ntuple(_ -> 1, D)))
@@ -257,11 +276,47 @@ end
     WeightedDomain(base, weight)
 
 The domain `base` equipped with the measure `weight(x) dx`. The base is stored with its
-concrete type so that access costs nothing.
+concrete type so that access costs nothing. A weight that only makes sense on one kind of
+domain — a [`JacobiWeight`](@ref) on an interval, say — is refused on any other here, by
+[`check_weight`](@ref), rather than further down.
 """
 struct WeightedDomain{D,T,B<:Domain{D,T},W} <: Domain{D,T}
     base::B
     weight::W
+    function WeightedDomain(base::B, weight::W) where {D,T,B<:Domain{D,T},W}
+        check_weight(base, weight)
+        return new{D,T,B,W}(base, weight)
+    end
+end
+
+"""
+    check_weight(base, weight)
+
+Throw an `ArgumentError` if `weight` is not a weight on domains like `base`. Every weight of
+this package declares where it lives; a weight defined elsewhere is accepted anywhere unless
+it adds a method.
+"""
+check_weight(base::Domain, weight) = nothing
+_wrong_base(weight, what, base) =
+    throw(ArgumentError("$(nameof(typeof(weight))) is a weight on $(what), not on $(base)"))
+
+"""
+    same_domain(a, b) -> Bool
+
+Whether two domains are the same up to the number types of their parameters:
+`JacobiWeight(1, 1)` and `JacobiWeight(1.0, 1.0)` are, `Interval()` and a weighted interval
+are not. Fields are compared recursively, numbers by value; anything else, a function for
+instance, by `==`.
+"""
+function same_domain(a, b)
+    a === b && return true
+    (a isa Number && b isa Number) && return a == b
+    if (a isa Union{Tuple,AbstractArray}) && (b isa Union{Tuple,AbstractArray})
+        return length(a) == length(b) && all(same_domain(x, y) for (x, y) in zip(a, b))
+    end
+    Ta, Tb = typeof(a), typeof(b)
+    (Base.typename(Ta) === Base.typename(Tb) && isstructtype(Ta) && fieldcount(Ta) > 0) || return a == b
+    return all(same_domain(getfield(a, i), getfield(b, i)) for i in 1:fieldcount(Ta))
 end
 
 isreference(d::WeightedDomain) = isreference(d.base)
@@ -272,7 +327,10 @@ Base.show(io::IO, d::WeightedDomain) = print(io, "WeightedDomain(", d.base, ", "
 """
     JacobiWeight(α, β)
 
-The weight `(1 - x)^α (1 + x)^β` on the reference interval `[-1, 1]`.
+The weight `(1 - x)^α (1 + x)^β` on the reference interval `[-1, 1]`, and `(b - x)^α (x - a)^β`
+on `Interval(a, b)`, as for [`PrincipalValue`](@ref) and [`FunctionWeight`](@ref). A rule on
+`[-1, 1]` maps onto `[a, b]` with its weights scaled by `h^(α+β+1)`, `h = (b - a)/2`.
+Calling the weight, `w(x)`, evaluates it on `[-1, 1]`.
 """
 struct JacobiWeight{T}
     α::T
@@ -281,28 +339,22 @@ end
 JacobiWeight(α, β) = JacobiWeight(promote(α, β)...)
 (w::JacobiWeight)(x) = (1 - x)^w.α * (1 + x)^w.β
 
-measure(d::WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}) = jacobi_mass(d.weight.α, d.weight.β)
+"An interval with a [`JacobiWeight`](@ref)."
+const JacobiInterval = WeightedDomain{1,<:Any,<:Interval,<:JacobiWeight}
+
+check_weight(base::Interval, ::JacobiWeight) = nothing
+check_weight(base::Domain, w::JacobiWeight) = _wrong_base(w, "an Interval", base)
+
+function measure(d::JacobiInterval)
+    m = jacobi_mass(d.weight.α, d.weight.β)
+    isreference(d.base) && return m
+    h = d.base.b isa Integer && d.base.a isa Integer ? (d.base.b - d.base.a) // 2 : (d.base.b - d.base.a) / 2
+    return m * h^(d.weight.α + d.weight.β + 1)
+end
+# the frame of the base, with the weight's own scaling: (b - x)^α (x - a)^β dx = h^(α+β+1) × reference
+@inline function affine_frame(d::JacobiInterval, ::Type{S}) where {S}
+    A, b, _ = affine_frame(d.base, S)
+    return A, b, abs(A)^(d.weight.α + d.weight.β + 1)
+end
 indomain(x, d::WeightedDomain; kw...) = indomain(x, d.base; kw...)
 isinterior(x, d::WeightedDomain; kw...) = isinterior(x, d.base; kw...)
-
-# ---------------------------------------------------------------------------------------
-# Domains named by the plan but not yet implemented. They exist so that the selector can
-# say *when* they arrive rather than failing with a MethodError.
-
-struct NotYetImplemented <: Exception
-    what::String
-    release::String
-end
-Base.showerror(io::IO, e::NotYetImplemented) =
-    print(io, e.what, " is not implemented yet; it is scheduled for CubatureRules ", e.release, ".")
-
-for (name, rel) in (
-                    (:Polytope, "v0.6"),)
-    @eval begin
-        @doc "`$($(string(name)))` — not yet implemented (scheduled for $($rel))." struct $name{D,T} <: Domain{D,T}
-            $name{D,T}(args...) where {D,T} = throw(NotYetImplemented($(string(name)) * " domains", $rel))
-        end
-        $name(args...) = throw(NotYetImplemented($(string(name)) * " domains", $rel))
-        $name{D}(args...) where {D} = throw(NotYetImplemented($(string(name)) * " domains", $rel))
-    end
-end

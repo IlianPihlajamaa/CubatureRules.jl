@@ -80,6 +80,7 @@ claimed_degree(::DoubleExponentialUnbounded, dom, degree) = -1
 properties(::ExpSinh, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = true)
 properties(::SinhSinh, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = true)
 npoints(f::DoubleExponentialUnbounded, dom, degree = 0) = length(de_work(f, 53 + 32, 53)[1])
+exact_npoints(::DoubleExponentialUnbounded, dom, degree) = false   # counted at Float64 resolution
 
 home_domain(::ExpSinh) = HalfLine()
 home_domain(::SinhSinh) = RealLine()
@@ -102,7 +103,8 @@ function de_work(f::DoubleExponentialUnbounded, bits::Integer, outbits::Integer 
         # |x| ≤ 2^2(outbits-2) for both maps, since sinh(u) ≈ e^u/2 for large u
         tmax = asinh(2 * (outbits - 2) * log(BigFloat(2)) / halfπ)
         K = floor(Int, tmax / h)
-        K > 1 << 22 && throw(RefinementError(family_name(f), "the node sum did not terminate"))
+        K > 1 << 22 && throw(RefinementError(family_name(f), "level $(f.level) at $(outbits) bits would take $(2K + 1) nodes; " *
+                                                             "the limit is $(2 * (1 << 22) + 1): ask for a lower level"))
         xs = Vector{BigFloat}(undef, 2K + 1)
         ws = Vector{BigFloat}(undef, 2K + 1)
         for (i, k) in enumerate(-K:K)

@@ -74,9 +74,9 @@ function orbit_multistart(::Type{T}, n::Integer; npts, nstarts::Integer = 64, sl
     for N in npts
         found = Any[]
         for s in orbit_structures(T, N, n; slack)
+            checkcancel(cancel)           # between batches: inside a threaded loop it would surface as a TaskFailedException
             results = Vector{Any}(nothing, nstarts)
             Threads.@threads :static for t in 1:nstarts
-                checkcancel(cancel)
                 results[t] = orbit_fit(s, random_orbit_start(s, start_rng(rng_seed + N, t)), n)
             end
             append!(found, filter(!isnothing, results))

@@ -309,3 +309,6 @@ function kernel_moments(dom::KernelDomain, K::Integer)
     end
     return out
 end
+
+check_weight(::Interval, ::SingularKernel) = nothing
+check_weight(base::Domain, w::SingularKernel) = _wrong_base(w, "an Interval", base)

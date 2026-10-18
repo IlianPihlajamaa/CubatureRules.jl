@@ -63,7 +63,7 @@ const OH_HARMONIC_LOCK = ReentrantLock()
     oh_harmonic_coefficients(ℓ) -> Matrix{Float64}
 
 Orthonormal coefficient vectors, over `s_m P̄_ℓ^m(cos θ) cos mφ` with `m = 0, 4, …, ℓ`, of the
-`O_h`-invariant harmonics of degree `ℓ`: the nullspace of `f(Rx) − f(x)` at random points,
+`O_h`-invariant harmonics of degree `ℓ`: the nullspace of `f(Rx) − f(x)` at fixed points,
 from the package's own pivoted QR, so that it is the same on every platform. Cached.
 """
 function oh_harmonic_coefficients(ℓ::Integer)
@@ -76,12 +76,17 @@ function oh_harmonic_coefficients(ℓ::Integer)
     elseif d == M                                             # ℓ = 0: the constant is invariant already
         Matrix{Float64}(I, M, M)
     else
-        rng = Random.Xoshiro(0x0c7a + ℓ)
+        # A Fibonacci lattice rather than random points: Julia does not promise its random
+        # streams across versions, and a different basis of the same nullspace would change
+        # every rounding in the refinements built on it. K is even, so no point lies on z = 0.
         K = 2M + 8
         A = zeros(2K, M)
         P = zeros(legendre_length(ℓ))
+        golden = (3 - sqrt(5.0)) * π
         for k in 1:K
-            x = SVector{3,Float64}(normalize(randn(rng, 3)))
+            z = 1 - (2k - 1) / K
+            ρ, φ = sqrt((1 - z) * (1 + z)), k * golden
+            x = SVector{3,Float64}(ρ * cos(φ), ρ * sin(φ), z)
             e0 = d4h_harmonics(ℓ, x, P)
             A[2k - 1, :] = d4h_harmonics(ℓ, rotate3(x, 1), P) .- e0
             A[2k, :] = d4h_harmonics(ℓ, rotate3(x, 2), P) .- e0

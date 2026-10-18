@@ -21,21 +21,25 @@ compared with its exact integral. The basis depends on the domain:
 | `Interval` with a Jacobi weight | orthonormal Jacobi polynomials |
 | `LaguerreRay`, `HermiteLine` | the weight's own orthonormal polynomials, by their recurrence |
 | `Simplex{2}` | orthonormal Dubiner polynomials |
-| `Simplex{3}` | orthonormal tetrahedral Dubiner polynomials |
-| `Simplex{D}`, `D ≥ 4` | barycentric monomials with exact Dirichlet moments |
+| `Simplex{D}`, `D ≥ 3` | orthonormal Dubiner polynomials of that dimension |
 | `Orthotope{D}` | tensor Legendre polynomials, graded by total degree |
 | `Sphere{2}` | Fourier modes on the circle |
 | `Sphere{3}` | real spherical harmonics |
 | `Sphere{D}`, `D ≥ 4` | monomials with exact sphere moments |
-| `Ball{D}` | monomials with exact ball moments |
-| `GaussianSpace(D)` | monomials with exact Gaussian moments |
+| `Disk()`, `Ball{3}()` | orthonormal polynomials: Jacobi in `r²` times Fourier modes or spherical harmonics |
+| `Ball{D}`, `D ≥ 4` | monomials with exact ball moments |
+| `GaussianSpace(D)` | tensor orthonormal Hermite polynomials, graded by total degree |
+| `ExponentialSpace(D)` | monomials with exact moments of `e^{-r}` |
 | moment-defined weight | the auxiliary polynomials, against the given moments |
 
-Orthonormal bases are used where they exist because they keep the check well conditioned.
-Where monomials are used, it is either because the moments are exact rationals (simplices,
-balls) or because no orthonormal basis is implemented. On a sphere, monomials are linearly
-dependent (`Σxᵢ² = 1`), so there they are a spanning set rather than a basis; this costs
-redundant equations but does not affect the result.
+Orthonormal bases are used where they exist because they keep the check well conditioned:
+with monomials, functions that are nearly dependent can leave a large error in an
+orthonormal direction while every monomial residual sits at rounding level. Monomials remain
+where no orthonormal basis is implemented here: above the 2-sphere and the 3-ball there are
+no harmonics in this package, and `e^{-r}` has no classical orthogonal polynomials in `r²`.
+In exact arithmetic the simplices and boxes use the same polynomials unnormalised. On a
+sphere, monomials are linearly dependent (`Σxᵢ² = 1`), so there they are a spanning set
+rather than a basis; this costs redundant equations but does not affect the result.
 
 The check runs at twice the rule's precision. Each residual is compared with the error that
 rounding the delivered nodes and weights could cause, computed from the size of the basis

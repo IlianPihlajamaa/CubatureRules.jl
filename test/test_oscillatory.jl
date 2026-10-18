@@ -34,7 +34,7 @@ end
         dom = WeightedDomain(Interval(a, b), osc_weight(kind, ω))
         r = rule(dom; degree = 40, digits = 30)
         @test family(r) == "Filon" && npoints(r) == 41 && degree(r) >= 40
-        @test eltype(r) == BigFloat && (eltype(weights(r)) <: Complex) == (kind === :exp)
+        @test numbertype(r) == BigFloat && (eltype(weights(r)) <: Complex) == (kind === :exp)
         @test first(nodes(r)) == a && last(nodes(r)) == b
         v = verify(r)
         @test passed(v) && v.exact && !v.interior
@@ -42,7 +42,7 @@ end
     end
     for T in (Float64, Float32), k in (Oscillatory(30), Oscillatory(30, cos), Oscillatory(30, sin))
         r = rule(WeightedDomain(Interval(0, 1), k); degree = 16, T)
-        @test eltype(r) == T && eltype(weights(r)) == (k.kind === :exp ? Complex{T} : T)
+        @test numbertype(r) == T && eltype(weights(r)) == (k.kind === :exp ? Complex{T} : T)
         @test passed(verify(r))
         @test abs(integrate(x -> exp(β * x), r) - osc_exact(k.kind, β, 30, 0, 1)) < 50eps(T)
     end

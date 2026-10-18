@@ -183,7 +183,7 @@ families and tooling on top of what lands here.
       explicitly sorted, because `subtypes` traversal order is unspecified
 - [x] `rule(domain; degree, T/digits, positive, interior, family)`
 - [x] `rule(domain)` with no degree errors, listing candidates and ranges
-- [x] `available(domain; degree, filters)` and `compare(domain, degree)`
+- [x] `available(domain; degree, filters)` and `compare(domain; degree)`
 - [x] Unsatisfiable requests produce the nearest-alternatives diagnostic (§2.5)
 - [x] A downstream test package defines a family and is discovered with no registration step
 

@@ -42,14 +42,19 @@ checkcancel(t) = iscancelled(t) && throw(CancelledError())
 
 Everything a family's `build` method needs besides the family, domain and degree: the
 output number type `T`, the target precision in bits, and the cancellation token.
+
+`output_bits` is the precision `BigFloat` numbers are delivered at, the target precision
+unless a combinator asks for more: a rule assembled from parts takes them to its target but
+with its guard bits kept, so that it rounds once, when it combines them.
 """
 struct BuildContext{T}
     bits::Int
+    output_bits::Int
     cancel::Union{Nothing,CancellationToken}
     verbose::Int
 end
-BuildContext{T}(bits::Int; cancel = nothing, verbose = 0) where {T} =
-    BuildContext{T}(bits, cancel, verbosity(verbose))
+BuildContext{T}(bits::Int; output_bits::Integer = bits, cancel = nothing, verbose = 0) where {T} =
+    BuildContext{T}(bits, Int(output_bits), cancel, verbosity(verbose))
 
 """
     verbosity(v) -> Int
@@ -104,11 +109,15 @@ function resolve_precision(T, digits)
     if digits !== nothing
         T === nothing || T === BigFloat ||
             throw(ArgumentError("`digits` selects BigFloat; do not combine it with T = $T"))
+        (digits isa Real && isinteger(digits)) || throw(ArgumentError("digits must be a whole number, got $digits"))
         digits >= 1 || throw(ArgumentError("digits must be positive"))
-        return BigFloat, digits_to_bits(digits)
+        return BigFloat, digits_to_bits(Int(digits))
     end
     T === nothing && return Float64, 53
+    T isa Type || throw(ArgumentError("T must be a number type, got $T"))
     T <: Rational && return T, 0
+    T <: Integer && throw(ArgumentError("quadrature weights are fractions, so T = $T cannot hold them; " *
+                                        "T = Rational{BigInt} gives exact rules"))
     T <: AbstractFloat || throw(ArgumentError("unsupported number type $T"))
     return T, bits_of(T)
 end
@@ -122,5 +131,5 @@ precision; generators receive `bits` explicitly and never read the ambient value
 with_bits(f, bits::Integer) = setprecision(f, BigFloat, bits)
 
 "Round a working-precision value once, to the output type of the context."
-finalize_number(ctx::BuildContext{BigFloat}, x) = BigFloat(x; precision = ctx.bits)
+finalize_number(ctx::BuildContext{BigFloat}, x) = BigFloat(x; precision = ctx.output_bits)
 finalize_number(ctx::BuildContext{T}, x) where {T} = T(x)

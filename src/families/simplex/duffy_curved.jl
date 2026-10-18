@@ -35,6 +35,7 @@ candidates(::Type{DuffyCurved}, dom::CurvedKernelDomain, ::PolynomialDegree) =
     isreference(dom.base) ? [DuffyCurved()] : DuffyCurved[]
 npoints(::DuffyCurved, dom, degree::Integer) =
     length(curved_geometry(dom).patches) * duffy_m(degree) * (duffy_m(degree) + 2)
+exact_npoints(::DuffyCurved, dom, degree) = false        # the angular direction is refined until it converges
 claimed_degree(::DuffyCurved, dom, degree) = 2duffy_m(degree) - 1
 degree_range(::DuffyCurved, dom) = 0:typemax(Int)
 properties(::DuffyCurved, dom, degree) = (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)

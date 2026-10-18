@@ -32,6 +32,7 @@ nodes
 weights
 domain
 npoints
+numbertype
 degree
 exactness
 family
@@ -88,7 +89,6 @@ ExponentialWeight
 GaussianWeight
 RadialExponentialWeight
 MomentDomain
-Polytope
 affine_frame
 ```
 
@@ -224,6 +224,7 @@ These are the methods a new family implements, and the helpers it uses; see
 ```@docs
 RuleFamily
 CombinatorFamily
+CubatureRules.inner_families
 candidates
 build
 properties
@@ -233,6 +234,7 @@ Derived
 Seeded
 claimed_degree
 degree_for_npoints
+CubatureRules.exact_npoints
 cost_estimate
 supports_type
 describe_family

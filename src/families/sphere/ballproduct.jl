@@ -28,7 +28,8 @@ BallProduct() = BallProduct(SphereProduct())
 
 derivation(::Type{<:BallProduct}) = Derived()
 family_name(::BallProduct) = "BallProduct"
-describe_family(f::BallProduct) = "BallProduct(" * family_name(f.angular) * ")"
+describe_family(f::BallProduct) = "BallProduct(" * describe_family(f.angular) * ")"
+inner_families(f::BallProduct) = (f.angular,)
 
 # Combinators recurse into the families that live on the matching sphere (PLAN §2.5).
 function candidates(::Type{<:BallProduct}, dom::Ball{D}, c::PolynomialDegree) where {D}
@@ -103,6 +104,7 @@ function build(f::BallProduct, dom::Ball{D}, degree::Int, ctx::BuildContext{T}) 
                               "angular: " * describe_family(f.angular) * ", $(npoints(ang)) points",
                               "claim: min(2n-1, angular degree) = $(claimed_degree(f, dom, degree))"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry())
+                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry(),
+                      license = provenance(ang).license)
     return QuadratureRule(xout, wout, Ball{D}(), PolynomialDegree(claimed_degree(f, dom, degree)), prov, cert)
 end

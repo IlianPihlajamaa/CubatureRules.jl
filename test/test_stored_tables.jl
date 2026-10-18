@@ -53,7 +53,7 @@ end
     # below Float64: rounded, with the residual of the rounded parameters evaluated in Float64
     for T in (Float32, Float16)
         rl = rule(Simplex{2}(); degree = 10, T)
-        @test eltype(rl) == T
+        @test numbertype(rl) == T
         @test certificate(rl).residual_bits == 53 && 0 < certificate(rl).residual < 10eps(T)
         @test occursin("rounded to $T", last(provenance(rl).path))
     end

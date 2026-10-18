@@ -37,12 +37,19 @@ A family whose data comes from elsewhere declares its terms with `family_license
 registry stamps this into the provenance of every rule the family builds, in `_build`, so a
 family author cannot forget it. A rule refined from such data keeps the licence of the data:
 refinement makes the numbers more accurate, but the result is still derived from the
-original data.
+original data. Lebedev.jl's rules, for instance, carry these terms, and every rule built from
+them records them as `provenance(r).license`:
 
-```julia
-julia> provenance(rule(UpstreamLebedev(), Sphere{3}(); degree = 29, digits = 40)).license
-"GPL-3.0-or-later, via Lebedev.jl; not covered by CubatureRules.jl's MIT licence"
+```jldoctest
+julia> using CubatureRules
+
+julia> CubatureRules.family_license(UpstreamLebedev())
+"GPL-3.0, via Lebedev.jl. This rule is seeded from that package's table and is not covered by CubatureRules.jl's MIT licence; it may not be redistributed under it. Lebedev & Laikov (1999) ask to be cited."
 ```
+
+A family built from other families, such as `BallProduct` with Lebedev.jl's rules on the
+sphere, carries the terms of everything inside it: it is selectable only if they all are,
+and its rules record every licence they declare.
 
 ## Selection and licences
 

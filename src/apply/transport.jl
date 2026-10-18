@@ -6,7 +6,7 @@
 #     duffy(r)              radial grading       → NoClaim
 
 "Run `f` at the precision of the rule's BigFloats (so no conversion reads ambient precision)."
-_at_rule_precision(f, r::QuadratureRule) = eltype(r) === BigFloat ? with_bits(f, _rule_precision(r)) : f()
+_at_rule_precision(f, r::QuadratureRule) = numbertype(r) === BigFloat ? with_bits(f, _rule_precision(r)) : f()
 
 """
     map_to(r, domain)
@@ -17,7 +17,7 @@ Jacobian. The claim is preserved. There is deliberately no way to pass a nonline
 use [`transform`](@ref), which reports `NoClaim`.
 """
 function map_to(r::QuadratureRule, dom::Domain)
-    S = _maptype(eltype(r), _coordtype(dom))
+    S = _maptype(numbertype(r), _coordtype(dom))
     kind = dom isa Union{Sphere,Ball} ? "similarity" : "affine"
     return _at_rule_precision(r) do
         A, b, J = _affine(r.domain, dom, S)
@@ -38,6 +38,7 @@ _mappable(::Wedge, ::Wedge) = true
 _mappable(::Pyramid, ::Pyramid) = true
 _mappable(::Ball{D}, ::Ball{D}) where {D} = true
 _mappable(::Sphere{D}, ::Sphere{D}) where {D} = true
+_mappable(a::JacobiInterval, b::JacobiInterval) = a.weight.α == b.weight.α && a.weight.β == b.weight.β
 
 _mapnode(::Type{S}, x::Number) where {S} = S(x)
 _mapnode(::Type{S}, x::SVector{D}) where {S,D} = SVector{D,S}(map(S, x))
@@ -58,6 +59,7 @@ end
 _composed_jacobian(::Domain, A, Jd, Js) = abs(det(A))
 _composed_jacobian(::Interval, A, Jd, Js) = abs(A)
 _composed_jacobian(::Union{Sphere,SurfaceTriangle}, A, Jd, Js) = Jd / Js    # a surface: the ratio of area elements
+_composed_jacobian(::JacobiInterval, A, Jd, Js) = Jd / Js                     # the weight scales with the interval
 
 # ---------------------------------------------------------------------------------------
 
@@ -72,8 +74,7 @@ subdivide(r::QuadratureRule, n::Integer) = subdivide(r, r.domain, n)
 
 function subdivide(r::QuadratureRule{1,T,<:Interval}, dom::Interval, n::Integer) where {T}
     n >= 1 || throw(ArgumentError("n must be positive"))
-    S = promote_type(T, typeof(dom.a))
-    S <: Integer && (S = Rational{BigInt})
+    S = _maptype(T, typeof(dom.a))
     return _at_rule_precision(r) do
         h = (S(dom.b) - S(dom.a)) / n
         pieces = [map_to(r, Interval(S(dom.a) + (k - 1) * h, S(dom.a) + k * h)) for k in 1:n]
@@ -83,8 +84,7 @@ end
 
 function subdivide(r::QuadratureRule{2,T,<:Simplex}, dom::Simplex{2}, n::Integer) where {T}
     n >= 1 || throw(ArgumentError("n must be positive"))
-    S = promote_type(T, eltype(eltype(dom.vertices)))
-    S <: Integer && (S = Rational{BigInt})
+    S = _maptype(T, eltype(eltype(dom.vertices)))
     return _at_rule_precision(r) do
         v0, v1, v2 = (SVector{2,S}(v) for v in dom.vertices)
         P(i, j) = v0 + (S(i) / n) * (v1 - v0) + (S(j) / n) * (v2 - v0)
@@ -101,8 +101,7 @@ end
 function subdivide(r::QuadratureRule{3,T,<:Simplex}, dom::Simplex{3}, n::Integer) where {T}
     ispow2(n) || throw(ArgumentError("a tetrahedron is subdivided by repeated bisection, so n must be a " *
                                      "power of two (got $n); n = $(nextpow(2, n)) would give $(nextpow(2, n)^3) cells"))
-    S = promote_type(T, eltype(eltype(dom.vertices)))
-    S <: Integer && (S = Rational{BigInt})
+    S = _maptype(T, eltype(eltype(dom.vertices)))
     return _at_rule_precision(r) do
         cells = [convert_domain(S, dom)]
         for _ in 1:Int(log2(n))
@@ -113,8 +112,11 @@ function subdivide(r::QuadratureRule{3,T,<:Simplex}, dom::Simplex{3}, n::Integer
     end
 end
 
+subdivide(r::QuadratureRule, dom::WeightedDomain, n::Integer) =
+    throw(ArgumentError("a rule for a weight cannot be subdivided: the weight is not the same function on each " *
+                        "piece, so the pieces need rules of their own; build one per piece with `rule`"))
 subdivide(r::QuadratureRule, dom::Domain, n::Integer) =
-    throw(NotYetImplemented("subdivide for $(typeof(dom).name.name) domains of this dimension", "a later release"))
+    throw(ArgumentError("subdivide splits intervals, triangles and tetrahedra; not $(dom)"))
 
 """
     bisect_tetrahedron(t) -> 8 tetrahedra
@@ -151,14 +153,18 @@ Pass `claim` to assert one anyway; the assertion is recorded in the provenance a
 assertion, not a derivation.
 """
 function transform(r::QuadratureRule{D}, φ, Jφ; domain::Domain{D} = r.domain, claim = nothing) where {D}
-    xs = [D == 1 ? φ(x) : φ(x) for x in r.nodes]
-    ws = [w * abs(_detval(Jφ(x))) for (x, w) in zip(r.nodes, r.weights)]
-    T = promote_type(eltype(eltype(xs)), eltype(ws))
     newclaim = claim === nothing ? NoClaim() : claim
     step = claim === nothing ? "transform: nonlinear change of variables (claim destroyed → NoClaim)" :
            "transform: nonlinear change of variables; claim $(describe(claim)) ASSERTED by the caller, not derived"
-    xsT = D == 1 ? T.(xs) : [SVector{D,T}(x) for x in xs]
-    return QuadratureRule(xsT, T.(ws), domain, newclaim, with_step(r.provenance, step; symmetry = NoSymmetry()), r.certificate)
+    # φ and Jφ run at the rule's precision, so what they compute in BigFloat is not rounded to
+    # the ambient one
+    return _at_rule_precision(r) do
+        xs = [φ(x) for x in r.nodes]
+        ws = [w * abs(_detval(Jφ(x))) for (x, w) in zip(r.nodes, r.weights)]
+        T = promote_type(eltype(eltype(xs)), eltype(ws))
+        xsT = D == 1 ? T.(xs) : [SVector{D,T}(x) for x in xs]
+        QuadratureRule(xsT, T.(ws), domain, newclaim, with_step(r.provenance, step; symmetry = NoSymmetry()), r.certificate)
+    end
 end
 _detval(J::Number) = J
 _detval(J::AbstractMatrix) = det(J)

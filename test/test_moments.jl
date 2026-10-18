@@ -210,12 +210,12 @@ end
 
     # multiplying Legendre by (1 + x) is Gauss–Jacobi(0, 1), to the last bit
     r = rule(christoffel(Interval(), -1); degree = 2n - 1, digits)
-    g = rule(GaussJacobi(0, 1), Interval(); degree = 2n - 1, digits)
+    g = rule(GaussJacobi(0, 1), WeightedDomain(Interval(), JacobiWeight(0, 1)); degree = 2n - 1, digits)
     @test maximum(abs, BigFloat.(nodes(r)) .- BigFloat.(nodes(g))) < exp10(-digits + 1)
 
     legref = rule(GaussLegendre(), Interval(); npoints = 200, digits = 120)
     i02ref = rule(GaussLegendre(), Interval(0, 2); npoints = 200, digits = 120)
-    jacref = rule(GaussJacobi(0.5, -0.5), Interval(); npoints = 200, digits = 120)
+    jacref = rule(GaussJacobi(0.5, -0.5), WeightedDomain(Interval(), JacobiWeight(0.5, -0.5)); npoints = 200, digits = 120)
     for (dom, exact) in (
             (christoffel(Interval(), -2; power = -1), by_rule(legref, x -> 1 / (x + 2))),
             (christoffel(Interval(), 3; power = -1), by_rule(legref, x -> 1 / (3 - x))),

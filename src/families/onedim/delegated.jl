@@ -14,10 +14,12 @@
 
 const QUADRATURERULES_JL = Citation(key = "Kraus_QuadratureRules", authors = ["Michael Kraus"],
                                     title = "QuadratureRules.jl: Julia library collecting quadrature rules",
-                                    journal = "Zenodo", year = 2020, doi = "10.5281/zenodo.4310382")
+                                    journal = "Zenodo", year = 2020, doi = "10.5281/zenodo.4310382",
+                                    kind = :software, url = "https://github.com/JuliaGNI/QuadratureRules.jl")
 const QUADGK_JL = Citation(key = "Johnson_QuadGK", authors = ["Steven G. Johnson"],
                            title = "QuadGK.jl: Gauss–Kronrod integration in Julia",
-                           journal = "GitHub", year = 2013)
+                           journal = "GitHub", year = 2013, kind = :software,
+                           url = "https://github.com/JuliaMath/QuadGK.jl")
 
 """
     Lobatto()

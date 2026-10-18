@@ -19,6 +19,7 @@ end
 Interval
 WeightedDomain
 JacobiWeight
+CubatureRules.check_weight
 ```
 
 On `Interval()`:

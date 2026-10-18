@@ -65,6 +65,7 @@ const GAUTSCHI_WIMP_1987 = Citation(key = "GautschiWimp1987", authors = ["Walter
 
 candidates(::Type{SingularGauss}, dom::KernelDomain, ::PolynomialDegree) = [SingularGauss()]
 npoints(::SingularGauss, dom, degree::Integer) = cld(degree, 2) + 1
+exact_npoints(::SingularGauss, dom, degree) = false     # n + 1, 2n or 2n + 1 when a node falls near t
 claimed_degree(::SingularGauss, dom, degree) = 2cld(degree, 2)
 degree_range(::SingularGauss, dom) = 0:typemax(Int)
 degree_for_npoints(::SingularGauss, dom, n::Integer) = 2(n - 1)

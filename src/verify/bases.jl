@@ -41,53 +41,33 @@ function evaluate!(b::JacobiBasis{S}, xv) where {S}
 end
 blocks(b::JacobiBasis) = [k:k for k in 1:(b.n + 1)]
 
-struct BarycentricMonomialBasis{S} <: VerificationBasis
-    D::Int
-    degrees::Vector{Int}       # homogeneous degrees tested (d, and d+1 for sharpness)
-    exps::Vector{Vector{Int}}
-    blockranges::Vector{UnitRange{Int}}
-end
-function BarycentricMonomialBasis{S}(D, degrees) where {S}
-    exps = Vector{Vector{Int}}()
-    ranges = UnitRange{Int}[]
-    for k in degrees
-        lo = length(exps) + 1
-        append!(exps, compositions(k, D + 1))
-        push!(ranges, lo:length(exps))
-    end
-    return BarycentricMonomialBasis{S}(D, collect(degrees), exps, ranges)
-end
-function evaluate!(b::BarycentricMonomialBasis{S}, x) where {S}
-    λ = vcat(one(S) - sum(x), x)
-    φ = [prod(λ[i]^β[i] for i in eachindex(β)) for β in b.exps]
-    g = [sum((β[i] * prod(λ[j]^(j == i ? β[j] - 1 : β[j]) for j in eachindex(β)) for i in eachindex(β) if β[i] > 0);
-             init = zero(S)) for β in b.exps]
-    return φ, abs.(g)
-end
-blocks(b::BarycentricMonomialBasis) = b.blockranges
-
-struct TetVerifyBasis{S,B<:SimplexBasis{3,S}} <: VerificationBasis
+# The D-simplex for D ≥ 3: the orthonormal Dubiner polynomials of that dimension (orthogonal
+# but not normalised in exact arithmetic), as the moment systems use them.
+struct SimplexVerifyBasis{D,S,B<:SimplexBasis{D,S}} <: VerificationBasis
     basis::B
 end
-TetVerifyBasis{S}(n; normalize) where {S} = (b = SimplexBasis{3,S}(n; normalize); TetVerifyBasis{S,typeof(b)}(b))
-function evaluate!(b::TetVerifyBasis, x)
+SimplexVerifyBasis{D,S}(n; normalize) where {D,S} =
+    (b = SimplexBasis{D,S}(n; normalize); SimplexVerifyBasis{D,S,typeof(b)}(b))
+function evaluate!(b::SimplexVerifyBasis{D}, x) where {D}
     φ, G = evaluate!(b.basis, x)
-    return φ, [abs(G[k, 1]) + abs(G[k, 2]) + abs(G[k, 3]) for k in axes(G, 1)]
+    return φ, [sum(abs(G[k, j]) for j in 1:D) for k in axes(G, 1)]
 end
-blocks(b::TetVerifyBasis) = degree_blocks(b.basis)
-exact_integrals(b::TetVerifyBasis{S}) where {S} =
-    (v = zeros(S, basis_length(b.basis)); v[1] = b.basis.ws.c[1] * S(1 // 6); v)
+blocks(b::SimplexVerifyBasis) = degree_blocks(b.basis)
+exact_integrals(b::SimplexVerifyBasis{D,S}) where {D,S} =
+    (v = zeros(S, basis_length(b.basis)); v[1] = simplex_basis_mass(b.basis); v)
 
-# Tensor Legendre on the reference box, graded by *total* degree — the space a tensor rule
-# claims (PLAN §2.2), not the larger tensor-product space it is exact on.
-struct BoxBasis{D,S} <: VerificationBasis
+# Products of a one-dimensional orthonormal basis, graded by *total* degree: tensor Legendre on
+# the reference box — the space a tensor rule claims (PLAN §2.2), not the larger
+# tensor-product space it is exact on — and tensor Hermite on the Gaussian space.
+struct TensorBasis{D,S,A<:VerificationBasis} <: VerificationBasis
     n::Int
     idx::Vector{NTuple{D,Int}}
     blockranges::Vector{UnitRange{Int}}
-    axis::JacobiBasis{S,Int}
+    axis::A
 end
 
-function BoxBasis{D,S}(n::Int; normalize::Bool = true) where {D,S}
+TensorBasis{D,S}(n::Int; normalize::Bool = true) where {D,S} = TensorBasis{D,S}(n, JacobiBasis{S,Int}(n, 0, 0, normalize))
+function TensorBasis{D,S}(n::Int, axis::A) where {D,S,A<:VerificationBasis}
     idx = NTuple{D,Int}[]
     ranges = UnitRange{Int}[]
     for k in 0:n
@@ -97,20 +77,20 @@ function BoxBasis{D,S}(n::Int; normalize::Bool = true) where {D,S}
         end
         push!(ranges, lo:length(idx))
     end
-    return BoxBasis{D,S}(n, idx, ranges, JacobiBasis{S,Int}(n, 0, 0, normalize))
+    return TensorBasis{D,S,A}(n, idx, ranges, axis)
 end
 
-function evaluate!(b::BoxBasis{D,S}, x) where {D,S}
+function evaluate!(b::TensorBasis{D,S}, x) where {D,S}
     ps = [evaluate!(b.axis, (x[j],)) for j in 1:D]        # (values, |derivatives|) per axis
     φ = [prod(ps[j][1][i[j] + 1] for j in 1:D) for i in b.idx]
     g = [sum(ps[j][2][i[j] + 1] * prod(abs(ps[l][1][i[l] + 1]) for l in 1:D if l != j; init = one(S))
              for j in 1:D) for i in b.idx]
     return φ, g
 end
-blocks(b::BoxBasis) = b.blockranges
-function exact_integrals(b::BoxBasis{D,S}) where {D,S}
+blocks(b::TensorBasis) = b.blockranges
+function exact_integrals(b::TensorBasis{D,S}) where {D,S}
     v = zeros(S, length(b.idx))
-    v[1] = (b.axis.normalize ? sqrt(S(2)) : S(2))^D        # only the constant term survives
+    v[1] = exact_integrals(b.axis)[1]^D                  # only the constant term survives
     return v
 end
 
@@ -213,7 +193,6 @@ function exact_integrals(b::JacobiBasis{S}) where {S}
     v[1] = b.normalize ? sqrt(S(jacobi_mass(b.α, b.β))) : S(2)
     return v
 end
-exact_integrals(b::BarycentricMonomialBasis{S}) where {S} = [S(barycentric_moment(β)) for β in b.exps]
 
 # Orthonormal polynomials of any weight given its recurrence — the basis for verifying
 # rules on weighted domains whose polynomials are not Jacobi (Laguerre, Hermite).
@@ -260,7 +239,7 @@ end
 
 # Map a rule to its reference domain in type S: (nodes as Vector{Vector{S}}, weights), through
 # the inverse of the domain's frame (see `affine_frame`), the weights divided by its Jacobian.
-const FramedDomain = Union{Simplex,Interval,Orthotope,Wedge,Pyramid,Ball,Sphere,SurfaceTriangle}
+const FramedDomain = Union{Simplex,Interval,Orthotope,Wedge,Pyramid,Ball,Sphere,SurfaceTriangle,JacobiInterval}
 function reference_nodes(r::QuadratureRule{D,T,<:FramedDomain}, ::Type{S}) where {D,T,S}
     A, b, J = affine_frame(r.domain, S)
     xs = [_reference_point(A, _mapnode(S, x) - b) for x in r.nodes]
@@ -295,12 +274,12 @@ function verification_basis end
 
 verification_basis(dom::Simplex{2}, n, ::Type{S}, exact) where {S} = DubinerBasis{S}(n; normalize = !exact),
     exact ? "Dubiner (unnormalised, exact arithmetic)" : "orthonormal Dubiner"
-verification_basis(dom::Simplex{3}, n, ::Type{S}, exact) where {S} = TetVerifyBasis{S}(n; normalize = !exact),
+verification_basis(dom::Simplex{3}, n, ::Type{S}, exact) where {S} = SimplexVerifyBasis{3,S}(n; normalize = !exact),
     exact ? "tetrahedral Dubiner (unnormalised, exact arithmetic)" : "orthonormal tetrahedral Dubiner"
-verification_basis(dom::Simplex{D}, n, ::Type{S}, exact) where {D,S} =
-    BarycentricMonomialBasis{S}(D, n), "barycentric monomials of degree $(join(n, ", ")) (exact Dirichlet moments)"
+verification_basis(dom::Simplex{D}, n, ::Type{S}, exact) where {D,S} = SimplexVerifyBasis{D,S}(n; normalize = !exact),
+    exact ? "Dubiner on the $D-simplex (unnormalised, exact arithmetic)" : "orthonormal Dubiner on the $D-simplex"
 verification_basis(dom::Orthotope{D}, n, ::Type{S}, exact) where {D,S} =
-    BoxBasis{D,S}(n; normalize = !exact),
+    TensorBasis{D,S}(n; normalize = !exact),
     exact ? "tensor Legendre (unnormalised, exact arithmetic), graded by total degree" :
     "tensor orthonormal Legendre, graded by total degree"
 verification_basis(dom::Wedge, n, ::Type{S}, exact) where {S} = WedgeBasis{S}(n),
@@ -393,13 +372,81 @@ exact_integrals(b::MonomialTestSet{D,S}) where {D,S} = [S(b.moment(α)) for α i
 
 _degrees(n) = n isa Integer ? (0:n) : n
 
+# The unit disk and the unit ball: the orthonormal polynomials
+#
+#     φ = c p_k(2r² − 1) r^ℓ Y(x̂),   2k + ℓ the degree,
+#
+# with Y an orthonormal Fourier mode on the circle or a real spherical harmonic on S², and p_k
+# orthonormal Jacobi for (1 + t)^β on [-1, 1], β = ℓ + D/2 − 1. r^ℓ Y(x̂) is a homogeneous
+# polynomial and p_k(2r² − 1) a polynomial in r², so φ is a polynomial in x. With t = 2r² − 1,
+# r^(D−1+2ℓ) dr = 2^(−β) (1 + t)^β dt / 4, so c = 2^(1 + β/2) makes them orthonormal on the
+# ball, and only the constant has a nonzero integral.
+struct RoundBasis{D,S} <: VerificationBasis
+    n::Int
+    idx::Vector{NTuple{3,Int}}                  # (k, ℓ, index of the angular function)
+    blockranges::Vector{UnitRange{Int}}
+    Y::Vector{S}
+    P::Vector{S}
+end
+function RoundBasis{D,S}(n::Int) where {D,S}
+    D in (2, 3) || throw(ArgumentError("RoundBasis is for the disk and the 3-ball"))
+    idx, ranges = NTuple{3,Int}[], UnitRange{Int}[]
+    for d in 0:n
+        lo = length(idx) + 1
+        for ℓ in d:-2:0, j in (D == 2 ? circle_block(ℓ) : harmonic_block(ℓ))
+            push!(idx, ((d - ℓ) ÷ 2, ℓ, j))
+        end
+        push!(ranges, lo:length(idx))
+    end
+    L = D == 2 ? circle_length(n) : harmonic_length(n)
+    return RoundBasis{D,S}(n, idx, ranges, zeros(S, L), zeros(S, D == 2 ? 0 : legendre_length(n)))
+end
+round_beta(D, ℓ) = D == 2 ? ℓ : ℓ + 1 // 2
+function evaluate!(b::RoundBasis{D,S}, xv) where {D,S}
+    x = SVector{D,S}(ntuple(i -> S(xv[i]), D))
+    r = sqrt(sum(abs2, x))
+    x̂ = iszero(r) ? SVector{D,S}(ntuple(i -> S(i == D), D)) : x / r
+    D == 2 ? fourier_circle!(b.Y, b.n, x̂) : real_harmonics!(b.Y, b.P, b.n, x̂)
+    t = 2r^2 - 1
+    # the radial polynomials for each ℓ, and their normalisation
+    radial = map(0:(b.n)) do ℓ
+        K = (b.n - ℓ) ÷ 2
+        p, dp = orthonormal!(zeros(S, K + 1), zeros(S, K + 1), jacobi_recurrence(0, round_beta(D, ℓ)), t)
+        p, dp, 2 * S(2)^(S(round_beta(D, ℓ)) / 2)          # c = 2^(1 + β/2)
+    end
+    φ, g = zeros(S, length(b.idx)), zeros(S, length(b.idx))
+    for (i, (k, ℓ, j)) in enumerate(b.idx)
+        p, dp, c = radial[ℓ + 1]
+        rl = r^ℓ
+        φ[i] = c * p[k + 1] * rl * b.Y[j]
+        # |∂r| of the radial factor times |Y|, and the angular part bounded per degree
+        B = D == 2 ? S(ℓ) / sqrt(S(π)) : harmonic_gradient_bound(ℓ, S)
+        rl1 = ℓ == 0 ? zero(S) : r^(ℓ - 1)
+        g[i] = abs(c) * (abs(4r * rl * dp[k + 1]) * abs(b.Y[j]) + ℓ * rl1 * abs(p[k + 1] * b.Y[j]) +
+                         rl1 * abs(p[k + 1]) * B)
+    end
+    return φ, g
+end
+blocks(b::RoundBasis) = b.blockranges
+exact_integrals(b::RoundBasis{D,S}) where {D,S} =
+    (v = zeros(S, length(b.idx)); v[1] = sqrt(D == 2 ? S(π) : 4 * S(π) / 3); v)
+
+# Orthonormal bases where the package has them: radial Jacobi × Fourier modes or spherical
+# harmonics on the disk and the 3-ball, tensor Hermite on the Gaussian space. In higher
+# dimensions there are no harmonics here, and in exact arithmetic no square roots, so the
+# monomials with their exact moments remain the test set.
 verification_basis(dom::Ball{D}, n, ::Type{S}, exact) where {D,S} =
-    MonomialTestSet{D,S}(_degrees(n), α -> ball_moment(D, α)),
-    "monomials of degree $(join(n, ", ")) (exact ball moments)"
+    D in (2, 3) && !exact && n isa Integer ?
+    (RoundBasis{D,S}(n), D == 2 ? "orthonormal Zernike-type polynomials (Jacobi in r² × Fourier)" :
+                                  "orthonormal ball polynomials (Jacobi in r² × spherical harmonics)") :
+    (MonomialTestSet{D,S}(_degrees(n), α -> ball_moment(D, α)),
+     "monomials of degree $(join(n, ", ")) (exact ball moments)")
 
 verification_basis(dom::GaussianDomain{D}, n, ::Type{S}, exact) where {D,S} =
-    MonomialTestSet{D,S}(_degrees(n), α -> gaussian_moment(D, α)),
-    "monomials of degree $(join(n, ", ")) (exact Gaussian moments)"
+    n isa Integer ? (TensorBasis{D,S}(n, RecurrenceBasis{S,typeof(hermite_recurrence())}(n, hermite_recurrence())),
+                     "tensor orthonormal Hermite, graded by total degree") :
+    (MonomialTestSet{D,S}(_degrees(n), α -> gaussian_moment(D, α)),
+     "monomials of degree $(join(n, ", ")) (exact Gaussian moments)")
 
 verification_basis(dom::ExponentialDomain{D}, n, ::Type{S}, exact) where {D,S} =
     MonomialTestSet{D,S}(_degrees(n), α -> exponential_moment(D, α)),

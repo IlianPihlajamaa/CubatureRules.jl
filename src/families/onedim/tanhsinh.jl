@@ -50,6 +50,7 @@ home_domain(::TanhSinh) = Interval()
 degree_range(::TanhSinh, dom) = 0:-1                      # no polynomial degree at all
 properties(::TanhSinh, dom, degree) = (positive = true, interior = true, symmetry = Reflection(), nested = true)
 npoints(f::TanhSinh, dom, degree = 0) = length(tanh_sinh_work(f.level, 53 + 32, 53)[1])
+exact_npoints(::TanhSinh, dom, degree) = false           # counted at Float64 resolution; more digits, more nodes
 claimed_degree(::TanhSinh, dom, degree) = -1
 
 const TAKAHASI_MORI_1974 = Citation(key = "TakahasiMori1974", authors = ["Hidetosi Takahasi", "Masatake Mori"],
