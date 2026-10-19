@@ -4,14 +4,27 @@ const CR = CubatureRules
 # Float64 requests for the seeded families are served from the stored tables without
 # refinement, so the tables themselves must be right. scripts/certify_tables.jl records each
 # entry's residual; here every recorded residual is recomputed from scratch — in the full
-# sweep (CUBATURERULES_FULL_SWEEP=1) for every entry, and per commit for the simplex, box,
-# disk, ball, pyramid and wedge entries of at most 650 points, as in the other table sweeps. Above that the tetrahedron
-# entries need invariant bases that take a minute each to build (70 s at degree 30).
-stored_per_commit(e) = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1" || e.npoints <= 650
+# sweep (CUBATURERULES_FULL_SWEEP=1) for every entry, and per commit for a slice:
+#
+# - the simplex, box, disk, ball, pyramid and wedge entries of at most 650 points, as in the
+#   other table sweeps. Above that the tetrahedron entries need invariant bases that take a
+#   minute each to build (70 s at degree 30);
+# - of the 4-simplex, those up to degree 8. Its invariant basis grows much faster with the
+#   degree: 17 s at degree 9, 37 s at 10 and four minutes at 13, which was half of a CI run;
+# - of the sphere's, every entry up to degree 17, every fourth above, and the two largest.
+full_sweep() = get(ENV, "CUBATURERULES_FULL_SWEEP", "0") == "1"
+stored_per_commit(e) = full_sweep() || e.npoints <= 650
+function lebedev_per_commit(es)
+    full_sweep() && return es
+    above = filter(e -> e.degree > 17, es)
+    keep = vcat(filter(e -> e.degree <= 17, es), above[1:4:end], above[max(1, end - 1):end])
+    return filter(e -> e in keep, es)
+end
 
 @testset "every stored seed has a recorded residual, and it is reproduced" begin
     tables = [(3, filter(stored_per_commit, CR.xg_entries())), (4, filter(stored_per_commit, CR.tet_entries())),
-              (5, filter(stored_per_commit, CR.simplex_entries(4))), (0, CR.lebedev_entries())]
+              (5, filter(e -> full_sweep() || e.degree <= 8, CR.simplex_entries(4))),
+              (0, lebedev_per_commit(CR.lebedev_entries()))]
     for (N, entries) in tables, e in entries
         @test isfinite(e.residual) && e.residual < 1e-14 && e.residual_bits >= 256
         r = CR.with_bits(128) do
