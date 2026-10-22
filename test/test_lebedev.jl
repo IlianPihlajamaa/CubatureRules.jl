@@ -78,6 +78,9 @@ end
         # within 15% of the parameter-count estimate (d+1)²/3, which is not a proven bound
         @test e.npoints <= 1.15 * (e.degree + 1)^2 / 3
         @test e.residual < 1e-14 && e.residual_bits >= 256
+        # the miss at degree d + 1, measured at 90 digits: from about degree 41 on it is below
+        # what a Float64 check resolves, and the table's record keeps that from failing it
+        @test e.next_error > 0
     end
 end
 

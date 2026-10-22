@@ -109,7 +109,11 @@ generator = "scripts/generate_lebedev_seeds.jl (degrees 3-17); scripts/search_ca
 checked = """
 scripts/certify_tables.jl, 2026-09-24 and 2026-09-30 (degrees 3-17), 2026-10-01 (degrees
 133-201) and 2026-10-16 (degrees 19-131): every seed is the correctly rounded Float64 value of the rule refined to 160 bits,
-and its defining-equation residual at 256 bits is recorded in the table."""
+and its defining-equation residual at 256 bits is recorded in the table. `next_error`, the
+miss at degree d + 1 measured by `check` at high precision: degrees 133-201 on 2026-10-01, on
+the imported 300-bit rules; degrees 19-131 on 2026-10-22 by scripts/record_next_error.jl, on
+the rules refined to 90 digits, each exact and sharp there (measured the same way, degree 133
+gave the recorded value to all 16 digits)."""
 
 [[file]]
 path = "square_d4_seeds.toml"
