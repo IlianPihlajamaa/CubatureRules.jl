@@ -3,9 +3,10 @@
 #
 #     julia --project -t auto scripts/verify_tables.jl [digits] [degrees] [domains]
 #
-# `degrees` (for example `49:50`, or `11,22`) restricts the campaign to those degrees, and
-# `domains` (any of `triangle,tetrahedron,simplex4,square,cube,hypercube,disk,ball,pyramid,wedge`)
-# to those domains, which is what newly generated seeds need; without them every shipped
+# `degrees` (for example `49:50`, or `11,22`, or `all`) restricts the campaign to those
+# degrees, and `domains` (any of `triangle,tetrahedron,simplex4,square,cube,hypercube,disk,
+# ball,pyramid,wedge`) to those domains, which is what newly generated seeds need, and what
+# the full-sweep CI uses to verify the tables in parallel jobs; without them every shipped
 # rule is checked.
 #
 # For each rule: refine to `digits` (default 60), then check
@@ -73,18 +74,24 @@ function monomial_error(r, dom, d::Int, bits::Int)
     end
 end
 
+const CAMPAIGN = (("triangle", XiaoGimbutas(), Simplex{2}(), XG_N6),
+                  ("tetrahedron", FullySymmetric(), Simplex{3}(), TET_PUBLISHED),
+                  ("simplex4", FullySymmetric(), Simplex{4}(), Dict{Int,Int}()),
+                  ("square", FullySymmetric(), Orthotope{2}(), SQUARE_PUBLISHED),
+                  ("cube", FullySymmetric(), Orthotope{3}(), CUBE_PUBLISHED),
+                  ("hypercube", FullySymmetric(), Orthotope{4}(), Dict{Int,Int}()),
+                  ("disk", FullySymmetric(), Disk(), Dict{Int,Int}()),
+                  ("ball", FullySymmetric(), Ball{3}(), Dict{Int,Int}()),
+                  ("pyramid", FullySymmetric(), Pyramid(), PYRAMID_PUBLISHED),
+                  ("wedge", FullySymmetric(), Wedge(), WEDGE_PUBLISHED))
+
 function campaign(digits::Int; degrees = nothing, domains = nothing)
+    # a misspelt domain would otherwise verify nothing and pass
+    unknown = domains === nothing ? String[] : setdiff(domains, first.(CAMPAIGN))
+    isempty(unknown) || error("unknown domain(s) $(join(unknown, ", ")); the domains are " *
+                              join(first.(CAMPAIGN), ", "))
     ok = true
-    for (label, fam, dom, published) in (("triangle", XiaoGimbutas(), Simplex{2}(), XG_N6),
-                                         ("tetrahedron", FullySymmetric(), Simplex{3}(), TET_PUBLISHED),
-                                         ("simplex4", FullySymmetric(), Simplex{4}(), Dict{Int,Int}()),
-                                         ("square", FullySymmetric(), Orthotope{2}(), SQUARE_PUBLISHED),
-                                         ("cube", FullySymmetric(), Orthotope{3}(), CUBE_PUBLISHED),
-                                         ("hypercube", FullySymmetric(), Orthotope{4}(), Dict{Int,Int}()),
-                                         ("disk", FullySymmetric(), Disk(), Dict{Int,Int}()),
-                                         ("ball", FullySymmetric(), Ball{3}(), Dict{Int,Int}()),
-                                         ("pyramid", FullySymmetric(), Pyramid(), PYRAMID_PUBLISHED),
-                                         ("wedge", FullySymmetric(), Wedge(), WEDGE_PUBLISHED))
+    for (label, fam, dom, published) in CAMPAIGN
         domains === nothing || label in domains || continue
         name = CR.family_name(fam)
         println("\n", name, " on ", dom, " — refined to ", digits, " digits")
@@ -111,6 +118,7 @@ function campaign(digits::Int; degrees = nothing, domains = nothing)
         end
     end
     # where the shipped triangle counts differ from the published ones
+    (domains === nothing || "triangle" in domains) || return ok
     println("\nPoint counts differing from Xiao & Gimbutas (2010), Table 1:")
     for d in 1:min(last(degree_range(XiaoGimbutas(), Simplex{2}())), length(XG_N6))
         n = npoints(XiaoGimbutas(), Simplex{2}(), d)
@@ -124,7 +132,7 @@ end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     digits = isempty(ARGS) ? 60 : parse(Int, ARGS[1])
-    degrees = length(ARGS) < 2 ? nothing :
+    degrees = length(ARGS) < 2 || ARGS[2] == "all" ? nothing :
               occursin(":", ARGS[2]) ? (:)(parse.(Int, split(ARGS[2], ":"))...) : parse.(Int, split(ARGS[2], ","))
     domains = length(ARGS) < 3 ? nothing : split(ARGS[3], ",")
     exit(campaign(digits; degrees, domains) ? 0 : 1)

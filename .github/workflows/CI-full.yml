@@ -42,9 +42,19 @@ jobs:
     # Re-verify every shipped rule from scratch at 60 digits, independently of the machinery
     # that produced it: exactness and sharpness against the orthonormal basis, positivity,
     # interiority, symmetry, distinct nodes, and every monomial against its exact moment.
-    name: Seed tables verified at 60 digits
+    #
+    # One job per table, in parallel: in one job this took 4 minutes in September 2026 and
+    # 2 h 34 min on 2026-10-22, close to the timeout, and it grows with every campaign. That
+    # day the 4-cube took 66 min (30 of them at degree 25), the cube 27, the triangle and the
+    # tetrahedron 20 each, the 4-simplex 13, the square 4, and the last four 3 together.
+    # The list must name every domain verify_tables.jl knows; test_scripts.jl checks that.
+    name: Seed tables verified at 60 digits — ${{ matrix.tables }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        tables: [triangle, tetrahedron, simplex4, 'square,cube', hypercube, 'disk,ball,pyramid,wedge']
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -52,4 +62,4 @@ jobs:
           version: '1'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
-      - run: julia --project -t auto scripts/verify_tables.jl 60
+      - run: julia --project -t auto scripts/verify_tables.jl 60 all ${{ matrix.tables }}

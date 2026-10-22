@@ -56,3 +56,16 @@ const PUBLIC_ONLY = Set(n for n in names(CR) if !Base.isexported(CR, n))
     called, imported, defined = script_names("import CubatureRules: benchmark_construction\nbenchmark_construction(x)")
     @test isempty(setdiff(intersect(called, PUBLIC_ONLY), imported, defined))
 end
+
+@testset "the full sweep verifies every table" begin
+    # CI-full.yml runs scripts/verify_tables.jl as one job per group of domains; a domain the
+    # script gains but the matrix does not name would never be verified, and nothing would fail
+    root = pkgdir(CR)
+    script = read(joinpath(root, "scripts", "verify_tables.jl"), String)
+    labels = [m[1] for m in eachmatch(r"\(\"(\w+)\", (?:XiaoGimbutas|FullySymmetric)\(\)", script)]
+    workflow = read(joinpath(root, ".github", "workflows", "CI-full.yml"), String)
+    matrix = match(r"tables: \[(.*)\]", workflow)
+    @test matrix !== nothing
+    named = [m.match for m in eachmatch(r"[a-z0-9]+", matrix[1])]
+    @test !isempty(labels) && sort(named) == sort(labels)      # each once, none missing
+end
