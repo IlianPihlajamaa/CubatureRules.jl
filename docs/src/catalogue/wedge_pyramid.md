@@ -63,7 +63,8 @@ interior nodes, at any degree and precision.
 family_table(Pyramid(); degree = 10)
 ```
 
-Both families are verified against polynomials of order one on the reference shape. For
+Both families are verified against polynomials of magnitude about one on the reference
+shape. For
 the wedge these are the orthonormal Dubiner polynomials of the triangle times Legendre
 polynomials in `z`, which are orthonormal on the wedge. For the pyramid they are Legendre
 polynomials on its bounding box, integrated over the pyramid slice by slice with the
@@ -88,8 +89,10 @@ polynomials `S_ij(ξ, η) (1 − z)^(i+j) q_k(z)`, with `S_ij` symmetrised produ
 Legendre polynomials and `q_k` orthonormal on `[0, 1]` for the weight `(1 − z)^(2(i+j)+2)`;
 these are polynomials in `x, y, z` of degree `i + j + k`, and orthonormal on the pyramid.
 
-The seeds were found in-house, by random starts on the orbit structures of each point count
-at low degree and node elimination above (`scripts/generate_orbit_seeds.jl`). Point counts
+The seeds were found in-house. The first degrees (wedge to 6, pyramid to 9) come from
+`scripts/generate_orbit_seeds.jl`, which tries random starts on the orbit structures of each
+point count and eliminates nodes above; the rest were grown by the pooled search in
+`scripts/search_campaign/`. Point counts
 against the product rules, and against Witherden & Vincent (2015), who tabulate the same
 class to degree 10:
 

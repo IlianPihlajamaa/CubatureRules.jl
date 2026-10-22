@@ -54,7 +54,10 @@ function. Laguerre nodes spread out to about `4n`, so the guard grows with `n`.
 
 These domains are verified against the weight's own orthonormal polynomials rather than
 monomials, because the moments `∫ xᵏ w` grow factorially and would make a monomial check
-badly conditioned.
+badly conditioned. The same holds for the Gaussian space, verified against tensor Hermite
+polynomials. The exponential space `ExponentialSpace(D)` is the exception: `e^{-r}` has no
+classical orthogonal polynomials in `r²`, so it is still verified against monomials with exact
+moments, which is the weaker check at high degree.
 
 ## Gaussian-weighted space
 

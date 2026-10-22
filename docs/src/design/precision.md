@@ -18,16 +18,19 @@ equations and uses
 guard = 32 + log₂ κ   (rounded up to a multiple of 8)
 ```
 
-The rounding to multiples of 8 keeps small platform differences in the `Float64` estimate of
-`κ` from changing the working precision.
+The estimate is computed in plain loops in a fixed order, without LAPACK or BLAS (see
+[below](#Estimating-the-condition-number)), so it is the same on every platform and so is
+the working precision. Rounding up to a multiple of 8 adds a margin, since the estimate is a
+lower bound, and keeps the working precision from moving when `κ` changes slightly, for
+instance when a seed is improved in its last digits.
 
 If the condition number met during the refinement is larger than the one estimated at the
 seed, the refinement is repeated once with a correspondingly larger guard. Both the
 condition number and the guard are stored in the certificate.
 
 None of this happens for a seeded family at 53 bits or fewer: its stored table already
-holds the correctly rounded `Float64` rule, which is returned without refinement (see
-[Seed strategies](seeds.md#Float64-requests)).
+holds the correctly rounded `Float64` parameters of the rule, which are expanded and rounded
+without refinement (see [Seed strategies](seeds.md#Float64-requests)).
 
 For the Gauss families built on a three-term recurrence, the equations are well conditioned
 and the guard is a function of the number of points only (`24 + 2 log₂(n+1)` bits).
@@ -38,10 +41,11 @@ precision until two successive results agree; see [Measures given by moments](mo
 
 ## Estimating the condition number
 
-`κ` is estimated from a `Float64` copy of the Jacobian, which is cheap. If that estimate is
-above `10¹²`, where `Float64` cannot resolve it, it is recomputed in 256-bit arithmetic: a
-pivoted QR factorisation, then power and inverse iteration on its triangular factor, which
-has the same singular values. The iterations cost O(n²) each, where a full SVD cost O(n³)
+`κ` is estimated from a `Float64` copy of the Jacobian, which is cheap: a pivoted QR
+factorisation, then power and inverse iteration on its triangular factor, which has the same
+singular values, all written as plain loops so that no library can reorder the sums. If that
+estimate is above `10¹²`, where `Float64` cannot resolve it, the same is done in 256-bit
+arithmetic. The iterations cost O(n²) each, where a full SVD cost O(n³)
 and was most of the time of a large Lebedev build. Even so, the Gauss–Newton loop computes
 the accurate estimate only at the first and last iterate, and uses the free ratio
 `|R₁₁| / |R_rr|` from the factorisation of each step in between.
@@ -52,8 +56,9 @@ Each Gauss–Newton step solves a linear system with the Jacobian. When the syst
 and `κ < 10¹⁰`, the Jacobian is factored in `Float64` and the step refined in `BigFloat`: each
 correction costs one matrix–vector product and gains about `16 − log₁₀ κ` digits. The
 result matches a `BigFloat` factorisation to working precision, at a fraction of the cost.
-Otherwise, for example for large Lebedev systems with `κ` up to `10⁵⁵`, the step comes from
-a column-pivoted QR in `BigFloat`, which also reveals the rank.
+Otherwise, for a system that is not square or has `κ ≥ 10¹⁰`, the step comes from a
+column-pivoted QR in `BigFloat`, which also reveals the rank. Keeping `κ` below that is one
+reason every seeded family refines in an orthonormal basis.
 
 ## Rounding once
 
@@ -73,8 +78,9 @@ no rounding. Only families with rational nodes and weights support this (`Grundm
 ## Other float types
 
 Any `AbstractFloat` can be the output type. The rule is computed in `BigFloat` with enough
-bits for that type and converted at the end, so `Float32`, `Double64` and `Float128` rules
-are as accurate as their type allows.
+bits for that type and converted at the end. The test suite checks `Float32`, `Float64`,
+`Double64` (DoubleFloats.jl) and `BigFloat` at several precisions; other types, such as
+`Float128` from Quadmath.jl, take the same path but are not tested.
 
 ## Threads
 

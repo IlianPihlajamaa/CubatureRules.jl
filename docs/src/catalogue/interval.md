@@ -91,7 +91,8 @@ construction. At 40 digits the miss is resolved:
 verify(rule(GaussPatterson(), Interval(); npoints = 127, digits = 40))
 ```
 
-In `Float64` the 255-point rule takes about 4 s to build and the 511-point rule about 20 s.
+In `Float64` the 255-point rule took about 4 s to build and the 511-point rule about 20 s
+(September 2026).
 
 ## Tanh-sinh
 

@@ -13,18 +13,18 @@ check(r)
 
 ## What is checked
 
-1. **Exactness.** Every function in an orthonormal basis up to the claimed degree is
-   integrated and compared with its exact integral. The basis depends on the domain:
-   Dubiner polynomials on triangles, Legendre or Jacobi polynomials on intervals, spherical
-   harmonics on the sphere, and monomials with exactly known integrals elsewhere. The check
-   runs at twice the precision of the rule, and each error is compared with what rounding the
-   nodes and weights to the rule's precision could explain. Exact rational rules must give
-   an error of zero.
+1. **Exactness.** Every function in a basis of the polynomials up to the claimed degree is
+   integrated and compared with its exact integral. The basis is orthonormal on almost every
+   domain; the [verification page](../design/verification.md) lists which one each domain
+   uses. The check runs at twice the precision of the rule, and each error is compared with
+   what rounding the nodes and weights to the rule's precision could explain. Exact rational
+   rules must give an error of zero.
 2. **Sharpness.** The rule must *not* be exact at one degree higher. Without this check, a
    rule could claim a lower degree than it actually has.
-3. **Structure.** The weights add up to the size of the domain, the nodes lie inside it, the
-   weights are positive, and the rule has the symmetry it claims, where these properties are
-   claimed.
+3. **Structure.** The weights must add up to the size of the domain, and the rule must have
+   the symmetry its provenance records. Whether the nodes lie inside the domain and whether
+   the weights are positive is reported (`v.interior`, `v.positive`) but not required: a rule
+   with boundary nodes or negative weights can be exactly what it claims to be.
 
 ## Verification and the certificate
 
@@ -44,11 +44,16 @@ with a typo and the solver converged to a different rule. That is why the packag
 
 ## In a test suite
 
-```julia
-using Test, CubatureRules
+```jldoctest
+julia> using Test, CubatureRules
 
-@test_exact r 12            # exact to degree 12, and not to degree 13
-@test passed(check(r))
+julia> r = rule(Simplex{2}(); degree = 12);
+
+julia> @test_exact r 12            # exact to degree 12 (sharpness is not part of it)
+Test Passed
+
+julia> @test passed(check(r))      # exactness, sharpness and structure
+Test Passed
 ```
 
 ## Rules without a degree

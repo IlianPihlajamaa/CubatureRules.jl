@@ -58,9 +58,11 @@ Every odd degree from 133 to 201 is also shipped, with 6074 to 13680 points: squ
 with as many unknowns as invariant conditions, found by a continuation search and not
 claimed minimal. Every odd degree from 19 to 131 is shipped too, grown from the degree-17
 rule by the pooled search (scripts/search_campaign/), at most three unknowns above square;
-`rule(Sphere{3}(); degree)` takes these over the product rule at every degree, on node count. `Float64` rules at these
-degrees are served as stored; asking for more digits refines them in an invariant system
-whose condition number is 10⁵⁴ to 10⁸¹, which takes minutes per rule.
+`rule(Sphere{3}(); degree)` takes these over the product rule at every degree, on node count.
+`Float64` rules at these degrees are served from the table; asking for more digits refines
+them in the orthonormal invariant harmonics (`OctahedralHarmonicSystem`), whose
+condition number stays moderate (about 3·10³ at degree 133, 3·10⁵ at 189): 160 bits take
+seconds at degree 133 and under a minute at 189.
 
 The type parameter says where the seeds came from. `LebedevRule()` is
 `LebedevRule{InHouseSeeds}()`, the table shipped here; `UpstreamLebedev()` is

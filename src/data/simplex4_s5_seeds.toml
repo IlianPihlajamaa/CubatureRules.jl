@@ -1,5 +1,5 @@
 # Fully symmetric (S₅), positive-weight, interior rules on the 4-simplex, generated in-house
-# by scripts/generate_simplex4_seeds.jl. `structure` lists the orbits by the multiplicities of
+# by scripts/generate_simplex4_seeds.jl (degrees 1-6) and the pooled search in scripts/search_campaign/ (7-13). `structure` lists the orbits by the multiplicities of
 # their distinct barycentric coordinates; `seed` holds per orbit the weight of each point, then
 # all but the last distinct value.
 #

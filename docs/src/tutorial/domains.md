@@ -18,7 +18,8 @@ domain(r) == t, sum(weights(r))     # the weights add up to the area
 The rule is built on the reference triangle and mapped to yours. The map is affine, so the
 rule keeps its degree.
 
-The same works for intervals, boxes and spheres:
+The same works for intervals, boxes, wedges, pyramids, spheres and balls, and from the
+reference triangle onto a triangle in space ([`SurfaceTriangle`](@ref)):
 
 ```@repl dom
 rule(Interval(0, 1); degree = 9);
@@ -59,7 +60,9 @@ npoints(sub), degree(sub)
 
 [`subdivide`](@ref) splits the domain into smaller pieces of the same shape and puts a copy of
 the rule on each. The degree stays the same and the number of points is multiplied. This can
-help for integrands that are not smooth, where raising the degree does not help much.
+help for integrands that are not smooth, where raising the degree does not help much. It
+works on intervals, triangles and tetrahedra (for a tetrahedron `n` must be a power of two);
+see [Application and transport](../design/application.md#Subdivision).
 
 ## Non-affine maps
 

@@ -1,7 +1,8 @@
 # In-place MPFR arithmetic for the hot loops of the BigFloat bases and moment systems.
 #
 # Every BigFloat operation allocates its result and looks up the default precision, which
-# since Julia 1.11 lives in a ScopedValue. In the Dubiner recurrences that overhead was about
+# from Julia 1.12 on lives in a ScopedValue (on 1.11 it is a global, shared by all tasks; see
+# docs/src/design/precision.md, "Threads"). In the Dubiner recurrences that overhead was about
 # eight times the arithmetic, and it made BigFloat refinement at high degree take minutes.
 # These wrappers write into an existing BigFloat instead.
 #

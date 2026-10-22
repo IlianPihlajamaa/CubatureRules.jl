@@ -12,17 +12,26 @@ using CubatureRules
 rule(Simplex{2}())
 ```
 
-Asking a specific family for a degree it does not have gives the nearest one it does have:
+Asking a specific family for a degree it does not have, here one beyond its table, gives the
+nearest one it does have:
 
 ```@repl trouble
-rule(XiaoGimbutas(), Simplex{2}(); degree = 60)
+d = last(CubatureRules.degree_range(XiaoGimbutas(), Simplex{2}())) + 1
+rule(XiaoGimbutas(), Simplex{2}(); degree = d)
 ```
 
 Requirements that no family can meet together are reported with the families that were
 excluded and the reason for each:
 
-```@repl trouble
-rule(Simplex{2}(); degree = 9, positive = true, T = Rational{BigInt})
+```jldoctest trouble; setup = :(using CubatureRules)
+julia> rule(Simplex{2}(); degree = 9, positive = true, T = Rational{BigInt})
+ERROR: No rule with positive weights and exact Rational{BigInt} nodes and weights exists on Simplex{2}() at degree 9 among the loaded families.
+  XiaoGimbutas (19 points) cannot produce Rational{BigInt}.
+  ConicalProduct(GaussJacobi) (25 points) cannot produce Rational{BigInt}.
+  GrundmannMöller (35 points) has negative weights.
+Nearest: GrundmannMöller degree 1 (1 point, always available).
+Stacktrace:
+[...]
 ```
 
 Here the only family with exact rational rules at this degree (`GrundmannMöller`) has
@@ -32,8 +41,11 @@ negative weights. Drop one of the two requirements, or accept a floating-point r
 
 Some families use code from other packages, which have to be loaded first:
 
-```@repl trouble
-rule(Lobatto(), Interval(); degree = 9)
+```jldoctest trouble
+julia> rule(Lobatto(), Interval(); degree = 9)
+ERROR: Lobatto builds its rules with QuadratureRules.jl, which is not loaded; run `using QuadratureRules` first
+Stacktrace:
+[...]
 ```
 
 After `using QuadratureRules`, `Lobatto`, `Radau` and `ClenshawCurtis` are available and
@@ -41,27 +53,26 @@ appear in [`available`](@ref). See [External providers](../design/providers.md).
 
 ## A warning that a smaller rule exists
 
-```julia
-julia> rule(Sphere{3}(); degree = 29)
-┌ Warning: SphereProduct (450 points) was selected on Sphere{3}() at degree 29;
-│ Lebedev.jl has a 302-point rule there but is not loaded. `using Lebedev` makes it
-│ available, and `copyleft = true` lets `rule` choose it, since its licence is not one this
-│ package can pass on. `CubatureRules.selection_warnings!(false)` silences this.
+At some degrees Lebedev.jl has a smaller rule on the sphere than this package's own table.
+Asking for one of them without Lebedev.jl loaded says so:
+
+```@setup trouble
+# the lowest degree where Lebedev.jl has a smaller positive rule than the in-house one (its
+# degree-13 rule has a negative weight, so it is never suggested)
+ds = first(d for (d, n) in CubatureRules.UPSTREAM_LEBEDEV_POINTS
+           if d != 13 && n < npoints(rule(LebedevRule(), Sphere{3}(); degree = d)))
+CubatureRules.selection_warnings!(true)
 ```
 
-```julia
-julia> using Lebedev
-
-julia> rule(Sphere{3}(); degree = 29)
-┌ Warning: SphereProduct (450 points) was selected on Sphere{3}() at degree 29;
-│ Lebedev (Lebedev.jl, GPL-3) has 302 points but its licence is not one this package
-│ can pass on. Pass `copyleft = true` to use it.
-│ `CubatureRules.selection_warnings!(false)` silences this.
+```@repl trouble
+rule(Sphere{3}(); degree = ds)
 ```
 
-These appear when a smaller rule exists that `rule` did not choose: because the package
-that has it is not loaded, or because its licence (here GPL-3, from Lebedev.jl) means it is
-not chosen automatically. You get the larger rule. To use the smaller one, load the
+With Lebedev.jl loaded, the same request warns instead that its GPL-3 rule was passed over
+for its licence, and that `copyleft = true` would allow it. These warnings appear when a
+smaller rule exists that `rule` did not choose: because the package that has it is not
+loaded, or because its licence (here GPL-3, from Lebedev.jl) means it is not chosen
+automatically. You get the larger rule. To use the smaller one, load the
 package and pass `copyleft = true`, or name the family. A rule with negative weights is
 never suggested in place of a positive one. To turn the warnings off, call
 `CubatureRules.selection_warnings!(false)`. Each case warns only once.

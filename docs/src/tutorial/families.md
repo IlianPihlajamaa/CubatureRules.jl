@@ -8,14 +8,15 @@ Here is a complete family with a single one-point rule on any simplex:
 
 ```julia
 using CubatureRules, StaticArrays
-import CubatureRules: candidates, build, npoints, properties, degree_range, derivation,
-                      isreference, Derived, Provenance, NoSymmetry
+import CubatureRules: candidates, build, npoints, claimed_degree, properties, degree_range,
+                      derivation, isreference, Derived, Provenance, NoSymmetry
 
 struct CentroidRule <: RuleFamily end
 
 candidates(::Type{CentroidRule}, dom::Simplex, c::PolynomialDegree) =
     isreference(dom) && c.d <= 1 ? [CentroidRule()] : CentroidRule[]
 npoints(::CentroidRule, dom, degree) = 1
+claimed_degree(::CentroidRule, dom, degree) = 1      # degree 0 is answered by the degree-1 rule
 properties(::CentroidRule, dom, degree) =
     (positive = true, interior = true, symmetry = NoSymmetry(), nested = false)
 degree_range(::CentroidRule, dom) = 0:1
@@ -45,10 +46,29 @@ compiled package like this one, to make sure this keeps working.
 | `derivation(F)` | `Derived()` if the rule comes from a formula, `Seeded()` if it starts from stored data. |
 | `build(f, dom, degree, ctx)` | Constructs the rule. |
 
-`npoints` is called for every candidate before any rule is built, so it should be fast and
-exact. `candidates` returns instances rather than the type, so a family with parameters can
-return an instance configured for the request, as `GaussJacobi` does with the exponents of a
-Jacobi weight.
+`npoints` is called for every candidate before any rule is built, so it should be fast. It
+should be exact; a family whose construction decides its own size, refining until two
+resolutions agree, returns the fewest points it can have and says so with `exact_npoints`.
+`candidates` returns instances rather than the type, so a family with parameters can return
+an instance configured for the request, as `GaussJacobi` does with the exponents of a Jacobi
+weight.
+
+The other methods are optional; each has a default:
+
+| Method | Default | Define it when |
+|---|---|---|
+| `claimed_degree(f, dom, degree)` | `degree` | the rule built for `degree` is exact to a higher degree (rounded up to an odd one, or a table entry above) |
+| `exact_npoints(f, dom, degree)` | `true` | `npoints` is only the fewest points the rule can have |
+| `supports_type(f, T)` | floating-point types | the family can or cannot deliver some number type, such as exact rationals |
+| `cost_estimate(f, dom, degree, T)` | points × a precision factor | building costs much more than the point count suggests |
+| `weight_amplification(f, dom, degree)` | 1 for positive rules | the weights are signed and the ratio of their absolute sum to their sum is known |
+| `degree_for_npoints(f, dom, n)` | none | the family takes a request by number of points |
+| `describe_family(f)` | the type name | instances differ in a way the name should show, like `GaussJacobi(1, 2)` |
+| `selectable(f)`, `family_license(f)` | `true`, `""` | the rules carry terms this package cannot pass on (see [I want to provide external data](providers.md)) |
+| `missing_dependency(f)` | `nothing` | the family needs a package that may not be loaded |
+| `needs_degree(f)`, `home_domain(f)` | `true`, `nothing` | the family is requested by something other than a degree, such as a level |
+| `inner_families(f)` | none, required for combinators | the family is a `CombinatorFamily` built from others; its terms follow from theirs |
+
 
 ## Writing `build`
 
@@ -56,6 +76,8 @@ The `ctx` argument holds the output type, the target precision in bits, a cancel
 and a verbosity level. A typical `build` looks like this:
 
 ```julia
+import CubatureRules: BuildContext, isexact, finalize_number, checkcancel
+
 function build(f::MyFamily, dom, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("MyFamily nodes are irrational; $T is not supported"))
     guard = 24 + 2 * ceil(Int, log2(degree + 1))

@@ -16,8 +16,10 @@
     EmbeddedRule(fine, coarse)
 
 Two rules that share nodes: a fine rule and a coarser one whose nodes are a subset. The
-difference of the two estimates the error of the fine one at **no extra integrand
-evaluations**, which is how Gauss–Kronrod works and what nested families give for free.
+difference of the two is the coarse rule's error, up to the fine one's, and so a usually
+pessimistic estimate of the fine rule's error, at **no extra integrand evaluations**: how
+Gauss–Kronrod works, and what nested families give for free. [`embedded`](@ref) builds the
+pair for Gauss–Kronrod and Gauss–Patterson.
 
 `integrate(f, e)` returns the fine value; `integrate(f, e; error = true)` returns an
 [`IntegrationResult`](@ref).

@@ -54,6 +54,48 @@ A *derived* family computes its rules from a formula and exists at every degree.
 family refines stored starting values and exists at the degrees for which a seed is shipped;
 see [Seed strategies](../design/seeds.md).
 
+## Seed tables
+
+The seeded families are the fully symmetric rules: positive weights, interior nodes, and the
+whole symmetry group of the domain. Each comes from a table of seeds found by the package's
+own searches. Their point counts are the smallest those searches reached, not proven minima.
+This table is generated when the documentation is built:
+
+```@setup seedtables
+using CubatureRules, Markdown
+const CR = CubatureRules
+function seed_tables()
+    tables = [("Triangle", "XiaoGimbutas", "S₃", CR.xg_entries()),
+              ("Tetrahedron", "FullySymmetric", "S₄", CR.simplex_entries(3)),
+              ("4-simplex", "FullySymmetric", "S₅", CR.simplex_entries(4)),
+              ("Square", "FullySymmetric", "D₄", CR.box_entries(2)),
+              ("Cube", "FullySymmetric", "Oₕ", CR.box_entries(3)),
+              ("4-cube", "FullySymmetric", "B₄", CR.box_entries(4)),
+              ("Disk", "FullySymmetric", "D₄", CR.round_entries(2)),
+              ("Ball", "FullySymmetric", "Oₕ", CR.round_entries(3)),
+              ("Pyramid", "FullySymmetric", "C₄ᵥ", CR.pyramid_entries()),
+              ("Wedge", "FullySymmetric", "D₃ₕ", CR.wedge_entries()),
+              ("Sphere", "LebedevRule", "Oₕ", CR.lebedev_entries())]
+    rows = ["| Domain | Family | Symmetry | Degrees | Entries | Largest rule |", "|---|---|---|---|---|---|"]
+    for (dom, fam, group, es) in tables
+        isempty(es) && continue
+        ds = [e.degree for e in es]
+        big = es[argmax([e.npoints for e in es])]
+        push!(rows, "| $dom | `$fam` | $group | $(minimum(ds))–$(maximum(ds)) | $(length(es)) | " *
+                    "$(big.npoints) points (degree $(big.degree)) |")
+    end
+    Markdown.parse(join(rows, "\n"))
+end
+```
+
+```@example seedtables
+seed_tables()
+```
+
+A request between two stored degrees is answered by the smallest stored rule of at least
+that degree. The sphere's table holds odd degrees only: every `Oₕ` orbit is centrally
+symmetric, so a rule of degree `2k` is automatically of degree `2k + 1`.
+
 Not listed above:
 
 - Families without a polynomial degree (`TanhSinh`, `ExpSinh`, `SinhSinh`), which are

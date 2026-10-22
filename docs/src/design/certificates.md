@@ -16,9 +16,21 @@ certificate(rule(Simplex{2}(); degree = 12, digits = 40))
 | `guard_digits` | the extra digits used during the computation |
 | `cond` | the condition number of the system |
 | `iterations` | the number of Newton or Gauss–Newton steps |
+| `next_error` | how far the rule misses the next degree, measured at working precision, or `nothing` |
 
-The residual is computed after rounding to the output type, at a precision well above it, so
-it measures the rule you actually receive.
+For the Gauss-type families and the seeded ones above `Float64`, the residual is computed
+after rounding to the output type, at `2·target + guard` bits, so it measures the rule you
+actually receive. Families that find their working precision by repeating the computation
+(modified Chebyshev, Gauss–Patterson) report the residual at the precision they reached. The
+discretised Stieltjes family and the Duffy families for singular kernels have no system of
+equations that defines the rule: their `residual` is the change between the last two
+resolutions of the discretisation, an estimate of the error rather than a residual.
+
+`next_error` is recorded by families whose rules come so close to the next degree that a rule
+delivered at ordinary precision cannot show the difference: the stored sphere rules,
+Gauss–Patterson and Filon. A Gauss–Patterson rule misses degree `d + 1` by about `10⁻²⁰` at
+127 points. When [`check`](@ref) finds such a rule exact at `d + 1`, it reports sharpness as
+not resolvable at that precision, quoting this number, instead of failing.
 
 ## Certificates and verification answer different questions
 

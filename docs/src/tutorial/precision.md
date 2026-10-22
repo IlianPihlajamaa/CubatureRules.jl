@@ -23,8 +23,9 @@ rule(Simplex{2}(); degree = 9, T = Rational{BigInt});  # exact, where possible
 - `digits = d` gives a `BigFloat` rule with `d` decimal digits.
 - `T = BigFloat` uses the current BigFloat precision, so it follows an enclosing
   `setprecision`.
-- `T` can be any `AbstractFloat`, including `Double64` from DoubleFloats.jl or `Float128`
-  from Quadmath.jl. The rule is computed in `BigFloat` and converted to `T` at the end.
+- `T` can be any `AbstractFloat`, such as `Double64` from DoubleFloats.jl. The rule is
+  computed in `BigFloat` and converted to `T` at the end. `Float32`, `Double64` and
+  `BigFloat` are tested; other types take the same path.
 - `T = Rational{BigInt}` asks for an exact rule.
 
 ## Exact rules
@@ -56,10 +57,11 @@ All the work is done in `BigFloat`, and the result is rounded to the output type
 end. Since MPFR rounds correctly, the same call gives bitwise identical results on every
 platform. [Precision and guard digits](../design/precision.md) explains this in more detail.
 
-At `Float64` and below, the minimal symmetric rules on triangles, tetrahedra and spheres
-are not recomputed. The package's tables already hold them, correctly rounded and checked,
-so they are returned or rounded directly. That is why their certificate shows no guard
-digits and no iterations.
+At `Float64` and below, the rules of the package's
+[seed tables](../catalogue/index.md#Seed-tables) are not recomputed. The tables already hold
+their parameters, correctly rounded and checked, so the rule is expanded from them and
+rounded directly, accurate to a few units of rounding. That is why their certificate shows
+no guard digits and no iterations.
 
 ## Cost
 

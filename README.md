@@ -33,10 +33,13 @@ Verification: PASSED
 
 ## What it does differently
 
-- **Rules at any precision.** The minimal symmetric rules on triangles, tetrahedra and
-  spheres are stored as checked `Float64` tables, which the package generated itself. A
-  `Float64` request returns the stored rule immediately. Any higher precision is refined
-  from it by Newton's method, with guard digits chosen from the conditioning of the problem.
+- **Rules at any precision.** The fully symmetric rules — on simplices, boxes, the disk and
+  ball, the wedge and pyramid, and the sphere — are stored as checked `Float64` tables
+  ([which ones](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/catalogue/#Seed-tables)),
+  which the package's own searches produced; their point counts are the smallest found, not
+  proven minima. A `Float64` request is served from the table immediately. Any higher
+  precision is refined from it by Newton's method, with guard digits chosen from the
+  conditioning of the problem.
 - **Each rule can be checked.** `check(r)` verifies exactness against an orthonormal basis
   at twice the rule's precision, and that the rule is *not* exact one degree higher.
 - **Each rule has a record.** `provenance(r)` shows how it was made and why it was chosen;
@@ -45,6 +48,11 @@ Verification: PASSED
   families by number of points; `available(domain; degree)` shows the ranking.
 - **Unusual weights.** Gauss rules for a weight given only by its moments, including the
   ordinary moments that are too ill-conditioned to use in `Float64`.
+- **Boundary-element integrals.** Rules for `1/|y − x₀|`, `1/|y − x₀|³` and its gradient on
+  triangles, with `x₀` on, near or off the panel, on curved (quadratic) panels and in
+  tetrahedra; a builder that makes them in `Float64` in microseconds for assembly; and
+  Galerkin pairs through SauterSchwabQuadrature.jl
+  ([guide](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/tutorial/bem/)).
 
 ## When to use something else
 
@@ -62,13 +70,14 @@ Gauss–Kronrod rules come from QuadGK.jl, and Lobatto, Radau and Clenshaw–Cur
 
 ## Installation
 
+The package is not yet in the General registry; install it from the repository:
+
 ```julia
 using Pkg
-Pkg.add("CubatureRules")
+Pkg.add(url = "https://github.com/IlianPihlajamaa/CubatureRules.jl")
 ```
 
-Julia 1.11 or later. Until the first release appears in the General registry, install from
-the repository instead: `Pkg.add(url = "https://github.com/IlianPihlajamaa/CubatureRules.jl")`.
+Julia 1.11 or later. Once the first release is registered, `Pkg.add("CubatureRules")` will do.
 
 ## Documentation
 

@@ -1,4 +1,4 @@
-# Fully symmetric, positive-weight, interior rules on the pyramid with base [-1, 1]^2 at z = 0 and apex (0, 0, 1), generated in-house by scripts/generate_orbit_seeds.jl.
+# Fully symmetric, positive-weight, interior rules on the pyramid with base [-1, 1]^2 at z = 0 and apex (0, 0, 1), generated in-house by scripts/generate_orbit_seeds.jl (degrees 1-9) and the pooled search in scripts/search_campaign/ (10-14).
 # `structure` lists the orbits by the sizes of the groups of equal nonzero collapsed
 # coordinates (ξ, η) = (x, y)/(1 - z); `seed` holds per orbit the weight of each point,
 # the distinct |ξ| values, then the height z.

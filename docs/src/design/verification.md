@@ -80,8 +80,10 @@ digits the miss becomes visible and sharpness is tested normally.
 ## Structure
 
 - The weights add up to `measure(domain)`.
-- The nodes lie in the domain, and strictly inside it if the rule claims interior nodes.
-- The weights are positive, if the rule claims positive weights.
+- Whether every node lies strictly inside the domain, and whether every weight is positive,
+  is reported as `interior` and `positive` but does not decide `passed`: a rule with boundary
+  nodes (Lobatto) or negative weights (Grundmann–Möller) can be exactly what it claims. A
+  weight that underflowed to zero counts as positive.
 - The rule has its claimed symmetry exactly: applying each group element maps the node set
   onto itself, with equal weights. The group is a type (`provenance(r).symmetry`, a
   `SymmetryGroup`), and every group is checked the same way, by orbits: two nodes lie in one
@@ -112,10 +114,10 @@ function is evaluated once per orbit, at the orbit's representative, and weighte
 orbit's total weight.
 
 At degree 125 this is 352 test functions for exactness (the number of invariants, as it
-must be) and 363 for sharpness, over 132 orbits. The test functions are monomials on the
-delivered nodes, not the invariants `p₄`, `p₆` in orbit parameters that the rule was solved
-from, so the check is independent of the construction. At degree 59 it takes 0.3 s where the
-general check takes 120 s.
+must be) and 363 for sharpness, over the 132 orbits of Lebedev's rule. The test functions
+are monomials on the delivered nodes, not the invariants `p₄`, `p₆` in orbit parameters
+that the rule was solved from, so the check is independent of the construction. At degree
+59 it took 0.3 s where the general check took 120 s (September 2026).
 
 If the nodes do not group into complete orbits, the general check is used, and the rule is
 reported as not symmetric. `check(r; use_symmetry = false)` forces the general check.
@@ -139,5 +141,5 @@ spherical harmonics. A mistake in the construction therefore shows up in the ver
 
 ```julia
 using Test
-@test_exact r 10      # exact to degree 10 and not to 11
+@test_exact r 10      # exact to degree 10; `passed(check(r))` also tests that it is not exact to 11
 ```

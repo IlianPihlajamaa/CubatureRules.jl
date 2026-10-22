@@ -67,8 +67,11 @@ _composed_jacobian(::JacobiInterval, A, Jd, Js) = Jd / Js                     # 
     subdivide(r, domain, n)
     subdivide(r, n)
 
-Composite rule: `domain` split into `n` congruent pieces per direction (`n` intervals,
-`n²` triangles), with `r` mapped affinely onto each. The claim is preserved.
+Composite rule: `domain` split into pieces, with `r` mapped affinely onto each. The claim is
+preserved. An interval is split into `n` equal intervals and a triangle into `n²` congruent
+triangles; a tetrahedron is bisected `log₂ n` times into `n³` tetrahedra of equal volume (four
+corners and four from the inner octahedron each time), so `n` must be a power of two. Other
+domains, and rules for a weight, cannot be subdivided.
 """
 subdivide(r::QuadratureRule, n::Integer) = subdivide(r, r.domain, n)
 

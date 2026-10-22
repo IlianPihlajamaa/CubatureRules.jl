@@ -41,6 +41,7 @@ makedocs(;
             "I want an error estimate" => "tutorial/errors.md",
             "I want my own domain or mesh" => "tutorial/domains.md",
             "I want an unusual weight" => "tutorial/weights.md",
+            "I want boundary-element integrals" => "tutorial/bem.md",
             "I want to verify a rule" => "tutorial/verifying.md",
             "I want to cite a rule" => "tutorial/citing.md",
             "I want performance" => "tutorial/performance.md",
@@ -76,7 +77,6 @@ makedocs(;
         ],
         "API" => "api.md",
     ],
-    warnonly = [:missing_docs, :cross_references],
 )
 
 deploydocs(; repo = "github.com/IlianPihlajamaa/CubatureRules.jl.git", push_preview = false)

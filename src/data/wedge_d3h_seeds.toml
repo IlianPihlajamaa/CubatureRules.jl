@@ -1,4 +1,4 @@
-# Fully symmetric, positive-weight, interior rules on the wedge, the triangle (0,0), (1,0), (0,1) times [-1, 1], generated in-house by scripts/generate_orbit_seeds.jl.
+# Fully symmetric, positive-weight, interior rules on the wedge, the triangle (0,0), (1,0), (0,1) times [-1, 1], generated in-house by scripts/generate_orbit_seeds.jl (degrees 1-6) and the pooled search in scripts/search_campaign/ (7-21).
 # `structure` lists the orbits by the multiplicities of the triangle orbit's distinct
 # barycentric values, then 0 for an orbit at z = 0 or 2 for the pair ±z; `seed` holds per
 # orbit the weight of each point, the free barycentric values, then z for a pair.

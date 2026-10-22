@@ -253,7 +253,8 @@ end
     hs = [rule(TanhSinh(m), Interval(); digits = 50) for m in 1:6]
     vh = CR.verify_convergence(hs, x -> log(1 - x), I)
     @test passed(vh) && vh.decreasing === true && length(vh.errors) == 6
-    @test vh.precision_bits < precision(BigFloat) && last(vh.errors) < 1e-45
+    # the sweep computes at twice the rules' precision, and says so
+    @test vh.precision_bits == 2precision(first(weights(last(hs)))) && last(vh.errors) < 1e-45
     @test occursin("errors    : 2.5e-05", sprint(show, MIME"text/plain"(), vh))
     # a reference wrong in the 30th digit is inside the default 16√ε ≈ 1e-24; a tighter rtol
     # catches it

@@ -51,10 +51,18 @@ The seeds were generated for this package from the orbit structures alone; no pu
 numbers were used, and the table is MIT licensed. Above degree 20 they were found by growing
 from the rule one degree lower and eliminating nodes (see [Seed strategies](../design/seeds.md)),
 which found rules with fewer points than the published ones at most degrees from 27 on, for
-example 139 instead of 141 at degree 27 and 412 instead of 423 at degree 48. Degrees 51 to
-68 go beyond the published table. These are the smallest counts the searches reached, not
-proven minima. Rules with the minimal number of points are not unique; the table contains
-the one with the largest smallest barycentric coordinate among those found.
+example 139 instead of 141 at degree 27 and 412 instead of 423 at degree 48. The published
+table ends at degree 50, and the degrees above it go beyond it; the
+[seed tables](index.md#Seed-tables) show how far. These are the smallest counts the searches
+reached, not proven minima. Rules with the minimal number of points are not unique; the table
+contains the one with the largest smallest barycentric coordinate among those found.
+
+```@setup simplex
+using CubatureRules
+xg(d) = npoints(rule(XiaoGimbutas(), Simplex{2}(); degree = d))
+@assert xg(27) == 139 && xg(48) == 412                      # the counts quoted above
+@assert last(CubatureRules.degree_range(XiaoGimbutas(), Simplex{2}())) > 50
+```
 
 ## Fully symmetric tetrahedron and 4-simplex rules
 
@@ -65,23 +73,24 @@ FullySymmetric
 Fully symmetric (`S₄`), positive-weight tetrahedron rules with interior nodes. Unlike the
 triangle rules, these point counts are not taken from a paper: they are the smallest found by
 the package's own search, starting from a number of points below which no fully symmetric
-rule can exist, and they go up to degree 30. They are not proven to be minimal.
+rule can exist; the [seed tables](index.md#Seed-tables) show how far they go. They are not
+proven to be minimal.
 
 On the 4-simplex, the domain of space–time elements over tetrahedra, the same machinery
 gives `S₅`-symmetric rules: orbits are patterns of equal barycentric coordinates, and the
 moment equations are taken in the invariant subspace of an orthonormal basis on the
 4-simplex. That basis is built the same way in every dimension (the Proriol–Koornwinder–
 Dubiner construction, one homogenised Jacobi factor per coordinate), and the invariant
-subspace is checked against the Molien series `Π_{j=2}^{5} 1/(1 − tʲ)`. The shipped table
-covers low degrees only, as a check of the machinery:
+subspace is checked against the Molien series `Π_{j=2}^{5} 1/(1 − tʲ)`. The table was
+started by `scripts/generate_simplex4_seeds.jl`, a short run to check the machinery (degrees
+1–6), and extended by the pooled search in `scripts/search_campaign/`:
 
 ```@example simplex
 [(d, npoints(rule(FullySymmetric(), Simplex{4}(); degree = d)), npoints(rule(ConicalProduct(), Simplex{4}(); degree = d)))
  for d in 1:last(CubatureRules.degree_range(FullySymmetric(), Simplex{4}()))]
 ```
 
-(degree, fully symmetric points, conical product points). The seeds are extended by
-`scripts/generate_simplex4_seeds.jl`.
+(degree, fully symmetric points, conical product points).
 
 ## Grundmann–Möller
 
@@ -156,6 +165,10 @@ not a polynomial: on the triangle above with `x₀` at a vertex, the 291-point X
 rule of degree 40 integrates `1/|y − x₀|` itself with a relative error of 9e-4, where a rule
 of this family integrates `f(y)/|y − x₀|` exactly for every polynomial `f` of its degree —
 36 points for degree 11 (`notes/singular-bem.md`).
+
+```@setup simplex
+@assert npoints(rule(XiaoGimbutas(), Simplex{2}(); degree = 40)) == 291   # the rule quoted above
+```
 
 The Helmholtz kernel `e^{ikr}/r`, `r = |y − x₀|`, needs no other rule: integrate `f(y) e^{ikr}`
 with the weight `1/r`. Its Taylor series in `r` has, besides the terms `p/r` the rule is exact
@@ -328,7 +341,7 @@ A collocation code needs a rule for every pair of collocation point and nearby p
 hundreds of thousands of them in one assembly — and the certified constructions above take
 0.03 s (`DuffyGauss`) to a few tenths of a second (`DuffySinh`) each. `KernelRuleBuilder`
 builds the same rules in `Float64`, without allocating, in microseconds: 5–30 µs for `x₀` on
-the panel and 0.1–0.6 ms off it, for degrees up to 19.
+the panel and 0.1–0.6 ms off it, for degrees up to 19 (all measured in October 2026).
 
 ```@example simplex
 b = KernelRuleBuilder(InverseDistance, 9)
@@ -356,14 +369,15 @@ inside and close to edges, and at heights from `1e-12` to three diameters above 
 them (`scripts/validate_fast_kernel_rules.jl`). For every kernel and every degree from 1 to
 19, the worst error in the integrals of the orthonormal polynomials is within a factor of 3.3
 of the worst that the certified rule loses by being rounded to `Float64` over the same
-geometries. At degree 0 the certified rule
-has one node per ray and loses almost nothing; there the fast rules are off by at most 7e-16
-for `1/r`, 3e-15 for `1/r³`, and 4e-13 for the gradient with `x₀` inside the panel, where its
-principal value cancels between the pieces. `CubatureRules.validation(b)` reports the worst
-error for the builder's kernel and degree, and the certificate of `rule(b, T, k)` quotes it. A geometry outside the validated range — a piece of
-the panel thinner than the sweep covered, or `x₀` closer to an edge than `1e-3` of its length
-for the finite parts — is built by the certified construction instead, and `b.fallbacks`
-counts such calls.
+geometries. At degree 0 the certified rule has one node per ray and loses almost nothing;
+there the fast rules are off by at most 7e-16 for `1/r`, 3e-15 for `1/r³`, and 4e-13 for the
+gradient with `x₀` inside the panel, where its principal value cancels between the pieces.
+`CubatureRules.validation(b)` reports the worst error for the builder's kernel and degree,
+and the certificate of `rule(b, T, k)` quotes it.
+
+A geometry outside the validated range — a piece of the panel thinner than the sweep covered,
+or `x₀` closer to an edge than `1e-3` of its length for the finite parts — is built by the
+certified construction instead, and `b.fallbacks` counts such calls.
 
 ```@example simplex
 CubatureRules.validation(b)

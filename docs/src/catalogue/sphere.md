@@ -38,9 +38,12 @@ Rules invariant under the 48 signed permutations of the coordinates (the octahed
 `O_h`), with positive weights. They need about half as many points as the product rules
 below, so the selector prefers them where a seed is available.
 
-The rules consist of whole `O_h` orbits, and the equations are written in terms of the
-invariants `p₄ = Σxᵢ⁴` and `p₆ = x²y²z²` rather than in spherical harmonics, which reduces
-their number considerably; see [Orbit algebra](../design/symmetry.md). Only odd degrees
+The rules consist of whole `O_h` orbits, so there is one equation per invariant polynomial
+rather than one per spherical harmonic, which reduces their number considerably. The
+refinement solves them in the orthonormal `O_h`-invariant spherical harmonics, which keep the
+system well conditioned at every degree; the certificate quotes the residual in the
+invariants `p₄ᵃp₆ᵇ` (`p₄ = Σxᵢ⁴`, `p₆ = x²y²z²`), whose exact integrals are rationals. See
+[Orbit algebra](../design/symmetry.md#On-the-sphere). Only odd degrees
 exist: every orbit is centrally symmetric, so a rule of degree `2k` is automatically of
 degree `2k + 1`, and an even-degree request gets the odd rule above it.
 
@@ -63,9 +66,9 @@ his elsewhere; they are not claimed minimal. Every rule from degree 18 on needs 
 degree 18 that vanishes, with its gradient, on every other orbit kind. The selector
 (`rule(Sphere{3}(); degree)` without a family) takes these rules over the product rule at
 every degree, on node count.
-`Float64` rules are served as stored. More digits cost minutes per rule at these degrees,
-because the invariant system is conditioned near 10⁵⁴–10⁸¹: refining to 160 bits takes
-about 1 minute at degree 133 and 8 at degree 189. In `Float64` these rules come too close
+`Float64` rules are served from the table. More digits are refined in the orthonormal
+invariant harmonics, whose condition number stays moderate (about 3·10³ at degree 133 and
+3·10⁵ at 189): 160 bits took about 7 s at degree 133 and 30 s at degree 189 (October 2026). In `Float64` these rules come too close
 to the next degree for `check` to resolve sharpness — degree 133 misses degree 134 by
 3e-41, degree 201 misses 202 by 5e-61 — so the miss, measured at high precision, is
 recorded in the table and reported instead.
@@ -87,9 +90,19 @@ Lebedev.jl is GPL-3, and so are rules refined from its tables. They are listed b
 ```julia
 using CubatureRules, Lebedev
 
-rule(Sphere{3}(); degree = 19, copyleft = true)                  # the 146-point rule
+rule(Sphere{3}(); degree = 29, copyleft = true)       # Lebedev.jl's 302 points, not the in-house 314
 rule(UpstreamLebedev(), Sphere{3}(); degree = 29, digits = 40)   # refined, still GPL-3
 ```
+
+```@setup sphere_counts
+# the comment above names both counts; the build fails here if a campaign changes ours
+using CubatureRules
+@assert npoints(rule(LebedevRule(), Sphere{3}(); degree = 29)) == 314
+@assert Dict(CubatureRules.UPSTREAM_LEBEDEV_POINTS)[29] == 302
+```
+
+Where the two have the same number of points, as at degree 19 (146), the in-house rule wins
+the tie and `copyleft = true` changes nothing.
 
 See [Provenance and licensing](../design/provenance.md).
 
@@ -127,5 +140,6 @@ basis on a sphere, because `Σxᵢ² = 1` makes them linearly dependent; the har
 dimensions the monomials are used as a spanning set.
 
 Lebedev rules are verified on their orbits instead, which is equivalent for a symmetric rule
-and much faster: at degree 59 (1202 points) the check takes 0.3 s instead of 120 s. See
+and much faster: at degree 59 (about 1200 points) the check took 0.3 s instead of 120 s
+(September 2026). See
 [Verification](../design/verification.md#Symmetric-rules-on-the-sphere).

@@ -10,8 +10,8 @@ Every rule is produced by the same three steps.
    `BigFloat` at the requested precision plus guard digits. The number of guard digits is
    derived from the condition number of the system. See
    [Precision and guard digits](precision.md).
-3. **Certify.** The residual of the defining equations is computed for the final rule, at
-   twice the working precision, and stored in a [`Certificate`](@ref
+3. **Certify.** The residual of the defining equations is computed for the final rule,
+   after rounding, at `2·target + guard` bits, and stored in a [`Certificate`](@ref
    CubatureRules.Certificate) together with the condition number, the guard and the number
    of iterations. See [Certificates](certificates.md).
 
@@ -19,11 +19,13 @@ The result is rounded to the output type once, at the end, and returned as an im
 [`QuadratureRule`](@ref) with a [`Provenance`](@ref CubatureRules.Provenance) describing all
 of the above.
 
-There is one shortcut. A seeded family's table holds each rule as the correctly rounded
-`Float64` values of the refined rule, with its residual recorded when the table was
-checked. At 53 bits or fewer there is nothing for steps 2 and 3 to add, so a `Float64`
-request returns the stored rule, and a `Float32` or `Float16` request rounds it. The
-certificate then quotes the recorded residual. See
+There is one shortcut. A seeded family's table holds each rule's orbit parameters as the
+correctly rounded `Float64` values of the refined parameters, with the residual recorded
+when the table was checked. At 53 bits or fewer there is nothing for steps 2 and 3 to add,
+so a `Float64` request expands the stored parameters into nodes and weights at 128 bits and
+rounds them once, and a `Float32` or `Float16` request rounds further. The weights come out
+correctly rounded; a node derived from several parameters, such as `1 − 2a`, is accurate to
+a few units of rounding. The certificate quotes the recorded residual. See
 [Seed strategies](seeds.md#Float64-requests). Any higher precision goes through all three
 steps.
 
@@ -38,9 +40,9 @@ Families come in two kinds, recorded by `derivation(F)`:
 - **Derived** families compute their rules from a formula or a well-conditioned algorithm:
   Gauss–Jacobi from the three-term recurrence, Grundmann–Möller from a closed formula,
   product rules from their factors. They exist at every degree.
-- **Seeded** families start from stored data and, above `Float64`, refine it: the minimal
-  symmetric rules on triangles, tetrahedra and spheres. They exist only at the degrees for
-  which a seed is available.
+- **Seeded** families start from stored data and, above `Float64`, refine it: the fully
+  symmetric rules of the [seed tables](../catalogue/index.md#Seed-tables). They exist only at
+  the degrees for which a seed is available.
 
 When two candidates have the same number of points, the selector prefers the derived one.
 
@@ -56,18 +58,17 @@ It is also why there is no `integrate(f, domain; degree)`.
 
 ## Determinism
 
-The same call gives bitwise identical output on every platform. This follows from three
+The same call gives bitwise identical output on every platform. This follows from two
 choices:
 
 - All arithmetic that determines the result is done either in MPFR (`BigFloat`), which is
-  correctly rounded, or in plain `Float64` operations in a fixed order. Both are platform
-  independent.
-- The linear solves in the refinement use factorisations written out in Julia rather than
-  LAPACK or BLAS, whose results can differ between machines. A well-conditioned Newton step
-  is solved with a `Float64` QR and refined in `BigFloat`; an ill-conditioned one uses a QR
-  in `BigFloat`.
-- Guard digits are rounded up to a multiple of 8 bits, so that small platform differences in
-  the `Float64` condition estimate cannot change the working precision.
+  correctly rounded, or in plain `Float64` operations in a fixed order, written so that
+  nothing vectorises or reassociates the sums. Both are platform independent.
+- The linear algebra is written out in Julia rather than calling LAPACK or BLAS, whose
+  results can differ between machines. That covers the Newton steps (a well-conditioned one
+  is solved with a `Float64` QR and refined in `BigFloat`, an ill-conditioned one with a QR
+  in `BigFloat`) and the condition estimate from which the working precision is chosen, so
+  the working precision is the same everywhere too.
 
 The test suite checks this with pinned SHA hashes of a set of reference rules.
 

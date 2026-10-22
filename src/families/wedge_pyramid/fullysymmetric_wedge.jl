@@ -4,8 +4,9 @@
 # The rules are invariant under the 12 symmetries of the prism (D₃ₕ): the permutations of the
 # triangle's barycentric coordinates and z ↦ −z. Their orbits are triangle orbits at z = 0 or
 # at a pair ±z (symmetry/wedge_orbits.jl). The seeds in src/data/wedge_d3h_seeds.toml were
-# found in-house (scripts/generate_orbit_seeds.jl): multistart at low degree, grow → eliminate
-# above. No numbers were taken from a publication; the point counts are compared with
+# found in-house: to degree 6 by scripts/generate_orbit_seeds.jl (multistart), 7-21 by the
+# pooled search in scripts/search_campaign/. No numbers were taken from a publication; the
+# point counts are compared with
 # Witherden & Vincent (2015), who tabulate the same class. The product of a triangle rule and
 # Gauss–Legendre needs several times as many points at the same total degree.
 

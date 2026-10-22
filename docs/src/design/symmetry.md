@@ -1,8 +1,11 @@
 # Orbit algebra
 
-The smallest rules on the triangle, tetrahedron and sphere are symmetric: they are unchanged
-by the symmetry group of the domain. The package uses that structure both to search for such
-rules and to refine them.
+The smallest rules known on most domains are symmetric: they are unchanged by the symmetry
+group of the domain. The package uses that structure both to search for such rules and to
+refine them. This page works through the triangle, the tetrahedron, the sphere and the box;
+the same construction carries over to the other domains of the
+[seed tables](../catalogue/index.md#Seed-tables), with the differences listed
+[at the end](#Other-domains).
 
 ## Orbits
 
@@ -84,7 +87,23 @@ equations, where the full set of spherical harmonics would give 17 424.
 
 Because an invariant polynomial has the same value at every point of an orbit, each orbit
 only needs to be evaluated at its representative. With the constraint substituted, `p₄` and
-`p₆` are polynomials in the orbit parameters, so the equations contain no square roots.
+`p₆` are polynomials in the orbit parameters, so the equations contain no square roots, and
+their exact integrals are rationals. The searches use these equations, in `Float64`, and the
+certificate of a refined rule quotes its residual in them.
+
+The refinement solves the same equations in another basis. The products `p₄^a p₆^b` behave
+like monomials: the system's condition number is about `10⁵⁴` at degree 133 and `10⁸¹` at
+201, and above about `10¹⁰` a Newton step can no longer use a `Float64` factorisation and
+must factor in `BigFloat`. So the equations are rewritten in the orthonormal `O_h`-invariant
+spherical harmonics (`OctahedralHarmonicSystem`). A combination of
+`P̄_ℓ^m(cos θ) cos mφ` with `ℓ` even and `m ≡ 0 (mod 4)` is invariant under `D₄ₕ`, the 16
+symmetries that keep the `z`-axis, whatever its coefficients. Averaged over the rotations
+`x → y → z → x` it is `O_h`-invariant, again exactly: `D₄ₕ`, `D₄ₕR` and `D₄ₕR²` are the
+cosets of `D₄ₕ` in `O_h`. The coefficients that make the averages orthonormal are computed
+once, in `Float64`; their rounding affects only the conditioning, never which parameters
+solve the equations, which are the same unknowns with the same solutions. Every harmonic of
+degree `ℓ > 0` integrates to zero, so there are no moments to compute, and the condition
+number stays moderate: about 500 at degree 59, 3·10³ at 133 and 3·10⁵ at 189.
 
 Every orbit is centrally symmetric, so odd-degree polynomials integrate to zero for any
 parameters. A rule exact to degree `2k` is therefore exact to `2k + 1`, and Lebedev rules are
@@ -106,44 +125,83 @@ constant has a nonzero integral, the system is as well conditioned as the rule i
 and each orbit is again evaluated at its representative only. As on the sphere, a rule of
 degree `2k` is one of degree `2k + 1`, so only odd degrees are tabulated.
 
-## Conditioning of the invariant basis
+## Conditioning
 
 The basis `p₄^a p₆^b` is badly conditioned, for the same reason monomials are: the condition
 number of its Gram matrix grows by about 0.83 decades per degree (about `10¹¹` at degree 17,
-`10²¹` at degree 29). This shows up as a large `cond` in the certificates of high-degree
-Lebedev rules, and is covered by extra guard digits.
-
-Orthonormalising the basis (via a Cholesky factor of its Gram matrix) was tried and makes
-the linear solve much better conditioned, but does not reduce the working precision needed,
-because the residual is still formed in the original basis. It was slower overall and was
-not adopted. The measurements are recorded in `notes/v0.4-spheres.md`.
+`10²¹` at degree 29). That is why the refinement on the sphere works in the orthonormal
+invariant harmonics instead ([On the sphere](#On-the-sphere)). Orthonormalising the products
+through a Cholesky factor of their Gram matrix, tried first, did not help: the residual was
+still formed in the old basis, so the working precision stayed as high
+(`notes/v0.4-spheres.md`). On every domain the equations the refinement solves are now in an
+orthonormal basis, and the condition number in a certificate is that of the rule's own
+parameters, not of the basis.
 
 ## How large the systems are
 
-For the shipped simplex rules, the orbit parameters and the invariant equations match one
-for one: the systems are square, apart from one surplus unknown at tetrahedron degree 20.
-The Jacobians are dense. Their condition numbers grow slowly, so the guard digits stay
-moderate. The time is for `rule(domain; degree, digits = 200)` from the stored seed.
+For the shipped rules the orbit parameters and the invariant equations nearly match one for
+one: most systems are square, some have a few unknowns to spare. The Jacobians are dense.
+The table is generated from the stored tables when this page is built; `cond` is the
+condition number recorded with the seed, where the table records one.
 
-| Rule | Points | Orbits | Unknowns | Equations | Jacobian density | `cond` | 200 digits |
-|---|---|---|---|---|---|---|---|
-| triangle, degree 20 | 79 | 18 | 44 | 44 | 0.99 | 1.6e2 | 0.4 s |
-| triangle, degree 30 | 169 | 35 | 91 | 91 | 0.99 | 1.6e3 | 2.2 s |
-| triangle, degree 50 | 445 | 86 | 234 | 234 | 1.00 | 1.6e4 | 17.8 s |
-| tetrahedron, degree 10 | 81 | 9 | 23 | 23 | 0.97 | 2.4e3 | 0.7 s |
-| tetrahedron, degree 15 | 213 | 20 | 54 | 54 | 0.99 | 4.2e3 | 4.8 s |
-| tetrahedron, degree 20 | 441 | 39 | 109 | 108 | 0.99 | 1.8e4 | 19.7 s |
+```@setup sizes
+using CubatureRules, Markdown, Printf
+const CR = CubatureRules
+function sizes(cases)
+    rows = ["| Rule | Points | Orbits | Unknowns | Equations | `cond` |", "|---|---|---|---|---|---|"]
+    for (name, N, es, d) in cases
+        i = findfirst(e -> e.degree == d, es)
+        i === nothing && continue
+        e = es[i]
+        c = isfinite(e.cond) ? @sprintf("%.1e", e.cond) : "—"
+        push!(rows, "| $name, degree $d | $(e.npoints) | $(length(e.structure.orbits)) | " *
+                    "$(CR.nunknowns(e.structure)) | $(CR.n_invariants(N, d)) | $c |")
+    end
+    Markdown.parse(join(rows, "\n"))
+end
+```
+
+```@example sizes
+sizes(vcat([("triangle", 3, CR.xg_entries(), d) for d in (20, 30, 50)],
+           [("tetrahedron", 4, CR.simplex_entries(3), d) for d in (10, 15, 20)]))
+```
 
 The number of unknowns is the number of invariants, which grows asymptotically like the
 number of basis functions divided by the order of the group: `d²/12` on the triangle and
 `d³/144` on the tetrahedron, a sixth and a twenty-fourth of the moment equations a rule
 without symmetry would have to satisfy. That reduction, together with the moderate
-conditioning, is what makes refinement to hundreds of digits affordable. The sphere is different: the Lebedev systems are just as small (352 unknowns at
-degree 125), but their condition number reaches `10⁵⁵` (see above), and that, not size,
-sets their cost.
+conditioning, is what makes refinement to hundreds of digits affordable. In October 2026 a
+200-digit rule took under a second for the triangle at degree 20, about 2 s at degree 30 and
+about 20 s at degree 50; the tetrahedron at degree 20 took about 20 s. The Lebedev systems
+are as small (352 unknowns at degree 125), and in the invariant harmonics as well conditioned.
 
 ## Recovering the structure of a rule
 
 `CubatureRules.classify_octahedral(points, weights)` decomposes a set of points on the
 sphere into `O_h` orbits, or reports that this is impossible. This is how a rule from
 another source, such as Lebedev.jl, is converted into orbit parameters so it can be refined.
+
+## Other domains
+
+The same construction serves every domain of the [seed tables](../catalogue/index.md#Seed-tables):
+a rule of whole orbits of the domain's symmetry group, one equation per invariant polynomial,
+written in an orthonormal invariant basis so that only the constant has a nonzero integral.
+What changes from domain to domain is the group, the orbit types and where the invariant
+basis comes from.
+
+| Domain | Group | Orbits | Invariant basis |
+|---|---|---|---|
+| 4-simplex | `S₅`, 120 elements | as on the triangle, in five barycentric coordinates | projected from the orthonormal Dubiner polynomials, as on the triangle |
+| 4-cube | `B₄`, 384 elements | as on the cube, in four coordinates | symmetrised products of even Legendre polynomials, as on the cube |
+| disk | `D₄`, 8 elements | those of the square, inside the unit disk | Zernike polynomials `p_k(2r² − 1) Re (x + iy)^m` with `m ≡ 0 (mod 4)`, already invariant |
+| ball | `Oₕ`, 48 elements | those of the cube, inside the unit ball | `p_k(2r² − 1) r^ℓ F(x̂)`, with `F` an `Oₕ`-invariant harmonic of the sphere |
+| pyramid | `C₄ᵥ`, 8 elements | a square orbit at a height `z` | products in the collapsed coordinates `x/(1 − z)`, `y/(1 − z)` and `z` |
+| wedge | `D₃ₕ`, 12 elements | a triangle orbit at `z = 0` or at the pair `±z` | the triangle's invariants times even Legendre polynomials in `z` |
+
+On the disk and the ball the radial factor `p_k` is the orthonormal Jacobi polynomial for
+`(1 + t)^(ℓ + D/2 − 1)`, which makes the products orthonormal on the unit ball: `r^ℓ F(x̂)` is a
+harmonic polynomial, so each product is a polynomial of degree `2k + ℓ`. On the pyramid the
+collapsed coordinates turn every cross-section into the square `[-1, 1]²`, and the weight
+`(1 − z)^(2(i + j) + 2)` in `z` absorbs the Jacobian, so the products are orthonormal there.
+The searches on all of these domains share one multistart → grow → eliminate loop, written
+against the small interface each orbit structure implements (`src/refine/orbit_search.jl`).

@@ -53,9 +53,10 @@ makes the computation possible.
 ## Choosing the working precision
 
 The condition number cannot be estimated cheaply beforehand, so `ModifiedChebyshev` finds the
-working precision by experiment. It computes the rule at one precision and again 64 bits
-higher, and doubles the difference until two successive results agree to the requested
-accuracy. The more accurate of the two is returned.
+working precision by experiment. It computes the rule at the target precision plus a guard,
+then again with 64 extra bits, and doubles the extra precision (128, 256, …) until two
+successive results agree to the requested accuracy. The more accurate of the two is
+returned.
 
 The residual of the moment equations is not used as a stopping criterion, because it does
 not reflect the accuracy of the nodes when the problem is badly conditioned. At 40 points

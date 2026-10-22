@@ -30,15 +30,24 @@ depends on the number of threads but not on how the cells were scheduled.
 [`map_to`](@ref)`(r, dom)` returns the mapped rule as a new `QuadratureRule`, with the step
 added to its provenance.
 
-Supported maps are the affine maps between simplices, intervals and boxes, and similarities
-(translation and scaling) between spheres and balls. All of them preserve polynomial
-degree.
+Supported maps are the affine maps between intervals, between simplices, between boxes,
+between wedges and between pyramids, from the reference triangle onto a triangle in space
+(`SurfaceTriangle`, with the area element as Jacobian), between intervals carrying the same
+Jacobi weight, and the similarities (translation and scaling) between spheres and between
+balls. All of them preserve polynomial degree.
 
 ## Subdivision
 
-[`subdivide`](@ref)`(r, dom, n)` splits the domain into `n^D` congruent pieces (for simplices,
-the standard subdivision into `n^D` smaller simplices), maps the rule onto each and
-concatenates the results. The degree is preserved.
+[`subdivide`](@ref)`(r, dom, n)` splits the domain into pieces, maps the rule onto each and
+concatenates the results. The degree is preserved. It is defined for three domains:
+
+- an interval, into `n` equal intervals;
+- a triangle, into `n²` congruent triangles;
+- a tetrahedron, by `log₂ n` rounds of bisection into `n³` tetrahedra, so `n` must be a power
+  of two. Each round splits a tetrahedron into its four corner tetrahedra and four from the
+  inner octahedron, which have the same volume but are not congruent to the corners.
+
+A rule for a weight cannot be subdivided: the weight is not the same function on each piece.
 
 ## Nonlinear transformations
 

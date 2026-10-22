@@ -11,8 +11,10 @@ available(Simplex{2}(); degree = 17)
 
 The list is in the order the selector ranks them: fewest points first, then families that
 are computed from a formula before families that start from a stored table, then by name.
-`rule` builds the first candidate that meets your requirements, and stores the ranking in
-the rule's provenance:
+One exception: if the first candidate has negative weights and a candidate with positive
+weights needs at most 25% more points, the positive one goes first (see
+[Selection](../design/selection.md#Ranking)). `rule` builds the first candidate that meets
+your requirements, and stores the ranking in the rule's provenance:
 
 ```@repl choosing
 provenance(rule(Simplex{2}(); degree = 17)).selection

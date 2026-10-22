@@ -2,8 +2,9 @@
 
 A seed is a `Float64` approximation of a rule, accurate enough for Newton's method to
 converge from it. Derived families compute their seeds directly; seeded families need a
-strategy to find them. The stored seeds are more than that: they are correctly rounded
-rules, returned as they are for `Float64` requests (see [Float64 requests](#Float64-requests)).
+strategy to find them. The stored seeds are more than that: they are the correctly rounded
+parameters of refined rules, from which `Float64` requests are served without refinement
+(see [Float64 requests](#Float64-requests)).
 
 ## Gauss rules
 
@@ -63,14 +64,19 @@ The scripts in `scripts/` regenerate the tables.
 
 ## Float64 requests
 
-A stored seed is not a rough starting point. It is the rule refined to high precision and
-rounded correctly to `Float64`. `scripts/certify_tables.jl` checks this for every entry: it
-refines the stored parameters to 160 bits and compares the correctly rounded result with
-what is stored. Of the 78 entries, 77 matched exactly. The degree-11 triangle was off by 3
-ulp and was replaced. The script also records each entry's residual, evaluated at 256 bits.
-All are below `1.3·10⁻¹⁵`.
+A stored seed is not a rough starting point. Its orbit parameters are those of the rule
+refined to high precision, rounded correctly to `Float64`. `scripts/certify_tables.jl` checks
+this for every entry: it refines the stored parameters to 160 bits and compares the correctly
+rounded result with what is stored, replacing any parameter that is not. (When the first
+tables were certified, one of their 78 entries, the degree-11 triangle, was off by 3 ulp.)
+The script also records each entry's residual, evaluated at 256 bits, and the test suite
+recomputes the recorded residuals and requires them below `10⁻¹⁴`.
 
-So a `Float64` request has nothing left to refine, and the stored rule is returned as it is:
+So a `Float64` request has nothing left to refine. The stored parameters are expanded into
+nodes and weights at 128 bits and rounded once. The weights are then correctly rounded; a
+node that is a function of several parameters, `1 − 2a` on the triangle or `√(1 − 2l²)` on
+the sphere, is accurate to a few units of rounding, which on a small coordinate can be many
+of its own ulps:
 
 ```@repl seeds
 using CubatureRules

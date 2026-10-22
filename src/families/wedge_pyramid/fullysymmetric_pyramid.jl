@@ -3,8 +3,9 @@
 #
 # The rules are invariant under the 8 symmetries of the square base (C₄ᵥ); their orbits are
 # square orbits in the collapsed coordinates at a free height (symmetry/pyramid_orbits.jl). The
-# seeds in src/data/pyramid_c4v_seeds.toml were found in-house (scripts/generate_orbit_seeds.jl):
-# multistart at low degree, grow → eliminate above. No numbers were taken from a publication;
+# seeds in src/data/pyramid_c4v_seeds.toml were found in-house: to degree 9 by
+# scripts/generate_orbit_seeds.jl (multistart at low degree, grow → eliminate above), 10-14 by
+# the pooled search in scripts/search_campaign/. No numbers were taken from a publication;
 # the point counts are compared with Witherden & Vincent (2015), who tabulate the same class.
 # The conical product needs (⌈(n + 1)/2⌉)³ points at degree n.
 

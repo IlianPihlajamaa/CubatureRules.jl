@@ -13,7 +13,7 @@
 # Averaged over the rotations x → y → z → x it is O_h-invariant, again exactly: D4h, D4h·R
 # and D4h·R² are the three cosets of D4h in O_h, so the average over {I, R, R²} of a
 # D4h-invariant function is its average over all of O_h. The coefficients can therefore be
-# computed once, in Float64 — the nullspace of f(Rx) − f(x) over random points — and the
+# computed once, in Float64 — the nullspace of f(Rx) − f(x) over fixed points — and the
 # functions
 #
 #     F(x) = (f(x) + f(Rx) + f(R²x)) / 3

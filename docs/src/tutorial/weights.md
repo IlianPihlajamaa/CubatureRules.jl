@@ -158,7 +158,7 @@ aux = shift(monic(jacobi_recurrence(0, 0)), 0, 1)    # monic shifted Legendre on
 logw = MomentWeight(aux,
                     (k, T) -> k == 0 ? one(T) :
                               T((-1)^k) / (T(k) * (k + 1) * T(binomial(big(2k), big(k))));
-                    label = "log(1/x) on [0,1]")
+                    label = "log(1/x) on [0,1]", support = (0, 1))
 r = rule(WeightedDomain(Interval(0, 1), logw); degree = 41, digits = 30);
 npoints(r)
 integrate(x -> one(x), r)     # ∫₀¹ log(1/x) dx = 1
@@ -171,8 +171,9 @@ compute the moments (for example from a formula or as exact fractions) rather th
 stored `Float64` values.
 
 Moments only describe the weight on the interval they were computed for, and a domain with a
-moment weight is never mapped to another interval. Pass `support = (0, 1)` to
-`MomentWeight` to record the interval, so that pairing it with any other one is refused.
+moment weight is never mapped to another interval. The `support = (0, 1)` above records the
+interval, so that pairing the weight with any other one is refused; without it, nothing
+checks the pairing.
 
 ## Ordinary moments
 

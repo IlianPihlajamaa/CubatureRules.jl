@@ -23,7 +23,7 @@ r = rule(Simplex{2}(); degree = 1)
 @test family(r) == "CentroidRule"
 @test npoints(r) == 1
 @test passed(check(r))
-@test occursin("CentroidRule (1 points)", provenance(r).selection)
+@test occursin("CentroidRule (1 point)", provenance(r).selection) && !occursin("1 points", provenance(r).selection)
 @test family(rule(Simplex{3}(); degree = 0)) == "CentroidRule"
 # degree 2 is out of its range, so selection falls back to the package's families
 @test family(rule(Simplex{2}(); degree = 2)) != "CentroidRule"

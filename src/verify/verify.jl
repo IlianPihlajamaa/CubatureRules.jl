@@ -306,7 +306,7 @@ function verify_convergence(rules::AbstractVector{<:QuadratureRule}, f, referenc
                         exact = decreasing && final_ok, sharp = nothing, sharp_residual = big(0.0),
                         weights_sum_ok = true, interior = all(r -> all(x -> isinterior(x, r.domain), r.nodes), rules),
                         positive = all(r -> all(>(0), r.weights), rules), symmetric = nothing,
-                        method = :convergence_sweep, empirical = true, precision_bits = pbits,
+                        method = :convergence_sweep, empirical = true, precision_bits = wbits,
                         errors = errs, decreasing = decreasing)
 end
 

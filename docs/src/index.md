@@ -11,9 +11,10 @@ integrate(x -> exp(x[1] * x[2]), r)
 
 Most quadrature libraries store fixed tables of rules in `Float64`. This package computes
 rules to the precision you ask for, and keeps a record of how each one was made. It does
-keep tables, of the minimal symmetric rules on triangles, tetrahedra and spheres, but those
-are its own output. They are checked in its test suite, returned as they are when you ask
-for `Float64`, and refined when you ask for more.
+keep tables, of the fully symmetric rules on most of its domains (the
+[seed tables](catalogue/index.md#Seed-tables)), but those are its own output: the smallest
+rules its searches found, not proven minima. They are checked in its test suite, served from
+the table when you ask for `Float64`, and refined when you ask for more.
 
 - **Any precision.** A rule with 200 digits is requested the same way as one with 16. The
   nodes and weights are computed at that precision, with extra working digits chosen from
@@ -22,14 +23,19 @@ for `Float64`, and refined when you ask for more.
   how it was refined, under which licence its data falls, and why it was chosen. `cite(r)`
   returns the references as BibTeX.
 - **Verification.** `check(r)` tests a rule against an orthonormal basis at twice its
-  precision: that it is exact to its degree, not exact to the next degree, and that its
-  weights, nodes and symmetry are as stated.
+  precision: that it is exact to its degree, not exact to the next degree, that its weights
+  add up to the size of the domain and that it has the symmetry it records. Whether its
+  weights are positive and its nodes interior is reported too.
 
 ## Contents
 
 - **[Tutorial](tutorial/first-rule.md)**: short task-based guides, starting with
   [I just want a rule](tutorial/first-rule.md).
-- **[Architecture & Design](design/pipeline.md)**: how the package works and why.
+- **[Architecture & Design](design/pipeline.md)**: how the machinery shared by the families
+  works and why: the pipeline, precision, verification, selection, orbits and moments.
+  Constructions that belong to one family, such as `Filon`, `SingularGauss`, the Stieltjes
+  procedure behind `FunctionWeight` and the Duffy rules for singular kernels, are described
+  with the family in the catalogue.
 - **[Catalogue](catalogue/index.md)**: all domains and the rule families available on each.
 - **[API](api.md)**: reference for all exported and public functions.
 

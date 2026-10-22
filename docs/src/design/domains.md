@@ -16,6 +16,7 @@ Rule families only construct rules on *reference* domains:
 | `Ball{D}` | unit ball in `ℝ^D`, centred at the origin |
 | `Wedge` | the reference triangle times `[-1, 1]` |
 | `Pyramid` | base `[-1, 1]²` at `z = 0`, apex `(0, 0, 1)` |
+| `SurfaceTriangle` | the reference triangle `Simplex{2}()`, mapped into space with its area element |
 
 `Simplex{2}()`, `Interval()` and so on construct the reference domain. A domain with other
 vertices, endpoints, centre or radius is a mapped domain. `isreference(dom)` tells the two
@@ -36,7 +37,7 @@ to `f`. The built-in weights are:
 
 | Weight | Domain | Shorthand |
 |---|---|---|
-| `JacobiWeight(α, β)` | `Interval()` | |
+| `JacobiWeight(α, β)`: `(b − x)^α (x − a)^β` | an `Interval` | |
 | `ExponentialWeight(α)`: `x^α e^{-x}` | `HalfLine()` | `LaguerreRay(α)` |
 | `GaussianWeight()`: `e^{-‖x‖²}` | `RealLine()`, `RealSpace{D}()` | `HermiteLine()`, `GaussianSpace(D)` |
 | `RadialExponentialWeight()`: `e^{-‖x‖}` | `RealSpace{D}()` | `ExponentialSpace(D)` |
@@ -44,6 +45,9 @@ to `f`. The built-in weights are:
 | `FunctionWeight(g, a, b; α, β)`, sums of them and `PointMass`es | an `Interval`, `HalfLine()` or `RealLine()` | |
 | `Oscillatory(ω)`, `Oscillatory(ω, cos)`, `Oscillatory(ω, sin)` | an `Interval` | |
 | `PrincipalValue(t; α, β)`, `FinitePart(t; α, β)` | an `Interval` | |
+| `InverseDistance(x₀)`: `1/‖y − x₀‖` | a triangle (`Simplex{2}`, `SurfaceTriangle`) or a tetrahedron | |
+| `InverseDistanceCubed(x₀)`, `InverseDistanceGradient(x₀, e)`: finite parts of `1/‖y − x₀‖³` and `(y − x₀)·e/‖y − x₀‖³` | a triangle (`Simplex{2}`, `SurfaceTriangle`) | |
+| `CurvedInverseDistance(Γ, ξ₀)`: `1/‖y − x₀‖` on a curved element `Γ` | `Simplex{2}()`, the element's parameter domain | |
 
 The unbounded base domains `HalfLine`, `RealLine` and `RealSpace{D}` have infinite measure;
 they are mostly used as the base of a weighted domain. The double-exponential families

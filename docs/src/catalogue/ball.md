@@ -74,6 +74,9 @@ The seeds were found in-house, as for the square and the cube; only odd degrees 
 tabulated, since every orbit is centrally symmetric. The counts are the smallest the
 searches reached, not proven minima.
 
-Rules on a ball are verified against monomials with exact moments. Unlike on the sphere, the
-coordinates in a ball satisfy no relation, so the monomials are a basis. Their moments are
-those of the sphere divided by `|α| + D`.
+Rules on the disk and the 3-ball are verified against orthonormal polynomials: Jacobi
+polynomials in `r²` times Fourier modes on the circle or spherical harmonics on the sphere.
+In four and more dimensions, where the package has no harmonics, they are verified against
+monomials with exact moments, those of the sphere divided by `|α| + D`; unlike on the sphere,
+the coordinates in a ball satisfy no relation, so there the monomials are a basis. See
+[Verification](../design/verification.md).

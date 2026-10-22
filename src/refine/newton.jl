@@ -211,7 +211,8 @@ end
 # The Float64 factorisation is written out in plain loops, with no BLAS and no SIMD
 # reductions, so its bits are the same on every machine and the refinement stays
 # reproducible, as the pure-Julia QR was chosen to be. Square, full-rank and κ < 1e10 only;
-# anything else (Lebedev at degree 125 has κ ≈ 1e55) takes the BigFloat QR.
+# anything else takes the BigFloat QR (the sphere's equations in p₄ᵃp₆ᵇ reached κ ≈ 1e55 at
+# degree 125, which is why the sphere is now refined in orthonormal invariant harmonics).
 
 """
     PivotedQR64
@@ -356,7 +357,7 @@ end
 
 # --- QR in BigFloat, in place -------------------------------------------------------------
 #
-# For systems too ill-conditioned for the Float64 path (Lebedev reaches κ ≈ 1e55), the step
+# For systems too ill-conditioned for the Float64 path (κ ≥ 1e10, or not square), the step
 # and the condition estimate both need a factorisation in extended precision. The generic
 # column-pivoted QR recomputes every column norm at every step and allocates on every
 # operation, and the condition estimate was a full BigFloat SVD: together 73% of a
@@ -661,7 +662,7 @@ end
 
 Guard bits for a Newton solve whose Jacobian has condition number `κ`: the digits it
 destroys, rounded up to a multiple of 8 bits, plus a fixed margin (PLAN §2.7 — measured,
-not assumed). The rounding keeps the working precision identical across platforms even if
-the Float64 estimate of κ differs in its last bits.
+not assumed). `estimate_cond` is the same on every platform; the rounding adds a margin over
+it, a lower bound, and keeps the working precision from moving with small changes in κ.
 """
 guard_bits_from_cond(κ::Real) = 32 + 8cld(ceil(Int, log2(clamp(Float64(κ), 1.0, 2.0^1000))), 8)

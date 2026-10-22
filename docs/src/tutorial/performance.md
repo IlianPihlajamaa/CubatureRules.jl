@@ -9,9 +9,7 @@ the result:
 
 ```julia
 r = rule(Simplex{2}(); degree = 6)      # once
-for cell in cells
-    total += integrate(f, r, cell)      # many times
-end
+integrate(f, r, cells)                  # used on every cell, nothing rebuilt
 ```
 
 ## Integration does not allocate
@@ -70,8 +68,8 @@ For ordinary use on the CPU this is not faster than the rule itself; see
 
 ## Construction time
 
-For the minimal symmetric rules on triangles, tetrahedra and spheres, a `Float64` request
-returns a stored, checked rule and takes milliseconds. Other families construct the rule in
+For the rules of the [seed tables](../catalogue/index.md#Seed-tables), a `Float64` request
+is served from a stored, checked table and takes milliseconds. Other families construct the rule in
 `BigFloat`, even for `Float64`, so they are slower than a table lookup: typically
 milliseconds in one dimension and up to seconds for large product rules. Above `Float64`,
 every family computes the rule, and the time grows with the degree and the precision. Once

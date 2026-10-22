@@ -25,10 +25,10 @@ once, outside any loop, and reuse it:
 
 ```julia
 r = rule(Simplex{2}(); degree = 20)
-for cell in mesh
-    total += integrate(f, r, cell)
-end
+total = integrate(f, r, mesh)              # mesh: a vector of triangles
 ```
+
+`integrate(f, r, cell)` gives a single cell's integral, for a loop of your own.
 
 For the same reason `integrate` always takes a rule, never a domain. To judge how accurate
 the result is, see [I want an error estimate](errors.md).

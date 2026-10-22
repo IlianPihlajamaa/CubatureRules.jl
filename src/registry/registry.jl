@@ -74,7 +74,8 @@ function Candidate(f::RuleFamily, dom, degree::Integer, T)
 end
 
 "The candidate's size as the selector reports it: `≥` where the construction decides it."
-_points(c::Candidate) = (c.npoints_exact ? "" : "≥ ") * "$(c.npoints) points"
+_points(c::Candidate) = (c.npoints_exact ? "" : "≥ ") * _npoints_text(c.npoints)
+_npoints_text(n) = n == 1 ? "1 point" : "$n points"
 
 "Documented total order: node count, then derived before seeded, then family name."
 rank_key(c::Candidate) = (c.npoints, c.derivation isa Derived ? 0 : 1, c.name)
@@ -476,7 +477,7 @@ function unsatisfiable_message(dom, degree, T, positive, interior, cands; only =
         (positive && !c.positive) && push!(why, "has negative weights")
         (interior && !c.interior) && push!(why, "has boundary nodes")
         supports_type(c.family, T) || push!(why, "cannot produce $(T)")
-        isempty(why) || print(io, "\n  ", c.name, " (", c.npoints, " points) ", join(why, " and "), ".")
+        isempty(why) || print(io, "\n  ", c.name, " (", _npoints_text(c.npoints), ") ", join(why, " and "), ".")
     end
     # nearest alternatives at other degrees
     near = String[]
@@ -492,7 +493,7 @@ function unsatisfiable_message(dom, degree, T, positive, interior, cands; only =
             passes(cd; positive, interior) && (c = cd; break)
         end
         c === nothing && continue
-        push!(near, "$(c.name) degree $(c.degree) ($(c.npoints) points" *
+        push!(near, "$(c.name) degree $(c.degree) ($(_npoints_text(c.npoints))" *
                     (last(rg) == typemax(Int) ? ", always available" : "") * ")")
     end
     isempty(near) || print(io, "\nNearest: ", join(near, ", or "), ".")

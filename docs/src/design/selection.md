@@ -21,8 +21,9 @@ For a request on domain `dom` with claim `PolynomialDegree(d)`, each family type
 usually zero or one. Parameterised families return the instance that matches the domain;
 `GaussJacobi` reads `α` and `β` from a `JacobiWeight`, for example.
 
-Combinator families (`ConicalProduct`, `TensorProduct`, `BallProduct`, `GaussianProduct`)
-return one candidate for each suitable inner family, so every combination is ranked.
+Combinator families (`ConicalProduct`, `TensorProduct`, `WedgeProduct`, `BallProduct`,
+`GaussianProduct`, `ExponentialProduct`) return one candidate for each suitable inner
+family, so every combination is ranked.
 
 For each candidate the registry records, without building anything: the number of points,
 the achieved degree, whether it is derived or seeded, whether its weights are positive and
@@ -78,7 +79,10 @@ warnings off.
 
 `rule(family, domain; ...)` skips the ranking. It still checks that the family supports the
 domain, degree and output type, and throws a [`NoRuleError`](@ref) otherwise, naming the
-nearest degree the family does offer.
+nearest degree the family does offer. After building, it also checks that the rule is on the
+domain that was asked for: a family builds on its own domain, and named for another it
+would answer a different question. `GaussJacobi(1, 1)` asked for the plain interval, for
+example, would integrate `(1 − x)(1 + x) f`; `rule` throws instead.
 
 ## Error messages
 
