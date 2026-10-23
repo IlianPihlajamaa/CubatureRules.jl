@@ -1,4 +1,4 @@
-# Domains (PLAN §2.1). Separate from rule families and from rules.
+# Domains. Separate from rule families and from rules.
 
 """
     Domain{D,T}
@@ -207,7 +207,7 @@ cartesian(s::Simplex{D}, λ::AbstractVector) where {D} =
 #
 # Tolerance policy: membership is decided in the arithmetic of the point, with an explicit
 # absolute tolerance on the barycentric coordinates (default zero). `isinterior` is strict:
-# every barycentric coordinate must exceed `tol`. Verification (§8) uses tol = 0, so a node
+# every barycentric coordinate must exceed `tol`. Verification uses tol = 0, so a node
 # is "interior" only if it is interior in its own number type.
 
 """

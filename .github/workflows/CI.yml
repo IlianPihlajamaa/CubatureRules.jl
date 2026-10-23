@@ -15,7 +15,7 @@ jobs:
   test:
     # The whole OS × Julia-version matrix runs test/test_reproducibility.jl, which compares
     # rule hashes against test/reference_hashes.toml: identical rule(...) calls must give
-    # bitwise-identical output across versions and platforms (PLAN §5 item 9).
+    # bitwise-identical output across versions and platforms.
     name: Julia ${{ matrix.version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -53,7 +53,7 @@ jobs:
         env:
           JULIA_NUM_THREADS: 2
   benchmark:
-    # Construction cost is tracked from v0.1 (PLAN §4.6); results are uploaded per commit and
+    # Construction cost is tracked: results are uploaded per commit and
     # compared with those of the last successful run on main.
     name: Construction benchmark
     runs-on: ubuntu-latest

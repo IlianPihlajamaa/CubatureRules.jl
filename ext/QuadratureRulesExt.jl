@@ -1,7 +1,7 @@
 # Makes the QuadratureRules.jl-backed families constructible. Loading this package is all
 # that is needed: the registry discovers families with `subtypes` at call time, so
 # `available(Interval(); degree = …)` lists Lobatto, Radau and Clenshaw–Curtis from the
-# moment QuadratureRules is loaded, with no registration step (PLAN §2.5).
+# moment QuadratureRules is loaded, with no registration step.
 module QuadratureRulesExt
 
 using CubatureRules

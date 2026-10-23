@@ -76,7 +76,7 @@ function inverse_sqrt_quadratic_rule(a, b, m::Integer, bits::Integer, gl)
     end
     return converged_stieltjes(discretize, m, bits; name = "DuffyGauss", failure = (M, gap) ->
         "the Gauss rule of 1/√q(t) on a sub-triangle with edge vectors $(Float64.(a)), $(Float64.(b)) did not " *
-        "converge to $bits bits with $M points (the recurrence still changed by $gap)")
+        "converge to $bits bits with $M points (the recurrence still changed by $(@sprintf("%.1e", gap)))")
 end
 
 function build(f::DuffyGauss, dom::InverseDistanceDomain, degree::Int, ctx::BuildContext{T}) where {T}

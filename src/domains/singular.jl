@@ -1,4 +1,4 @@
-# Named singular weights (PLAN §6 Tier 2, v0.5).
+# Named singular weights.
 #
 # A weight with an integrable endpoint singularity has no classical Gauss family, but its
 # ordinary moments are often exact rationals. Fed to Wheeler's algorithm directly those would

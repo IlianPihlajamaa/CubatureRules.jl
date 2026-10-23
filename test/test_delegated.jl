@@ -1,4 +1,4 @@
-# Families whose numbers come from upstream packages (PLAN §0.1). QuadGK is a hard
+# Families whose numbers come from upstream packages. QuadGK is a hard
 # dependency; QuadratureRules.jl is weak, so its families only work once it is loaded —
 # which is also a second, independent check that `subtypes` discovery works across a
 # package boundary.

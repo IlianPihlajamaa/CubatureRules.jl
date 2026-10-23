@@ -1,4 +1,4 @@
-# Growing and eliminating O_h-symmetric sphere rules (PLAN §6 Tier 4), the Lebedev
+# Growing and eliminating O_h-symmetric sphere rules, the Lebedev
 # counterpart of `refine/elimination.jl`.
 #
 # Multistart alone reproduces Lebedev's counts to degree 17 and then stalls. Degree 19 needs

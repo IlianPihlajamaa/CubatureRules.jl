@@ -1,7 +1,7 @@
-# Rules (PLAN §2.4).
+# Rules.
 #
-# There is one rule type. A separate SVector-backed runtime form existed until v0.5 and was
-# removed after measurement: 1.0–1.4× faster at best even on a near-free integrand, slower
+# There is one rule type. A separate SVector-backed runtime form existed during development
+# and was removed after measurement: 1.0–1.4× faster at best even on a near-free integrand, slower
 # for large rules, compile time growing to seconds per rule size, and no allocation saving —
 # integrating with this type already allocates nothing.
 
@@ -159,7 +159,7 @@ end
 
 A SHA-256 content hash of the rule's nodes, weights, precision, domain and claim, stable
 across Julia versions and platforms (unlike `Base.hash`). Used by the reproducibility CI
-job (PLAN §5 item 9).
+job.
 """
 function rule_hash(r::QuadratureRule)
     io = IOBuffer()

@@ -133,7 +133,7 @@ number of its Gram matrix grows by about 0.83 decades per degree (about `10¹¹`
 invariant harmonics instead ([On the sphere](#On-the-sphere)). Orthonormalising the products
 through a Cholesky factor of their Gram matrix, tried first, did not help: the residual was
 still formed in the old basis, so the working precision stayed as high
-(`notes/v0.4-spheres.md`). On every domain the equations the refinement solves are now in an
+([notes/v0.4-spheres.md](https://github.com/IlianPihlajamaa/CubatureRules.jl/blob/main/notes/v0.4-spheres.md)). On every domain the equations the refinement solves are now in an
 orthonormal basis, and the condition number in a certificate is that of the rule's own
 parameters, not of the basis.
 

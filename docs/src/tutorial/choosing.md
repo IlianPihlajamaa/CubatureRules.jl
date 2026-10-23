@@ -76,11 +76,24 @@ a specific construction.
 
 ## About the degree
 
-`rule` returns a rule of *at least* the degree you asked for. Many families only exist at
+`rule` returns a rule of *at least* the degree you asked for. Some families only exist at
 some degrees, so you may get a higher one:
 
 ```@repl choosing
-degree(rule(Simplex{2}(); degree = 8))
+degree(rule(Interval(); degree = 8))
+degree(rule(Sphere{3}(); degree = 8))
+```
+
+An `n`-point Gauss rule is exact to degree `2n − 1`, so on the interval an even degree is
+answered by the rule one degree above. The rules on the sphere are centrally symmetric, and
+so integrate every odd polynomial exactly: a rule exact to an even degree is exact to the
+next odd one too, and the tables hold only odd degrees. On the triangle, by contrast, there
+is a rule at every degree, and `rule(Simplex{2}(); degree = 8)` has degree 8.
+
+```@setup choosing
+@assert degree(rule(Interval(); degree = 8)) == 9
+@assert degree(rule(Sphere{3}(); degree = 8)) == 9
+@assert degree(rule(Simplex{2}(); degree = 8)) == 8
 ```
 
 A few families have no polynomial degree at all. `TanhSinh`, `ExpSinh` and `SinhSinh`

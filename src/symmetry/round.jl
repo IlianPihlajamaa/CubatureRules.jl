@@ -1,4 +1,4 @@
-# Fully symmetric rules on the disk and the ball (PLAN §6 Tier 3): orbits of the signed
+# Fully symmetric rules on the disk and the ball: orbits of the signed
 # permutations of the coordinates, the groups B₂ (the 8 symmetries of the square) and B₃ = O_h,
 # which are those of symmetry/box.jl. An orbit has the same types as on the square and the cube,
 # and only the constraint on its values changes: the representative inside the unit ball.

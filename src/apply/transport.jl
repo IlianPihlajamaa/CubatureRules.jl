@@ -1,4 +1,4 @@
-# Transporting and combining rules, each with a stated effect on the claim (PLAN §2.3):
+# Transporting and combining rules, each with a stated effect on the claim:
 #
 #     map_to(r, dom)        affine only          claim preserved
 #     subdivide(r, dom, n)  affine pieces        claim preserved (per cell, hence globally)

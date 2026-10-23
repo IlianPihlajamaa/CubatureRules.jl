@@ -1,4 +1,4 @@
-# Display (PLAN §3.5): make correctness inspectable rather than a matter of trust. The
+# Display: make correctness inspectable rather than a matter of trust. The
 # residual line always names which check it reports — the certificate's defining-equation
 # residual, never to be confused with verification.
 

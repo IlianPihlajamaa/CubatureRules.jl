@@ -1,4 +1,4 @@
-# Wedges (triangular prisms) and pyramids (PLAN §6, v0.6): the remaining finite-element
+# Wedges (triangular prisms) and pyramids: the remaining finite-element
 # shapes in three dimensions.
 #
 # Both are given by their vertices and must be affine images of their reference shapes. A

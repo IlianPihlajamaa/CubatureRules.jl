@@ -1,4 +1,4 @@
-# Fully symmetric, positive, interior rules on the pyramid (PLAN §6 Tier 3), refined to
+# Fully symmetric, positive, interior rules on the pyramid, refined to
 # arbitrary precision: `FullySymmetric` on `Pyramid()`.
 #
 # The rules are invariant under the 8 symmetries of the square base (C₄ᵥ); their orbits are

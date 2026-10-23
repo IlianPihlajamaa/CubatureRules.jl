@@ -1,4 +1,4 @@
-# The verification bases (PLAN §8): orthonormal polynomials on each reference domain, the
+# The verification bases: orthonormal polynomials on each reference domain, the
 # exact integrals they are checked against, and the nodes of a rule mapped to the reference
 # domain they are evaluated at. The kernels singular at a point of a triangle or a
 # tetrahedron have their own, with integrals computed in polar coordinates
@@ -57,7 +57,7 @@ exact_integrals(b::SimplexVerifyBasis{D,S}) where {D,S} =
     (v = zeros(S, basis_length(b.basis)); v[1] = simplex_basis_mass(b.basis); v)
 
 # Products of a one-dimensional orthonormal basis, graded by *total* degree: tensor Legendre on
-# the reference box — the space a tensor rule claims (PLAN §2.2), not the larger
+# the reference box — the space a tensor rule claims, not the larger
 # tensor-product space it is exact on — and tensor Hermite on the Gaussian space.
 struct TensorBasis{D,S,A<:VerificationBasis} <: VerificationBasis
     n::Int

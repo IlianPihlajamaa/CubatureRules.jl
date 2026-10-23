@@ -1,4 +1,4 @@
-# Fully symmetric rules on the pyramid (PLAN §6 Tier 3): the reference pyramid, base [-1, 1]²
+# Fully symmetric rules on the pyramid: the reference pyramid, base [-1, 1]²
 # at z = 0 and apex (0, 0, 1), is invariant under the 8 symmetries of its square base acting on
 # (x, y), with z left alone (the group C₄ᵥ).
 #

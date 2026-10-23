@@ -1,4 +1,4 @@
-# Fully symmetric rules on the square and the cube (PLAN §6 Tier 3, v0.6): orbits of the
+# Fully symmetric rules on the square and the cube: orbits of the
 # hyperoctahedral group B_D, the D!·2^D signed permutations of the coordinates, which is the
 # symmetry group of [-1, 1]^D.
 #

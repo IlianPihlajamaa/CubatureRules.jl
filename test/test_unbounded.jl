@@ -113,9 +113,9 @@ end
 
 @testset "the selector on unbounded domains" begin
     # nothing here answers a degree request; the selector says which level family would
-    msg = try rule(HalfLine(); degree = 5) catch e; sprint(showerror, e) end
+    msg = try rule(HalfLine(); degree = 5) catch e; e.msg end
     @test occursin("ExpSinh", msg) && occursin("rule(ExpSinh(4), HalfLine())", msg)
-    msg = try rule(RealLine()) catch e; sprint(showerror, e) end
+    msg = try rule(RealLine()) catch e; e.msg end
     @test occursin("SinhSinh", msg)
     @test CR.home_domain(TanhSinh()) == Interval()
     @test CR.home_domain(GaussLegendre()) === nothing

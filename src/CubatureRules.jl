@@ -24,6 +24,7 @@ import TOML
 import QuadGK
 
 # core types
+include("core/messages.jl")
 include("core/claims.jl")
 include("domains/domains.jl")
 include("domains/momentweight.jl")
@@ -175,6 +176,7 @@ public MonicRecurrence, monic, monomial_recurrence, shift, shifted_legendre_recu
        # the rest of the family interface: what docs/src/tutorial/families.md tells authors to use
        build, BuildContext, outtype, isexact, finalize_number, checkcancel, claimed_degree,
        degree_for_npoints, exact_npoints, supports_type, describe_family, reference, verification_basis,
+       missing_dependency, needs_degree, home_domain,
        verify_convergence, classify_octahedral,
        CancellationToken, cancel!, CancelledError,
        SeedSource, TableSeed, MultistartSeed, ExplicitSeed, LowerDegreeSeed,

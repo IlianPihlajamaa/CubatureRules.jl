@@ -1,4 +1,4 @@
-# Orbit algebra for the full symmetry group S_{D+1} of a D-simplex (PLAN §6 Tier 3).
+# Orbit algebra for the full symmetry group S_{D+1} of a D-simplex.
 #
 # The group permutes barycentric coordinates, so an orbit is described by the *pattern* of
 # equal coordinates: a multiset of multiplicities summing to D+1. On the triangle
@@ -8,7 +8,7 @@
 #     [1, 1, 1] general          (a, b, 1-a-b)               6 points, (w, a, b)
 #
 # and on the tetrahedron [4], [3,1], [2,2], [2,1,1], [1,1,1,1]. Nothing below is specific to
-# D = 2: the tetrahedron (v0.2) needs data, not code.
+# D = 2: the tetrahedron needs data, not code.
 #
 # A pattern with r distinct values has r-1 free coordinates (the last is fixed by Σλ = 1)
 # and one weight, which is the weight *per point*.

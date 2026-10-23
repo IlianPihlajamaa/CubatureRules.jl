@@ -1,4 +1,4 @@
-# Product rules on a ball (PLAN §6 Tier 1, v0.4): a radial rule against a rule on the
+# Product rules on a ball: a radial rule against a rule on the
 # sphere, which is the whole content of the separation
 #
 #     ∫_{B^D} f dx = ∫₀¹ r^{D-1} ∫_{S^{D-1}} f(rω) dσ(ω) dr.
@@ -31,7 +31,7 @@ family_name(::BallProduct) = "BallProduct"
 describe_family(f::BallProduct) = "BallProduct(" * describe_family(f.angular) * ")"
 inner_families(f::BallProduct) = (f.angular,)
 
-# Combinators recurse into the families that live on the matching sphere (PLAN §2.5).
+# Combinators recurse into the families that live on the matching sphere.
 function candidates(::Type{<:BallProduct}, dom::Ball{D}, c::PolynomialDegree) where {D}
     isreference(dom) || return BallProduct[]
     out = BallProduct[]

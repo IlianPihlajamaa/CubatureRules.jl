@@ -1,4 +1,4 @@
-# Construction-cost regression benchmark (PLAN §4.6), run in CI on every commit.
+# Construction-cost regression benchmark, run in CI on every commit.
 #     julia --project benchmark/construction.jl [out.csv [previous.csv]]
 # With the previous run's results, a case more than 3× slower or allocating more than 2×
 # what it did fails the run; tiny cases, where the runner's noise dominates, are not judged.

@@ -35,7 +35,7 @@ the result is, see [I want an error estimate](errors.md).
 
 ## Domains
 
-The most common domains:
+The most common domains, in their reference position:
 
 ```@repl first
 rule(Interval(); degree = 9)          # the interval [-1, 1]
@@ -46,6 +46,35 @@ rule(Ball{3}(); degree = 9)           # the unit ball in ℝ³
 
 `Simplex{D}()` works in any dimension, and `Disk()` is the unit disk.
 
+Every bounded domain can also be given its own position and size. `rule` builds the rule on
+the reference domain and maps it onto yours. The map is affine, so the rule keeps its
+degree:
+
+```@repl first
+r = rule(Simplex((0.0, 0.0), (2.0, 0.0), (0.0, 3.0)); degree = 9);
+sum(weights(r))                                   # the triangle's area
+r = rule(Orthotope((0, 0, 0), (1, 2, 3)); degree = 9);
+sum(weights(r))                                   # the volume of [0, 1] × [0, 2] × [0, 3]
+r = rule(Sphere((1.0, 0.0, 0.0), 2.0); degree = 9);
+sum(weights(r))                                   # 4π r², with r = 2
+```
+
+| Domain | Reference | Your own |
+|---|---|---|
+| interval | `Interval()`, the interval `[-1, 1]` | `Interval(a, b)` |
+| simplex | `Simplex{D}()`, vertices `0` and the unit vectors | `Simplex(v₀, v₁, …, v_D)` |
+| box | `Orthotope{D}()`, the box `[-1, 1]^D` | `Orthotope(lo, hi)` |
+| sphere | `Sphere{D}()`, the unit sphere | `Sphere(centre, radius)` |
+| ball, disk | `Ball{D}()` and `Disk()`, the unit ball and disk | `Ball(centre, radius)` |
+| wedge | `Wedge()`, the reference triangle times `[-1, 1]` | `Wedge(v₁, …, v₆)`, the top a translate of the bottom |
+| pyramid | `Pyramid()`, base `[-1, 1]²`, apex `(0, 0, 1)` | `Pyramid(v₁, …, v₅)`, with a parallelogram base |
+| triangle in space | none | `SurfaceTriangle(v₀, v₁, v₂)` |
+
+Each of these is an affine image of its reference domain, and a shape that is not is
+refused: a wedge with a twisted top, or a pyramid whose base is not a parallelogram. Such a
+shape, or a curved element, needs a non-affine map, under which a rule no longer has a
+degree; see [I want my own domain or mesh](domains.md), which also covers meshes.
+
 On an unbounded domain an integral usually only converges with a weight, so these domains
 come with one. The weight is part of the domain, and `integrate` includes it for you:
 
@@ -55,8 +84,10 @@ integrate(x -> x^5, r)                  # 5! = 120
 ```
 
 `HermiteLine()` gives `∫ f(x) e^{-x²} dx` over the real line, and `GaussianSpace(D)` its
-`D`-dimensional version. The [Catalogue](../catalogue/index.md) lists every domain and the
-rules available on it.
+`D`-dimensional version. These come only in this standard form. For a shifted or scaled
+weight, substitute: `∫ f(x) e^{-(x-μ)²/σ²} dx` is `σ ∫ f(μ + σt) e^{-t²} dt`, which is
+`σ * integrate(t -> f(μ + σ * t), rule(HermiteLine(); degree = 20))`. The
+[Catalogue](../catalogue/index.md) lists every domain and the rules available on it.
 
 ## What the rule contains
 
@@ -73,8 +104,9 @@ computed: the working precision and the residual of the equations that define th
 The degree is listed as *claimed*. You can check it yourself with [`check`](@ref); see
 [I want to verify a rule](verifying.md).
 
-`degree(r)` can be higher than the degree you asked for. Many families only exist at certain
-degrees, and `rule` then returns the next one up.
+`degree(r)` can be higher than the degree you asked for. Some families only exist at certain
+degrees, such as the Gauss rules on the interval, which have odd degrees only, and `rule` then
+returns the next one up; see [About the degree](choosing.md#About-the-degree).
 
 ## Next steps
 

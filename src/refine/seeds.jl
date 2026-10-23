@@ -1,4 +1,4 @@
-# Seed sources behind one interface (PLAN §1): a stored table, or an orbit structure plus
+# Seed sources behind one interface: a stored table, or an orbit structure plus
 # multistart search. Both yield a Float64 parameter vector for the refiner.
 
 """
@@ -22,7 +22,7 @@ struct TableSeed <: SeedSource end
 Recover the rule from its orbit structure alone: Levenberg–Marquardt from `nstarts`
 random interior starting points (a fixed-seed RNG, so the search is repeatable), keeping
 the first solution with positive weights and interior nodes. This is the licence-free
-route of PLAN §0.2.
+route: no published numbers are needed.
 """
 Base.@kwdef struct MultistartSeed <: SeedSource
     nstarts::Int = 2000

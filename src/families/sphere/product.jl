@@ -1,4 +1,4 @@
-# Product rules on spheres (PLAN §6 Tier 1, v0.4): the fallback that exists at every degree,
+# Product rules on spheres: the fallback that exists at every degree,
 # every dimension and every precision, as the conical product does on simplices.
 #
 # In hyperspherical coordinates on S^{D-1} ⊂ R^D,

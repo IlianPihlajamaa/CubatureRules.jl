@@ -1,4 +1,4 @@
-# Gauss–Patterson rules (PLAN §6, v0.5): the nested sequence of 1, 3, 7, 15, … points on
+# Gauss–Patterson rules: the nested sequence of 1, 3, 7, 15, … points on
 # [-1, 1] in which each rule keeps every node of the one before and adds the nodes that raise
 # the degree most — Kronrod's extension, iterated (Patterson 1968).
 #

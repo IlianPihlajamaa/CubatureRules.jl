@@ -26,7 +26,7 @@ end
     @test CR.orbit_size(CR.OrbitPattern([3], 3)) == 1
     @test CR.orbit_size(CR.OrbitPattern([2, 1], 3)) == 3
     @test CR.orbit_size(CR.OrbitPattern([1, 1, 1], 3)) == 6
-    # tetrahedral patterns (v0.2 needs data, not code)
+    # tetrahedral patterns (the tetrahedron needs data, not code)
     pats = CR.orbit_pattern_types(4)
     @test [p.mult for p in pats] == [[4], [3, 1], [2, 2], [2, 1, 1], [1, 1, 1, 1]]
     @test [CR.orbit_size(p) for p in pats] == [1, 4, 6, 12, 24]

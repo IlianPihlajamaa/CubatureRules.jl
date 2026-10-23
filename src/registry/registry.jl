@@ -1,4 +1,4 @@
-# The registry and selector (PLAN §2.5). Discovery is reflective; instantiation is explicit.
+# The registry and selector. Discovery is reflective; instantiation is explicit.
 #
 # `subtypes` is called inside functions, at run time. It must never be hoisted into a
 # `const`: that would be evaluated at precompile time and silently omit every family a
@@ -238,7 +238,7 @@ nearby.
 struct NoRuleError <: Exception
     msg::String
 end
-Base.showerror(io::IO, e::NoRuleError) = print(io, e.msg)
+Base.showerror(io::IO, e::NoRuleError) = print(io, wrap_message(e.msg))
 
 # ---------------------------------------------------------------------------------------
 # rule(...)

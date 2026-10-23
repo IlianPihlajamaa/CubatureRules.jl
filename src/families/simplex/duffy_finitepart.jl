@@ -94,7 +94,7 @@ function inverse_cube_quadratic_rule(a, b, m::Integer, bits::Integer, gl)
     end
     return converged_stieltjes(discretize, m, bits; name = "DuffyFinitePart", failure = (M, gap) ->
         "the Gauss rule of q(t)^(-3/2) on a sub-triangle with edge vectors $(Float64.(a)), $(Float64.(b)) did not " *
-        "converge to $bits bits with $M points (the recurrence still changed by $gap)")
+        "converge to $bits bits with $M points (the recurrence still changed by $(@sprintf("%.1e", gap)))")
 end
 
 "`∫₀¹ g(t) q(t)^{-3/2} dt` to `wbits`, the discretisation doubled until two agree; `g` may be vector-valued."

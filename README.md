@@ -86,7 +86,6 @@ Julia 1.11 or later. Once the first release is registered, `Pkg.add("CubatureRul
 - [Catalogue](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/catalogue/) of domains
   and rule families
 - [Architecture & Design](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/design/pipeline/)
-- [ROADMAP.md](ROADMAP.md) for planned work
 
 ## Licence
 

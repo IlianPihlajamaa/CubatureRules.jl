@@ -1,4 +1,4 @@
-# Fully symmetric, positive, interior rules on the wedge (PLAN §6 Tier 3), refined to arbitrary
+# Fully symmetric, positive, interior rules on the wedge, refined to arbitrary
 # precision: `FullySymmetric` on `Wedge()`.
 #
 # The rules are invariant under the 12 symmetries of the prism (D₃ₕ): the permutations of the

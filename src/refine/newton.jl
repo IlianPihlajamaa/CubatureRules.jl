@@ -1,4 +1,4 @@
-# Generic refinement drivers (PLAN §1, §2.7, §6 Tier 3).
+# Generic refinement drivers.
 #
 # Minimal symmetric rules sit at or near the degeneracy locus of the moment map, so the
 # linear solve is rank-revealing by default (truncated SVD in Float64, column-pivoted QR in
@@ -15,7 +15,7 @@ struct RefinementError <: Exception
     family::String
     msg::String
 end
-Base.showerror(io::IO, e::RefinementError) = print(io, "refinement failed for ", e.family, ": ", e.msg)
+Base.showerror(io::IO, e::RefinementError) = print(io, wrap_message("refinement failed for $(e.family): $(e.msg)"))
 
 """
     RefineResult
@@ -661,7 +661,7 @@ end
     guard_bits_from_cond(κ)
 
 Guard bits for a Newton solve whose Jacobian has condition number `κ`: the digits it
-destroys, rounded up to a multiple of 8 bits, plus a fixed margin (PLAN §2.7 — measured,
+destroys, rounded up to a multiple of 8 bits, plus a fixed margin (measured,
 not assumed). `estimate_cond` is the same on every platform; the rounding adds a margin over
 it, a lower bound, and keeps the working precision from moving with small changes in κ.
 """

@@ -1,4 +1,4 @@
-# Oscillatory weights (PLAN §6 Tier 2, v0.5): e^{iωx}, cos ωx and sin ωx on an interval.
+# Oscillatory weights: e^{iωx}, cos ωx and sin ωx on an interval.
 #
 # On [-1, 1], with κ = ωh, the Legendre polynomials have the moments
 #

@@ -1,4 +1,4 @@
-# Searching for O_h-symmetric sphere rules (PLAN §6 Tier 3, v0.4): the Lebedev counterpart
+# Searching for O_h-symmetric sphere rules: the Lebedev counterpart
 # of `refine/seeds.jl`, which does the same for simplices.
 #
 # The shape of the search is identical — enumerate orbit structures with the right point

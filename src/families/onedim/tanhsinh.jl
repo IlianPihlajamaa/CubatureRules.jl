@@ -1,4 +1,4 @@
-# Tanh-sinh (double exponential) quadrature (PLAN §2.2, §6 Tier 1).
+# Tanh-sinh (double exponential) quadrature.
 #
 #     x = tanh(π/2 · sinh(t)),   w = h · (π/2) · cosh(t) / cosh²(π/2 · sinh(t)),  t = k h
 #
@@ -6,7 +6,7 @@
 # exact on any polynomial space: its claim is a *convergence rate*, e^{-cn/log n} for
 # functions analytic on the open interval with integrable endpoint singularities. It
 # therefore reports `NoClaim`, is not offered for a `PolynomialDegree` request, and is
-# verified by a convergence sweep rather than by exact integration (§8).
+# verified by a convergence sweep rather than by exact integration.
 #
 # The nodes crowd towards ±1 double-exponentially, which is what makes the endpoint
 # singularities harmless: the weights vanish faster than the integrand blows up. Halving h
@@ -15,7 +15,7 @@
 #
 # Upstream note: QuadratureRules.jl also has tanh-sinh, but its interface takes a level whose
 # nodes saturate at ±1 in the precision it is given, which does not fit the precision policy
-# here (§2.7), so this one is built locally from the closed form.
+# here, so this one is built locally from the closed form.
 
 """
     TanhSinh(level = 4)

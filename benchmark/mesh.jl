@@ -1,4 +1,4 @@
-# The v0.2 acceptance test (PLAN §3.2): integrating over a large mesh with a package rule
+# An acceptance test: integrating over a large mesh with a package rule
 # must cost about what a hand-written FEM kernel costs.
 #
 #     julia --project -t auto benchmark/mesh.jl [ncells]

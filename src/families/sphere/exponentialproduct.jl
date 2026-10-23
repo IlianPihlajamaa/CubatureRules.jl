@@ -1,4 +1,4 @@
-# Rules on R^D with the weight e^{-|x|} — Stroud's E_n^r (PLAN §6 Tier 1, v0.5).
+# Rules on R^D with the weight e^{-|x|} — Stroud's E_n^r.
 #
 # The same separation as for the Gaussian weight (see gaussianproduct.jl):
 #

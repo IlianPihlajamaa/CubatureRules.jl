@@ -1,4 +1,4 @@
-# Bitwise reproducibility (PLAN §5 item 9): identical `rule(...)` calls must produce
+# Bitwise reproducibility: identical `rule(...)` calls must produce
 # identical output across sessions, Julia versions and platforms. The reference hashes in
 # reference_hashes.toml are checked on every CI job, across the whole OS × version matrix.
 #

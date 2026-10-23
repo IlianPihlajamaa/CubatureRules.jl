@@ -1,5 +1,5 @@
-# Exp-sinh and sinh-sinh: the double-exponential family on unbounded domains
-# (PLAN §2.2, §6 Tier 1), the siblings of tanh-sinh in `tanhsinh.jl`.
+# Exp-sinh and sinh-sinh: the double-exponential family on unbounded domains,
+# the siblings of tanh-sinh in `tanhsinh.jl`.
 #
 #   exp-sinh   ∫₀^∞ f(x) dx   x = exp(π/2 · sinh t),   w = h · π/2 · cosh(t) · x
 #   sinh-sinh  ∫_ℝ f(x) dx    x = sinh(π/2 · sinh t),  w = h · π/2 · cosh(t) · cosh(π/2 · sinh t)

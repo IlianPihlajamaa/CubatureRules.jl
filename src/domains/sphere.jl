@@ -1,4 +1,4 @@
-# Spheres (PLAN §2.1, v0.4).
+# Spheres.
 #
 # `Sphere{D}` is the (D-1)-sphere embedded in R^D: its points carry D coordinates, so
 # `Sphere{3}()` is the familiar surface in three-space and `Sphere{2}()` is the circle. The

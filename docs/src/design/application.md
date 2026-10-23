@@ -62,9 +62,9 @@ singularity of the form `r^{-(q-1)D}` at that vertex.
 
 ## Why there is only one rule type
 
-Earlier versions also had a `static` form that stored nodes and weights as `SVector`s, with
-the number of points in the type, and unrolled the sum at compile time. It was removed in
-v0.5 after measurement on triangle rules of 7 to 445 points:
+Before the first release the package also had a `static` form that stored nodes and weights
+as `SVector`s, with the number of points in the type, and unrolled the sum at compile time.
+It was removed after measurement on triangle rules of 7 to 445 points:
 
 - with a nearly free integrand it was 1.0–1.4× faster in most cases, 1.9× only at 7 points
   (about 4 ns), and 0.84× (slower) at 445 points;

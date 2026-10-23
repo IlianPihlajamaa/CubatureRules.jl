@@ -1,4 +1,4 @@
-# The Gauss driver shared by every classical family (PLAN §1, §6 Tier 1).
+# The Gauss driver shared by every classical family.
 #
 # A Gauss rule is fixed by the three-term recurrence of the orthonormal polynomials for its
 # weight:
@@ -9,7 +9,7 @@
 # Golub–Welsch in Float64 for the seed, Newton on the recurrence at working precision, and
 # weights from the Christoffel function w_i = μ₀ / Σ_k q_k(x_i)².
 
-"Guard bits for Newton on a three-term recurrence: O(log n), which is right there (§2.7)."
+"Guard bits for Newton on a three-term recurrence: O(log n), enough for its well-conditioned equations."
 gj_guard_bits(n) = 24 + 2 * ceil(Int, log2(n + 1))
 
 """

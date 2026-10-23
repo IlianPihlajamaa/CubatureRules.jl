@@ -1,4 +1,4 @@
-# Real spherical harmonics on S², and the Fourier basis on the circle (PLAN §8, v0.4).
+# Real spherical harmonics on S², and the Fourier basis on the circle.
 #
 # These are the orthonormal bases in which a rule on a sphere is verified. Harmonics rather
 # than monomials, for two reasons: monomials restricted to a sphere are linearly dependent

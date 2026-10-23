@@ -1,7 +1,7 @@
-# Minimal-point fully symmetric triangle rules, refined to arbitrary precision
-# (PLAN §6 Tier 3 — the v0.1 cornerstone).
+# Fully symmetric triangle rules with the fewest points the searches found, refined to
+# arbitrary precision.
 #
-# Seeds. No numbers are copied from any published table (PLAN §0.2). The point counts and
+# Seeds. No numbers are copied from any published table. The point counts and
 # the fact that the rules are fully S_3-symmetric come from Xiao & Gimbutas (2010); the orbit
 # structures and Float64 seeds in `src/data/triangle_s3_seeds.toml` were found in-house by
 # multistart Gauss–Newton from the orbit structure alone (`scripts/generate_triangle_seeds.jl`)
@@ -37,7 +37,8 @@ isfile(TRIANGLE_SEED_FILE) && include_dependency(TRIANGLE_SEED_FILE)
 "The fully symmetric seed table of the `(N - 1)`-simplex at `path`."
 load_simplex_seeds(path, N) = load_seeds(path, SymmetricStructure, m -> SymmetricStructure(int_lists(m), N))
 
-# Static package data, parsed once at precompile time (not a cache of rules: see §7).
+# Static package data, parsed once at precompile time (not a cache of rules: the package
+# caches none).
 const TRIANGLE_SEEDS = load_simplex_seeds(TRIANGLE_SEED_FILE, 3)
 
 xg_entries() = filter(e -> e.status == "ok", TRIANGLE_SEEDS)

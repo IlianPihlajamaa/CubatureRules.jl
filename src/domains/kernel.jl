@@ -1,4 +1,4 @@
-# Cauchy principal-value and Hadamard finite-part integrals (PLAN §6 Tier 2, v0.5).
+# Cauchy principal-value and Hadamard finite-part integrals.
 #
 #     ⨍ₐᵇ f(x) w(x) / (x − t) dx        and        ⨎ₐᵇ f(x) w(x) / (x − t)² dx
 #

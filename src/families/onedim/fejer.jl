@@ -1,4 +1,4 @@
-# Fejér rules (PLAN §6 Tier 1): interpolatory rules on Chebyshev nodes, with closed-form
+# Fejér rules: interpolatory rules on Chebyshev nodes, with closed-form
 # weights, in generic arithmetic at any precision.
 #
 #   type 1   x_k = cos((2k-1)π/2n),  k = 1..n      (the Chebyshev points of the first kind)

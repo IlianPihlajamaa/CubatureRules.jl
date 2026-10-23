@@ -1,4 +1,4 @@
-# Product rules on the wedge (PLAN §6, v0.6): a triangle rule times a rule on [-1, 1].
+# Product rules on the wedge: a triangle rule times a rule on [-1, 1].
 #
 # A polynomial of total degree d in (x, y, z) is a sum of p(x, y) zʳ with deg p + r ≤ d, so a
 # triangle rule of degree d times a line rule of degree d integrates it exactly. The claim

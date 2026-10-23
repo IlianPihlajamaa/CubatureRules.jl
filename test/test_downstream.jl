@@ -1,5 +1,5 @@
 # A family defined in a separately precompiled package is found by the selector with no
-# registration step (PLAN §2.5). This is the guard against `subtypes` ever being cached in
+# registration step. This is the guard against `subtypes` ever being cached in
 # a `const`: that would be evaluated when CubatureRules was precompiled, before
 # TestFamilyPackage existed.
 using CubatureRules, Test

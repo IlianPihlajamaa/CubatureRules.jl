@@ -1,4 +1,4 @@
-# A measure given by its moments rather than by a formula (PLAN §6 Tier 2).
+# A measure given by its moments rather than by a formula.
 #
 # Every other weight in this package is a named function whose orthogonal polynomials are
 # known in closed form. A weight can also arrive as a list of numbers: its integrals against

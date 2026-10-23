@@ -1,4 +1,4 @@
-# Rules on Gaussian-weighted R^D — Stroud's E_n^{r²} (PLAN §6 Tier 1, v0.4).
+# Rules on Gaussian-weighted R^D — Stroud's E_n^{r²}.
 #
 # Stroud tabulates these at fixed degrees, and several of his entries go negative above some
 # dimension: the classical 2n²+1 degree-5 rule has a negative axis weight for n ≥ 5, and the

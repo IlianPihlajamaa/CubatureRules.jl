@@ -1,4 +1,4 @@
-# The O_h moment system in an orthonormal invariant basis (PLAN §6 Tier 3).
+# The O_h moment system in an orthonormal invariant basis.
 #
 # OctahedralMomentSystem writes the equations in the invariants p₄^a p₆^b, which integrate to
 # exact rationals but behave like monomials: the system's condition number is 1e54 at degree

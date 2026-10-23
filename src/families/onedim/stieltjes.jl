@@ -1,5 +1,5 @@
-# Gauss rules for a weight given as a function (PLAN §6 Tier 2: Gautschi's multiple-component
-# discretisation). See domains/functionweight.jl for how the weight is discretised.
+# Gauss rules for a weight given as a function, by Gautschi's multiple-component
+# discretisation. See domains/functionweight.jl for how the weight is discretised.
 #
 # The recurrence of the discretised measure comes from the discrete Stieltjes procedure,
 # written here rather than taken from a package: PolyChaos.jl, the one Julia implementation,
@@ -41,10 +41,11 @@ function stieltjes_work(w::FunctionWeight, n::Integer, bits::Integer; verbose::I
                         maxpoints::Integer = 4096)
     return converged_stieltjes((M, wbits) -> discretize(w, M, wbits), n, bits; verbose, maxpoints,
                                name = "StieltjesDiscretization", failure = (M, gap) -> """
-        the discretisation of $(w) did not converge to $(bits) bits with at most $(maxpoints) points \
-        per piece (the recurrence still changed by $(gap) at $M points). The discretisation \
-        converges quickly only when g is smooth on each piece: move endpoint singularities into the \
-        exponents α and β, and split a piece where g has a kink or a jump.""")
+        the discretisation of $(w) did not converge to $(bits) bits: at $M points per piece \
+        the recurrence still changed by $(@sprintf("%.1e", gap)), too slowly to reach the target \
+        within $(maxpoints) points.
+        It converges quickly only when g is smooth on each piece: move endpoint singularities \
+        into the exponents α and β, and split a piece where g has a kink or a jump.""")
 end
 
 """

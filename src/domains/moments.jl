@@ -39,7 +39,7 @@ function monomial_moment(d::Interval, α)
 end
 
 # ---------------------------------------------------------------------------------------
-# Affine maps. `map_to` is restricted to these at the type level (PLAN §2.3): there is no
+# Affine maps. `map_to` is restricted to these at the type level: there is no
 # entry point that takes a user function and still reports a polynomial degree.
 
 """

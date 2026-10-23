@@ -1,4 +1,4 @@
-# Unbounded domains and their classical weights (PLAN §2.1).
+# Unbounded domains and their classical weights.
 #
 # These are only useful weighted: nobody integrates against Lebesgue measure on the whole
 # line. They therefore exist to be the `base` of a `WeightedDomain`, and the measure that

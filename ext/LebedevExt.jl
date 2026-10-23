@@ -1,6 +1,6 @@
 # Makes `LebedevRule{LebedevJLSeeds}` — spelled `UpstreamLebedev()` — constructible from an
 # installed Lebedev.jl. Loading that package is all that is needed; the registry finds the
-# family with `subtypes` at call time (PLAN §2.5).
+# family with `subtypes` at call time.
 #
 # Nothing is redistributed here. The numbers come from the caller's own copy of Lebedev.jl,
 # and every rule built from them says so: family, licence and citation all point there. The

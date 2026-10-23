@@ -1,4 +1,4 @@
-# Tensor-product rules on boxes (PLAN §2.2, §6 Tier 1).
+# Tensor-product rules on boxes.
 #
 # The claim is the conservative one: a tensor rule is exact on a tensor-product polynomial
 # space, which is larger than the total-degree space, but the selector ranks candidates by
@@ -86,7 +86,7 @@ end
     r₁ ⊗ r₂
 
 Tensor product of two rules on intervals or boxes, giving a rule on the product box. The
-claim is the conservative total degree `min(d₁, d₂)` (PLAN §2.3).
+claim is the conservative total degree `min(d₁, d₂)`.
 """
 function ⊗(a::QuadratureRule{Da,Ta}, b::QuadratureRule{Db,Tb}) where {Da,Ta,Db,Tb}
     (_is_box(a.domain) && _is_box(b.domain)) ||

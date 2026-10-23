@@ -1,4 +1,4 @@
-# The rule-family interface (PLAN §2.5).
+# The rule-family interface.
 #
 # A family is one type `F <: RuleFamily` plus methods of the functions below. Nothing is
 # registered anywhere: families are discovered with `subtypes` at call time.

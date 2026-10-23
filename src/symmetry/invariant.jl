@@ -1,4 +1,4 @@
-# Invariant polynomial bases (PLAN §6 Tier 3, first decision).
+# Invariant polynomial bases.
 #
 # Choice: the invariant subspace is computed, not hard-coded as formulas, but it is pinned
 # to a hard-coded dimension count. For each degree k the orthonormal basis block V_k (the

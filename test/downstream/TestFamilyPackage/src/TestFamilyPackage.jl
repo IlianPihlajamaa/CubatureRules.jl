@@ -1,6 +1,6 @@
 # A downstream package that adds a rule family. It is precompiled separately from
 # CubatureRules, and the test suite asserts that the selector finds it with no
-# registration step (PLAN §2.5).
+# registration step.
 module TestFamilyPackage
 
 using CubatureRules

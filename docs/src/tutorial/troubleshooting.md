@@ -25,7 +25,8 @@ excluded and the reason for each:
 
 ```jldoctest trouble; setup = :(using CubatureRules)
 julia> rule(Simplex{2}(); degree = 9, positive = true, T = Rational{BigInt})
-ERROR: No rule with positive weights and exact Rational{BigInt} nodes and weights exists on Simplex{2}() at degree 9 among the loaded families.
+ERROR: No rule with positive weights and exact Rational{BigInt} nodes and weights exists on
+Simplex{2}() at degree 9 among the loaded families.
   XiaoGimbutas (19 points) cannot produce Rational{BigInt}.
   ConicalProduct(GaussJacobi) (25 points) cannot produce Rational{BigInt}.
   GrundmannMöller (35 points) has negative weights.
@@ -43,7 +44,8 @@ Some families use code from other packages, which have to be loaded first:
 
 ```jldoctest trouble
 julia> rule(Lobatto(), Interval(); degree = 9)
-ERROR: Lobatto builds its rules with QuadratureRules.jl, which is not loaded; run `using QuadratureRules` first
+ERROR: Lobatto builds its rules with QuadratureRules.jl, which is not loaded; run
+`using QuadratureRules` first
 Stacktrace:
 [...]
 ```

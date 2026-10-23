@@ -1,4 +1,4 @@
-# Families delegated to upstream packages (PLAN §0.1): 1D rules that QuadGK.jl and
+# Families delegated to upstream packages: 1D rules that QuadGK.jl and
 # QuadratureRules.jl already produce in generic arithmetic are *not* reimplemented here. They
 # are constructed upstream at working precision and converted at the boundary, with the
 # provenance recording which package produced the numbers.
@@ -7,8 +7,8 @@
 # construction (Laurie's algorithm) there is no reason to rebuild.
 #
 # QuadratureRules.jl is a *weak* dependency. It pulls in Polynomials and costs a second to
-# load, which would double `using CubatureRules` on its own (§7 targets sub-second). Its
-# families are therefore defined here but only become constructible when the user loads
+# load, which would double `using CubatureRules` on its own, where the target is under a
+# second. Its families are therefore defined here but only become constructible when the user loads
 # QuadratureRules — at which point the registry finds them with no registration step, which
 # is exactly what the `subtypes` design is for.
 

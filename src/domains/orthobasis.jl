@@ -1,7 +1,7 @@
 # Orthonormal polynomial bases, used both to write moment equations and to verify rules.
 #
 # Monomials are deliberately not used: their Gram matrix is so ill-conditioned that
-# verification in them produces false failures above degree ~15 (PLAN §8).
+# verification in them produces false failures above degree ~15.
 
 # ---------------------------------------------------------------------------------------
 # Jacobi recurrence coefficients for the orthonormal polynomials of (1-x)^α (1+x)^β:

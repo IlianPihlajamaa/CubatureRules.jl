@@ -1,4 +1,4 @@
-# Recovering an O_h orbit structure from a bare point set (v0.4).
+# Recovering an O_h orbit structure from a bare point set.
 #
 # The rest of the sphere machinery works in orbit-parameter space: a structure plus one
 # weight and up to two coordinates per orbit. Anything arriving from outside — a table from

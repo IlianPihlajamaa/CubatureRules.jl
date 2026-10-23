@@ -1,4 +1,4 @@
-# Property-based tests over (family, degree, T) with Supposition.jl (PLAN §8): every rule
+# Property-based tests over (family, degree, T) with Supposition.jl: every rule
 # the selector can build verifies against its claim, at family and precision boundaries.
 using CubatureRules, Test, Supposition
 import CubatureRules: ⊗   # public, not exported

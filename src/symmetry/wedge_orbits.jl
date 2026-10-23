@@ -1,4 +1,4 @@
-# Fully symmetric rules on the wedge (PLAN §6 Tier 3): the reference wedge, the reference
+# Fully symmetric rules on the wedge: the reference wedge, the reference
 # triangle times [-1, 1], is invariant under the 6 permutations of the triangle's barycentric
 # coordinates (affine maps of the triangle onto itself) and the reflection z ↦ −z; 12 in all,
 # the group D₃ₕ of the prism with an equilateral base.

@@ -1,5 +1,5 @@
 # Generate the MIT-licensed seed table for fully symmetric tetrahedron rules,
-# src/data/tetrahedron_s4_seeds.toml, from orbit structures alone (PLAN §0.2).
+# src/data/tetrahedron_s4_seeds.toml, from orbit structures alone.
 #
 #     julia --project -t auto scripts/generate_tetrahedron_seeds.jl [mindegree] maxdegree
 #

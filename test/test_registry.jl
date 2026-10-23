@@ -75,7 +75,7 @@ end
         err
     end
     @test e isa NoRuleError
-    msg = sprint(showerror, e)
+    msg = e.msg                         # the message itself; showerror wraps it
     @test occursin("needs a `degree`", msg)
     xgmax = last(degree_range(XiaoGimbutas(), Simplex{2}()))
     @test occursin("XiaoGimbutas", msg) && occursin("0–$xgmax", msg)
@@ -87,13 +87,13 @@ end
     end
     @test e2 isa NoRuleError
     @test occursin("Nearest: XiaoGimbutas degree $xgmax ($(npoints(XiaoGimbutas(), Simplex{2}(), xgmax)) points)",
-                   sprint(showerror, e2))
+                   e2.msg)
     e3 = try
         rule(Simplex{2}(); degree = 9, positive = true, T = Rational{BigInt})
     catch err
         err
     end
-    m3 = sprint(showerror, e3)
+    m3 = e3.msg
     @test occursin("has negative weights", m3)
     @test occursin("GrundmannMöller degree 1", m3)
     @test_throws NoRuleError rule(Simplex{2}(); degree = 5, family = XiaoGimbutas(), T = Rational{BigInt})

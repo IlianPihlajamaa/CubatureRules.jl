@@ -1,5 +1,4 @@
-# Fully symmetric, positive, interior tetrahedron rules refined to arbitrary precision
-# (PLAN §6 Tier 3, v0.2).
+# Fully symmetric, positive, interior tetrahedron rules refined to arbitrary precision.
 #
 # Nothing here is taken from a paper: the point counts are the smallest the in-house search
 # reached (`scripts/generate_tetrahedron_seeds.jl`), walking upwards from a count below

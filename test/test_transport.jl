@@ -1,4 +1,4 @@
-# Claim preservation (PLAN §2.3): every transport states what happens to the claim.
+# Claim preservation: every transport states what happens to the claim.
 using CubatureRules, Test, StaticArrays, LinearAlgebra
 const CR = CubatureRules
 

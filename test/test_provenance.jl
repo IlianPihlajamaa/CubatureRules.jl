@@ -1,5 +1,5 @@
 # Every file in src/data must have an entry in src/data/PROVENANCE.toml recording its
-# author, source, licence and retrieval date (PLAN §0.2). This test is the CI check.
+# author, source, licence and retrieval date. This test is the CI check.
 using Test, TOML
 
 datadir = joinpath(@__DIR__, "..", "src", "data")

@@ -1,4 +1,4 @@
-# Gauss–Laguerre and Gauss–Hermite (PLAN §6 Tier 1): the classical rules on unbounded
+# Gauss–Laguerre and Gauss–Hermite: the classical rules on unbounded
 # domains. Neither is in the upstream packages we delegate to, and both are three lines of
 # recurrence coefficients on top of the shared Gauss driver.
 #

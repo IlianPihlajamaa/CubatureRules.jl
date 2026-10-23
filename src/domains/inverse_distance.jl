@@ -1,5 +1,5 @@
-# The weakly singular kernel of boundary-element methods on a triangle (PLAN §0.3, §6 Tier 5;
-# notes/singular-bem.md):
+# The weakly singular kernel of boundary-element methods on a triangle
+# (notes/singular-bem.md):
 #
 #     ∫_T f(y) / |y − x₀| dy,    x₀ in the closed triangle T,
 #

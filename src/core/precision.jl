@@ -1,4 +1,4 @@
-# Precision requests and the build context (PLAN §2.7).
+# Precision requests and the build context.
 #
 # Every generator computes in BigFloat at an explicitly passed precision (target + guard)
 # and rounds exactly once at the end. MPFR is correctly rounded, which is what makes

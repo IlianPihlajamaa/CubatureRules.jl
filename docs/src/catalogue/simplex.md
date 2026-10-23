@@ -164,7 +164,7 @@ An ordinary triangle rule converges only slowly on such an integrand, because th
 not a polynomial: on the triangle above with `x₀` at a vertex, the 291-point Xiao–Gimbutas
 rule of degree 40 integrates `1/|y − x₀|` itself with a relative error of 9e-4, where a rule
 of this family integrates `f(y)/|y − x₀|` exactly for every polynomial `f` of its degree —
-36 points for degree 11 (`notes/singular-bem.md`).
+36 points for degree 11 ([notes/singular-bem.md](https://github.com/IlianPihlajamaa/CubatureRules.jl/blob/main/notes/singular-bem.md)).
 
 ```@setup simplex
 @assert npoints(rule(XiaoGimbutas(), Simplex{2}(); degree = 40)) == 291   # the rule quoted above
@@ -186,7 +186,7 @@ ref = sum(w * sin(k / (cos(θ[1]) + sin(θ[1]))) / k for (θ, w) in zip(nodes(θ
 ```
 
 A rule exact on the polynomial terms as well was built and measured, and did worse at equal
-point count on every geometry tried (`notes/singular-bem.md`).
+point count on every geometry tried ([notes/singular-bem.md](https://github.com/IlianPihlajamaa/CubatureRules.jl/blob/main/notes/singular-bem.md)).
 
 `check` verifies these rules against the orthonormal Dubiner polynomials of the triangle,
 whose integrals with the kernel it computes independently, in polar coordinates about `x₀`.
@@ -309,7 +309,7 @@ three digits to cancellation; ask for more digits where that matters.
 
 For Helmholtz, both kernels arise multiplied by `e^{ikr}(1 − ikr) = 1 + k²r²/2 + ⋯` on a flat
 panel: pass `f(y) e^{ikr}(1 − ikr)` as the integrand. The linear term in `r` cancels, which
-is what keeps the finite part well defined (`notes/singular-bem.md`).
+is what keeps the finite part well defined ([notes/singular-bem.md](https://github.com/IlianPihlajamaa/CubatureRules.jl/blob/main/notes/singular-bem.md)).
 
 With `x₀` off the triangle both are ordinary integrals, near-singular when `x₀` is close, and
 go to [`DuffySinh`](@ref) like `1/r`: each radial line gets the Gauss rule of `s/|y − x₀|³`,

@@ -26,9 +26,9 @@ error estimate, the number of evaluations, and the family and degree of the fine
 
 ## Why there is no adaptive driver
 
-Earlier versions had `integrate(f, domain; rtol)`, which built rules of increasing degree
-from one family until two successive results agreed. It was removed in v0.5, for three
-reasons:
+Before the first release the package had `integrate(f, domain; rtol)`, which built rules of
+increasing degree from one family until two successive results agreed. It was removed for
+three reasons:
 
 - It assumed that one family forms a clean sequence of rules. Seeded families have gaps and
   an upper degree, and families round requested degrees up. Two requests could give the same

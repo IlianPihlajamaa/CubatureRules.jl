@@ -1,4 +1,4 @@
-# Filon-type rules for oscillatory weights (PLAN §6 Tier 2, v0.5). The weights and their
+# Filon-type rules for oscillatory weights. The weights and their
 # moments are in domains/oscillatory.jl.
 #
 # The rule is interpolatory on the N + 1 Gauss–Lobatto points: the end points and the zeros

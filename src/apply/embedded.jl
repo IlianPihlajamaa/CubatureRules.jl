@@ -1,12 +1,12 @@
-# Embedded rules: an error estimate at no extra integrand evaluations (PLAN §3.3).
+# Embedded rules: an error estimate at no extra integrand evaluations.
 #
 # A pair of rules that share nodes gives two estimates from one set of function values, and
 # their difference estimates the error of the finer one. That is a property of the rules
 # themselves, so it belongs here.
 #
 # What does not belong here is a driver that picks rules until an answer converges. One
-# existed until v0.5 (`integrate(f, domain; rtol)`, walking `RuleSequence`s) and was
-# removed: it assumed that one family forms a clean sequence of rules, which seeded families
+# existed before the first release (`integrate(f, domain; rtol)`, walking `RuleSequence`s)
+# and was removed: it assumed that one family forms a clean sequence of rules, which seeded families
 # with gaps and upper limits do not, it built and refined a new rule at every step, and it
 # was the one place where construction happened out of sight. Adaptive integration is
 # served elsewhere — QuadGK.jl in one dimension, HCubature.jl on boxes and

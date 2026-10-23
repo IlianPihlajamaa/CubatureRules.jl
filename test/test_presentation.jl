@@ -43,3 +43,21 @@ end
     rq = benchmark_construction(Simplex{2}(); degrees = [3], T = Rational{BigInt})
     @test any(r -> r.family == "ConicalProduct(GaussJacobi)" && r.status === :unsupported, rq)
 end
+
+@testset "error messages are wrapped, but not inside code" begin
+    s = "a long explanation, " ^ 8 * "then `rule(ExpSinh(4), HalfLine())` and Interval(0, 1), and [0, 1]."
+    m = CubatureRules.wrap_message(s; width = 40)
+    lines = split(m, '\n')
+    @test textwidth(lines[1]) <= 33 && all(l -> textwidth(l) <= 40, lines)
+    @test any(l -> occursin("`rule(ExpSinh(4), HalfLine())`", l), lines)       # code is never split
+    @test any(l -> occursin("Interval(0, 1),", l), lines) && any(l -> occursin("[0, 1].", l), lines)
+    @test join(lines, ' ') == s                                                # only spaces became breaks
+    # indented lines keep their indentation, and short lines are left alone
+    @test CubatureRules.wrap_message("short\n  " * "item " ^ 20; width = 30) ==
+          "short\n" * join(["  item item item item item", "    item item item item item",
+                            "    item item item item item", "    item item item item item"], '\n')
+    # what the package's errors print
+    e = try rule(Simplex{2}(); degree = 9, positive = true, T = Rational{BigInt}) catch err err end
+    shown = split(sprint(showerror, e), '\n')
+    @test textwidth(shown[1]) <= 85 && all(l -> textwidth(l) <= 92, shown)
+end

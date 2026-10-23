@@ -1,5 +1,5 @@
 # Generate the MIT-licensed seed table for fully symmetric triangle rules,
-# src/data/triangle_s3_seeds.toml, from orbit structures alone (PLAN §0.2).
+# src/data/triangle_s3_seeds.toml, from orbit structures alone.
 #
 #     julia --project -t auto scripts/generate_triangle_seeds.jl [mindegree] maxdegree
 #

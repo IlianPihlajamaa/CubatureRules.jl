@@ -238,6 +238,9 @@ CubatureRules.exact_npoints
 cost_estimate
 supports_type
 describe_family
+missing_dependency
+needs_degree
+home_domain
 selectable
 family_license
 BuildContext

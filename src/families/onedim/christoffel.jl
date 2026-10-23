@@ -1,5 +1,4 @@
-# Christoffel modification: a weight multiplied or divided by a linear factor
-# (PLAN §6 Tier 2, v0.5).
+# Christoffel modification: a weight multiplied or divided by a linear factor.
 #
 # Given a measure μ whose monic orthogonal polynomials πₖ are known — Legendre, Jacobi,
 # Laguerre — and a point z outside its support, the Gauss rules of |x - z| dμ and of

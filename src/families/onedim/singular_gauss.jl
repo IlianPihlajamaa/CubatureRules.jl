@@ -1,5 +1,5 @@
-# Gauss-type rules for Cauchy principal-value and Hadamard finite-part integrals (PLAN §6
-# Tier 2, v0.5). The kernels and the Hilbert transform are in domains/kernel.jl.
+# Gauss-type rules for Cauchy principal-value and Hadamard finite-part integrals.
+# The kernels and the Hilbert transform are in domains/kernel.jl.
 #
 # With q_k the orthogonal polynomials of the Jacobi weight w (orthonormal up to the common
 # factor that makes q₀ = 1, as in the Gauss driver), the integrals

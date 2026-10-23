@@ -1,6 +1,6 @@
 # Singular and near-singular integration for boundary elements: design note
 
-Working notes for PLAN §0.3 and §6 Tier 5, the flagship application: rules for the singular
+Working notes for the flagship application: rules for the singular
 and near-singular integrals of boundary-element methods, generated for the element at hand,
 at any precision, with a claim that says what they integrate exactly. The spike numbers
 below are what the first stage rests on. **Stage 1 is built:**
@@ -51,7 +51,7 @@ and `∂²G` (hypersingular: finite part); Helmholtz multiplies these by `e^{ik|
   Montanelli, Aussal and Haddar for curved elements.
 
 None of these gives rules generated for a given element at arbitrary precision with an
-exactness claim. That is the gap, and it is the one PLAN §0.3 names: for near-singular
+exactness claim. That is the gap, and it is the one this package set out to fill: for near-singular
 integrals the error depends jointly on the kernel and the geometry, so the cases cannot be
 tabulated; generation is the only option. This package should provide **rules** — nodes
 and weights with a claim and a certificate — and leave assembly, basis functions and
@@ -75,8 +75,8 @@ direction. Gauss–Legendre in `s` times the Gauss rule of that weight on `[0, 1
 integrates `p(y)/|y − v₀|` **exactly** for every `p` of degree `≤ d`, with `⌈(d+1)/2⌉²` points.
 
 That is an ordinary `PolynomialDegree(d)` claim on a weighted domain — the triangle with the
-weight `1/|y − v₀|` — the case PLAN §6 lists as "product-integration rules for singular
-kernels". The weight depends on the triangle's shape through `q`, so the rule has to be
+weight `1/|y − v₀|` — a product-integration rule for a singular
+kernel. The weight depends on the triangle's shape through `q`, so the rule has to be
 generated per element: one Gauss rule for a weight known in closed form, which the package
 already builds at any precision (`FunctionWeight`, or the moments of `t^k/√q(t)`, which
 satisfy a three-term recurrence). The other cases reduce to this one:

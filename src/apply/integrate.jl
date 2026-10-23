@@ -1,8 +1,8 @@
-# Applying rules (PLAN §3.1).
+# Applying rules.
 #
 # There is deliberately no `integrate(f, domain; degree = 20)`: construction must be a
 # visible subexpression, `integrate(f, rule(domain; degree = 20))`, so that it is hoisted
-# out of loops. The package does not cache rules (§7), so such an overload would silently
+# out of loops. The package does not cache rules, so such an overload would silently
 # rebuild the rule on every call.
 #
 # Accumulation is generic in the integrand's return type: the accumulator starts from the

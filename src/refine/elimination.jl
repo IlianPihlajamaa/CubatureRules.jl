@@ -1,4 +1,4 @@
-# Node elimination (PLAN §6 Tier 4), pulled forward by the v0.2 gate: a from-scratch
+# Node elimination, adopted because a from-scratch
 # multistart search for tetrahedral rules grew 3–5× more expensive per degree.
 #
 # Two operations, both working on orbit structures so that symmetry is kept exactly:

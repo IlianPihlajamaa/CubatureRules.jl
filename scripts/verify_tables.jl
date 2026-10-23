@@ -1,5 +1,5 @@
-# Verify every shipped symmetric rule, independently of the machinery that produced it
-# (PLAN §8: verification as an output, not just a test).
+# Verify every shipped symmetric rule, independently of the machinery that produced it:
+# verification as an output, not just a test.
 #
 #     julia --project -t auto scripts/verify_tables.jl [digits] [degrees] [domains]
 #

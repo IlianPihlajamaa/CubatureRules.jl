@@ -1,5 +1,5 @@
-# Gauss–Jacobi rules (PLAN §6 Tier 1), included in v0.1 because the conical product needs
-# them. Seed: Golub–Welsch in Float64. Refine: Newton on the three-term recurrence in
+# Gauss–Jacobi rules, which the conical product on the simplex is built from.
+# Seed: Golub–Welsch in Float64. Refine: Newton on the three-term recurrence in
 # BigFloat. Weights from the Christoffel function w_i = 1 / Σ_k p_k(x_i)².
 
 """

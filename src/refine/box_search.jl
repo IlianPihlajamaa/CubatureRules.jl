@@ -1,5 +1,5 @@
-# Seeds for fully symmetric rules on the square and the cube, and on the disk and the ball
-# (PLAN §6 Tier 4), all in Float64: multistart over the orbit structures of a given point count
+# Seeds for fully symmetric rules on the square and the cube, and on the disk and the ball,
+# all in Float64: multistart over the orbit structures of a given point count
 # at low degree, and grow → eliminate above it, as for the simplex (refine/elimination.jl), on
 # the orbits of symmetry/box.jl. The orbits are the same on the box and the ball; what differs
 # is the moment system and where an orbit's values may lie, which an `OrbitGeometry` supplies.

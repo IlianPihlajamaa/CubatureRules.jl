@@ -1,4 +1,4 @@
-# cite(rule) → BibTeX, APA or plain text (PLAN §5 item 1).
+# cite(rule) → BibTeX, APA or plain text.
 
 """
     cite(rule; style = :bibtex)

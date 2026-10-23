@@ -1,5 +1,5 @@
-# A measure given by a function that can be evaluated at any precision (PLAN §6 Tier 2:
-# Gautschi's multiple-component discretisation, `mcdis`).
+# A measure given by a function that can be evaluated at any precision, discretised
+# by Gautschi's multiple-component discretisation (`mcdis`).
 #
 # The measure is a sum of pieces and point masses. Each piece is a smooth function `g` times
 # a classical factor that carries whatever makes the piece hard to integrate: an endpoint

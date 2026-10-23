@@ -1,6 +1,6 @@
 # Metadata carried by a constructed rule: where it came from (Provenance), whether the
-# construction converged (Certificate, §1) and whether it is what it claims (Verification,
-# §8). Certification and verification are different checks with different types.
+# construction converged (Certificate) and whether it is what it claims
+# (Verification). Certification and verification are different checks with different types.
 
 """
     Citation
@@ -27,7 +27,7 @@ end
     Derived()
     Seeded()
 
-The two derivation classes (PLAN §1). A *derived* rule is constructed from first
+The two derivation classes. A *derived* rule is constructed from first
 principles at any order; a *seeded* rule is refined from a starting point that exists only
 at tabulated orders.
 """
@@ -77,7 +77,7 @@ with_step(p::Provenance, s::AbstractString; symmetry::SymmetryGroup = p.symmetry
 """
     Certificate
 
-The measured outcome of refinement (PLAN §1, §2.7): *did Newton converge on the system it
+The measured outcome of refinement: *did Newton converge on the system it
 was given?* Not to be confused with [`Verification`](@ref).
 
 - `equations` — which defining equations the residual refers to
@@ -120,7 +120,7 @@ end
 """
     Verification
 
-The outcome of checking a rule against a basis of its claimed space (PLAN §8): *is this
+The outcome of checking a rule against a basis of its claimed space: *is this
 rule what it claims to be?*
 
 - `basis` — the basis used, e.g. "orthonormal Dubiner"

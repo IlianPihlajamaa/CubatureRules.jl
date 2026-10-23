@@ -1,4 +1,4 @@
-# Fully symmetric, positive, interior rules on the disk and the ball (PLAN §6 Tier 3), refined
+# Fully symmetric, positive, interior rules on the disk and the ball, refined
 # to arbitrary precision: `FullySymmetric` on `Disk()` and `Ball{3}()`.
 #
 # The rules are invariant under the signed permutations of the coordinates, the 8 symmetries of

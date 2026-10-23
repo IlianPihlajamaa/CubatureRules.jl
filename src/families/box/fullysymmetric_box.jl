@@ -1,4 +1,4 @@
-# Fully symmetric, positive, interior rules on the square and the cube (PLAN §6 Tier 3, v0.6),
+# Fully symmetric, positive, interior rules on the square and the cube,
 # refined to arbitrary precision: `FullySymmetric` on `Orthotope{2}()` and `Orthotope{3}()`.
 #
 # The seeds in src/data/square_d4_seeds.toml and src/data/cube_oh_seeds.toml were found

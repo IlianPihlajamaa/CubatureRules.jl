@@ -1,4 +1,4 @@
-# Balls (PLAN §2.1, v0.4): the solid counterpart of `Sphere{D}`, and the disk when D = 2.
+# Balls: the solid counterpart of `Sphere{D}`, and the disk when D = 2.
 #
 # Everything about a ball follows from the sphere by one radial integral. Its volume is the
 # sphere's area over D, and its monomial moments are the sphere's over |α| + D:

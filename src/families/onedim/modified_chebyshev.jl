@@ -1,4 +1,4 @@
-# Modified Chebyshev: a Gauss rule from moments (PLAN §6 Tier 2).
+# Modified Chebyshev: a Gauss rule from moments.
 #
 # The classical route to a Gauss rule for an unfamiliar weight goes through its moments: 2n
 # of them determine the n-point rule. The route is also famous for being unusable. Against

@@ -1,4 +1,4 @@
-# Newton–Cotes rules (PLAN §6 Tier 1): equally spaced nodes, weights from exact integration
+# Newton–Cotes rules: equally spaced nodes, weights from exact integration
 # of the Lagrange basis. Everything is done in Rational{BigInt} and rounded once, so
 # `T = Rational{BigInt}` gives the exact rule — the form people want when writing papers.
 #

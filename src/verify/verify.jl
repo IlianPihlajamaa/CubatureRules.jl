@@ -1,4 +1,4 @@
-# Verification (PLAN §8): is this rule what it claims to be? Distinct from the Certificate,
+# Verification: is this rule what it claims to be? Distinct from the Certificate,
 # which only says that Newton converged on the system it was given.
 #
 # Exactness is tested against *orthonormal* bases (Dubiner on triangles and tetrahedra,

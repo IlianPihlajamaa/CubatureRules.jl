@@ -50,7 +50,7 @@ function curved_ray_rule(el, X0, v, Av, m, bits, gl)
     end
     return converged_stieltjes(discretize, m, bits; name = "DuffyCurved", failure = (M, gap) ->
         "the Gauss rule of a ray's weight on $(el) did not converge to $bits bits with $M points " *
-        "(the recurrence still changed by $gap): is the element folded?")
+        "(the recurrence still changed by $(@sprintf("%.1e", gap))): is the element folded?")
 end
 
 """

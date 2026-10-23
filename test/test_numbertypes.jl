@@ -1,4 +1,4 @@
-# Number types exercised in CI (PLAN §7): Float32, Float64, Double64, BigFloat at several
+# Number types exercised in CI: Float32, Float64, Double64, BigFloat at several
 # precisions, Rational{BigInt} for the exact families.
 using CubatureRules, Test
 import CubatureRules: monomial_moment, ⊗   # public, not exported

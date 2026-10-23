@@ -1,5 +1,5 @@
-# Construction-only benchmarking (PLAN §4.6): the package's own performance regression
-# test, tracked from v0.1.
+# Construction-only benchmarking: the package's own performance regression
+# test.
 
 """
     benchmark_construction(domain; degrees = 1:2:21, T = Float64, digits = nothing,

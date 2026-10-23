@@ -1,4 +1,4 @@
-# Grundmann–Möller rules on the D-simplex (PLAN §6 Tier 1): explicit formula, exact
+# Grundmann–Möller rules on the D-simplex: explicit formula, exact
 # rationals, any dimension, odd degree d = 2s + 1.
 #
 #     ∫ f ≈ Σ_{i=0}^{s} (-1)^i 2^{-2s} (d+D-2i)^d / (i! (d+D-i)!)

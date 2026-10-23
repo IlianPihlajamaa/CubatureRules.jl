@@ -1,4 +1,4 @@
-# What a rule claims (PLAN §2.2).
+# What a rule claims.
 #
 # The claim hierarchy models *exactness* only. Convergence behaviour is a property of a
 # family of rules and belongs to a (future) error subsystem, not here.

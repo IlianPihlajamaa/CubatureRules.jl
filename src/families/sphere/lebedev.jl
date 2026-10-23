@@ -1,7 +1,6 @@
-# Lebedev-style O_h-symmetric sphere rules, refined to arbitrary precision
-# (PLAN §6 Tier 3, v0.4).
+# Lebedev-style O_h-symmetric sphere rules, refined to arbitrary precision.
 #
-# Seeds. Nothing is copied from any published table (PLAN §0.2). The orbit structures and
+# Seeds. Nothing is copied from any published table. The orbit structures and
 # Float64 seeds in `src/data/lebedev_seeds.toml` were found in-house by multistart
 # Levenberg–Marquardt and Gauss–Newton on the O_h-invariant moment system
 # (`scripts/generate_lebedev_seeds.jl`), searching point counts upward until a positive,
@@ -156,8 +155,9 @@ const LEBEDEV_1976 = Citation(
 const LEBEDEV_SEED_FILE = joinpath(@__DIR__, "..", "..", "data", "lebedev_seeds.toml")
 isfile(LEBEDEV_SEED_FILE) && include_dependency(LEBEDEV_SEED_FILE)
 
-# Static package data, parsed once at precompile time (not a cache of rules: see §7). Each row
-# records its `method`: "multistart" (degrees 3-17) or "continuation" (133-201).
+# Static package data, parsed once at precompile time (not a cache of rules: the package
+# caches none). Each row records its `method`: "multistart" (degrees 3-17), "pooled search,
+# grown from degree 17" (19-131) or "continuation" (133-201).
 const LEBEDEV_SEEDS = load_seeds(LEBEDEV_SEED_FILE, OctahedralStructure, m -> OctahedralStructure(Symbol.(m)))
 
 lebedev_entries() = filter(e -> e.status == "ok", LEBEDEV_SEEDS)

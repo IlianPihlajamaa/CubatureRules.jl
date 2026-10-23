@@ -1,5 +1,5 @@
 # Conical (Stroud / collapsed-coordinate) product rules on the D-simplex: Gauss–Jacobi in
-# collapsed coordinates. The always-available fallback at any degree (PLAN §6 Tier 1).
+# collapsed coordinates. The always-available fallback at any degree.
 #
 #     x₁ = u₁,  x_j = u_j Π_{i<j} (1 - u_i),    dx = Π_i (1 - u_i)^{D-i} du
 #
@@ -23,7 +23,7 @@ family_name(::ConicalProduct) = "ConicalProduct"
 describe_family(f::ConicalProduct) = "ConicalProduct(" * family_name(f.inner) * ")"
 inner_families(f::ConicalProduct) = (f.inner,)
 
-# Combinators recurse into the leaf families (PLAN §2.5), to nesting depth 1.
+# Combinators recurse into the leaf families, to nesting depth 1.
 function candidates(::Type{<:ConicalProduct}, dom::Simplex, c::PolynomialDegree)
     isreference(dom) || return ConicalProduct[]
     out = ConicalProduct[]

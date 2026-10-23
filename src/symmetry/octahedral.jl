@@ -1,4 +1,4 @@
-# Orbit algebra for the octahedral group O_h on the sphere (PLAN §6 Tier 3, v0.4), the
+# Orbit algebra for the octahedral group O_h on the sphere, the
 # symmetry of the Lebedev rules. Where the simplex machinery has S_N permuting barycentric
 # coordinates, this has all 48 signed permutations of Cartesian ones.
 #

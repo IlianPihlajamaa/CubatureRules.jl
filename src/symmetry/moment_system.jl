@@ -1,5 +1,5 @@
 # Moment equations for fully symmetric rules: invariant basis × orbits → residual and
-# Jacobian (PLAN §6 Tier 3). The same code serves the triangle (S₃) and the tetrahedron (S₄).
+# Jacobian. The same code serves the triangle (S₃) and the tetrahedron (S₄).
 #
 # Unknowns θ: per orbit [w, v₁, …] (weight per point, free barycentric values).
 # Full residual  r_k = Σ_nodes w φ_k(x) − ∫ φ_k   over the orthonormal Dubiner basis to degree n.

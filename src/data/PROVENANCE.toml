@@ -1,4 +1,4 @@
-# Provenance manifest for every data file shipped in src/data (PLAN §0.2).
+# Provenance manifest for every data file shipped in src/data.
 #
 # Policy: every stored table records its original author, the paper DOI, the exact source
 # the numbers were taken from, its licence and the date retrieved. Nothing is transcribed
