@@ -4,5 +4,10 @@ Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 QuadratureRules = "a08977f5-a20d-4b99-b11f-f5ea535e0575"
 SauterSchwabQuadrature = "535c7bfe-2023-5c1d-b712-654ef9d93a38"
 
+[compat]
+Documenter = "1"
+QuadratureRules = "0.2.1"
+SauterSchwabQuadrature = "2"
+
 [sources]
 CubatureRules = {path = ".."}
