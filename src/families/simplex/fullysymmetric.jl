@@ -95,8 +95,6 @@ function build(f::FullySymmetric, dom::Simplex{D}, degree::Int, ctx::BuildContex
     return build_seeded(e, ctx; seed, lower = seed_entry_below(simplex_entries(D), e.degree), family = "FullySymmetric",
                         domain = Simplex{D}(), symmetry = SymmetricGroup{D + 1}(), table = simplex_table(D),
                         origin = SIMPLEX_ORIGIN, equations = simplex_equations(D + 1, e.degree),
-                        citations = D == 3 ? [WITHERDEN_VINCENT_2015, ZHANG_CUI_LIU_2009] : Citation[],
-                        license = D == 3 ? "MIT (seeds and point counts generated in-house; the citations are " *
-                                           "the published rules of the same class, for comparison, not a source)" :
-                                           "MIT (seeds and point counts generated in-house)")
+                        comparisons = D == 3 ? [WITHERDEN_VINCENT_2015, ZHANG_CUI_LIU_2009] : Citation[],
+                        license = "MIT (seeds and point counts generated in-house)")
 end

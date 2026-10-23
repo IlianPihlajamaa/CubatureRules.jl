@@ -26,12 +26,37 @@ end
 @testset "cite" begin
     r = rule(Simplex{2}(); degree = 10)
     b = cite(r)
-    @test startswith(b, "@article{XiaoGimbutas2010,")
-    @test occursin("doi = {10.1016/j.camwa.2009.10.027}", b)
+    # a rule of the package's own table: the package first, then the class of rules it follows
+    @test startswith(b, "@misc{Pihlajamaa_CubatureRules,")
+    @test occursin("@article{XiaoGimbutas2010,", b) && occursin("doi = {10.1016/j.camwa.2009.10.027}", b)
+    @test !occursin("Compared with", b)
     @test occursin("Xiao, H., & Gimbutas, Z. (2010).", cite(r; style = :apa))
     @test occursin("doi:10.1016", cite(r; style = :plain))
     @test_throws ArgumentError cite(r; style = :mla)
     @test occursin("@book{Stroud1971", cite(rule(ConicalProduct(), Simplex{2}(); degree = 3)))
+    # published rules a table was only compared with are no sources: listed apart, after them
+    c = rule(FullySymmetric(), Orthotope{3}(); degree = 9)
+    ckeys(cs) = [x.key for x in cs]
+    @test ckeys(provenance(c).citations) == ["Pihlajamaa_CubatureRules"]
+    @test ckeys(provenance(c).comparisons) == ["WitherdenVincent2015"]
+    bc = cite(c)
+    head, wv = findfirst("% Compared with, not sources of this rule:", bc), findfirst("WitherdenVincent2015", bc)
+    @test head !== nothing && wv !== nothing && first(wv) > last(head)
+    @test !occursin("WitherdenVincent2015", cite(c; comparisons = false))
+    @test occursin("Compared with, not sources", cite(c; style = :plain))
+    shown = sprint(show, MIME"text/plain"(), c)
+    @test occursin("reference : CubatureRules.jl (2026)", shown) && occursin("compared  : Witherden & Vincent (2015)", shown)
+    @test occursin("compared  : WitherdenVincent2015", sprint(show, MIME"text/plain"(), provenance(c)))
+    # Witherden & Vincent have no 4-cube rules; the sphere's degree 19-131 grew from the
+    # package's own degree-17 rule, and its 133-201 from Lebedev & Laikov's degree-131 one
+    @test isempty(provenance(rule(FullySymmetric(), Orthotope{4}(); degree = 5)).comparisons)
+    s41 = provenance(rule(LebedevRule(), Sphere{3}(); degree = 41))
+    @test ckeys(s41.citations) == ["Pihlajamaa_CubatureRules", "Lebedev1976"] && ckeys(s41.comparisons) == ["LebedevLaikov1999"]
+    s133 = provenance(rule(LebedevRule(), Sphere{3}(); degree = 133))
+    @test ckeys(s133.citations) == ["Pihlajamaa_CubatureRules", "Lebedev1976", "LebedevLaikov1999"] && isempty(s133.comparisons)
+    # a product rule carries its parts' comparisons along with their citations
+    b41 = provenance(rule(BallProduct(LebedevRule()), Ball{3}(); degree = 41))
+    @test "Lebedev1976" in ckeys(b41.citations) && ckeys(b41.comparisons) == ["LebedevLaikov1999"]
 end
 
 @testset "construction benchmark" begin

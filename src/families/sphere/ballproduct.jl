@@ -104,7 +104,8 @@ function build(f::BallProduct, dom::Ball{D}, degree::Int, ctx::BuildContext{T}) 
                               "angular: " * describe_family(f.angular) * ", $(npoints(ang)) points",
                               "claim: min(2n-1, angular degree) = $(claimed_degree(f, dom, degree))"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry(),
+                      citations = vcat(provenance(ang).citations, [STROUD_1971]),
+                      comparisons = provenance(ang).comparisons, symmetry = NoSymmetry(),
                       license = provenance(ang).license)
     return QuadratureRule(xout, wout, Ball{D}(), PolynomialDegree(claimed_degree(f, dom, degree)), prov, cert)
 end

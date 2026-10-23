@@ -1,12 +1,28 @@
 # I want to cite a rule
 
-Each rule records the publications it is based on. [`cite`](@ref) returns them as BibTeX:
+Each rule records its sources. [`cite`](@ref) returns them as BibTeX:
 
 ```@repl cite
 using CubatureRules
 r = rule(Simplex{2}(); degree = 17);
 print(cite(r))
 ```
+
+This rule comes from the package's own table, so the first reference is the package itself:
+the numbers were computed by its searches. The second is the class of rules it belongs to,
+the fully symmetric triangle rules of Xiao and Gimbutas, at whose point counts or fewer the
+table's rules are.
+
+Some tables were also compared with published rules of the same class, which were not used
+to make them. Those come last, under a heading that says so, for further reading:
+
+```@repl cite
+print(cite(rule(Orthotope{3}(); degree = 9)))
+```
+
+`cite(r; comparisons = false)` leaves them out. If you use the package as a whole rather
+than one rule, cite it as [CITATION.cff](https://github.com/IlianPihlajamaa/CubatureRules.jl/blob/main/CITATION.cff)
+describes; GitHub's "Cite this repository" button gives the same as BibTeX.
 
 Other formats are available through `style`:
 

@@ -127,7 +127,8 @@ function build(f::ExponentialProduct, dom::ExponentialDomain{D}, degree::Int, ct
                               "odd degrees vanish through the angular factor, so only even ones " *
                               "reach the radial rule"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971, WHEELER_1974]), symmetry = NoSymmetry(),
+                      citations = vcat(provenance(ang).citations, [STROUD_1971, WHEELER_1974]),
+                      comparisons = provenance(ang).comparisons, symmetry = NoSymmetry(),
                       license = provenance(ang).license)
     return QuadratureRule(xout, wout, ExponentialSpace(D), PolynomialDegree(claimed_degree(f, dom, degree)),
                           prov, cert)

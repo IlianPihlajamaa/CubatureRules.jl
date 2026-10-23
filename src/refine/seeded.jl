@@ -124,11 +124,14 @@ seed_parameters(seed::SeedSource, e::SeedEntry, ctx; family, domain, kw...) = th
 
 """
     build_seeded(e::SeedEntry, ctx; family, domain, symmetry, table, origin, equations,
-                 citations = Citation[], license, seed = TableSeed(), lower = nothing)
+                 citations = Citation[], comparisons = Citation[], license, seed = TableSeed(),
+                 lower = nothing)
 
 Seed → refine → certify for the seed-table row `e`, shared by every family backed by an
 orbit-structure table. `table` and `origin` say where the row comes from, `equations` what
-the certificate's residual is of. `seed` chooses where the refinement starts (see
+the certificate's residual is of. The rule's citations start with this package, whose
+searches produced the table; `citations` adds the method it follows, and `comparisons` the
+published rules it was compared with. `seed` chooses where the refinement starts (see
 [`SeedSource`](@ref)); `lower`, the row one degree down, is what [`LowerDegreeSeed`](@ref)
 grows from.
 
@@ -142,7 +145,7 @@ twice the precision.
 """
 function build_seeded(e::SeedEntry, ctx::BuildContext{T}; family::String, domain::Domain, symmetry::SymmetryGroup,
                       table::String, origin::String, equations::String, citations::Vector{Citation} = Citation[],
-                      license::String, seed::SeedSource = TableSeed(),
+                      comparisons::Vector{Citation} = Citation[], license::String, seed::SeedSource = TableSeed(),
                       lower::Union{Nothing,SeedEntry} = nothing) where {T}
     isexact(ctx) && throw(ArgumentError("$family nodes are irrational; $(T) is not supported"))
     n = e.degree
@@ -191,6 +194,7 @@ function build_seeded(e::SeedEntry, ctx::BuildContext{T}; family::String, domain
                        digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)), cond, iterations,
                        next_error = isfinite(e.next_error) ? BigFloat(e.next_error; precision = 64) : nothing)
     prov = Provenance(; family, derivation = Seeded(), path = vcat(["seed: " * seed_desc, "structure: " * string(structure)], steps),
-                      seed_source = seed_desc, citations, symmetry, license)
+                      seed_source = seed_desc, citations = vcat([CUBATURERULES_JL], citations), comparisons,
+                      symmetry, license)
     return QuadratureRule(nodes, wt, domain, PolynomialDegree(n), prov, cert)
 end

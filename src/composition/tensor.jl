@@ -78,6 +78,7 @@ function build(f::TensorProduct, dom::Orthotope{D}, degree::Int, ctx::BuildConte
                                   ["claim: conservative total degree $(claim.d), not the tensor-product space"]),
                       seed_source = join(unique(provenance(p).seed_source for p in parts), "; "),
                       citations = unique(reduce(vcat, [provenance(p).citations for p in parts])),
+                      comparisons = unique(reduce(vcat, [provenance(p).comparisons for p in parts])),
                       license = join_licenses(provenance(p).license for p in parts))
     return QuadratureRule(xs, ws, Orthotope{D}(), claim, prov, cert)
 end
@@ -116,6 +117,7 @@ function ⊗(a::QuadratureRule{Da,Ta}, b::QuadratureRule{Db,Tb}) where {Da,Ta,Db
                               "claim: conservative total degree, not the tensor-product space"],
                       seed_source = provenance(a).seed_source * "; " * provenance(b).seed_source,
                       citations = unique(vcat(provenance(a).citations, provenance(b).citations)),
+                      comparisons = unique(vcat(provenance(a).comparisons, provenance(b).comparisons)),
                       license = join_licenses((provenance(a).license, provenance(b).license)))
     return QuadratureRule(xs, ws, Orthotope{D,T}(lo, hi), claim, prov, nothing)
 end

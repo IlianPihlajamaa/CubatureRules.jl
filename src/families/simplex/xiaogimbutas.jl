@@ -80,5 +80,5 @@ function build(f::XiaoGimbutas, dom::Simplex{2}, degree::Int, ctx::BuildContext;
                         domain = Simplex{2}(), symmetry = SymmetricGroup{3}(), table = "src/data/triangle_s3_seeds.toml",
                         origin = SIMPLEX_ORIGIN, equations = simplex_equations(3, e.degree),
                         citations = [XIAO_GIMBUTAS_2010],
-                        license = "MIT (seeds generated in-house; point counts from Xiao & Gimbutas 2010)")
+                        license = "MIT (seeds generated in-house, at the point counts of Xiao & Gimbutas 2010 or fewer)")
 end

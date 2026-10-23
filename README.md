@@ -87,6 +87,13 @@ version.
   and rule families
 - [Architecture & Design](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/design/pipeline/)
 
+## Citing
+
+If you use the package, please cite it: [CITATION.cff](CITATION.cff) has the details, and
+GitHub's "Cite this repository" gives them as BibTeX. `cite(r)` gives the references of a
+single rule: the package for the rules of its own tables, the method they follow, and the
+published rules of the same class they were compared with.
+
 ## Licence
 
 MIT. All tables shipped with the package were computed for it from orbit structures; no

@@ -46,8 +46,9 @@ before.
   rule's precision, that the rule is not exact one degree higher, and its structure;
   `@test_exact` puts this in a test suite.
 - `certificate(r)` records how the refinement went, `provenance(r)` how the rule was made
-  and chosen, and `cite(r)` the references. The licence of the underlying data travels with
-  the rule.
+  and chosen, and `cite(r)` its sources, separately from the published rules it was only
+  compared with. The licence of the underlying data travels with the rule. The package
+  itself is cited as `CITATION.cff` describes.
 
 ### Applying rules
 

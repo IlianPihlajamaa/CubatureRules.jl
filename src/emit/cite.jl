@@ -1,17 +1,26 @@
 # cite(rule) → BibTeX, APA or plain text.
 
 """
-    cite(rule; style = :bibtex)
+    cite(rule; style = :bibtex, comparisons = true)
     cite(citation; style = :bibtex)
 
-The references for a rule, from its provenance: `style = :bibtex`, `:apa` or `:plain`. A
-rule that records none (a user's rule passed through `transform`, say) says so rather than
-returning an empty string.
+The references for a rule, from its provenance: `style = :bibtex`, `:apa` or `:plain`. First
+the rule's sources: for a rule from this package's own tables, the package, then the method
+the rules follow. Then, under a heading that says so, the published rules of the same class
+it was compared with but not made from, as further reading; `comparisons = false` leaves
+them out. A rule that records nothing (a user's rule passed through `transform`, say) says
+so rather than returning an empty string.
 """
-function cite(r::QuadratureRule; style::Symbol = :bibtex)
-    isempty(r.provenance.citations) || return join((cite(c; style) for c in r.provenance.citations), "\n\n")
+function cite(r::QuadratureRule; style::Symbol = :bibtex, comparisons::Bool = true)
     style in (:bibtex, :apa, :plain) || throw(ArgumentError("unknown citation style :$style (use :bibtex, :apa or :plain)"))
-    return (style === :bibtex ? "% " : "") * "no references are recorded for this rule ($(family(r)))"
+    p = r.provenance
+    others = comparisons ? p.comparisons : Citation[]
+    comment = style === :bibtex ? "% " : ""
+    isempty(p.citations) && isempty(others) && return comment * "no references are recorded for this rule ($(family(r)))"
+    parts = [cite(c; style) for c in p.citations]
+    isempty(others) ||
+        push!(parts, comment * "Compared with, not sources of this rule:\n\n" * join((cite(c; style) for c in others), "\n\n"))
+    return join(parts, "\n\n")
 end
 
 function cite(c::Citation; style::Symbol = :bibtex)

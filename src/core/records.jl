@@ -23,6 +23,14 @@ Base.@kwdef struct Citation
     url::String = ""
 end
 
+# The package itself: the source of every rule in its own seed tables, which its searches
+# produced. CITATION.cff at the repository root says the same for GitHub.
+const CUBATURERULES_JL = Citation(key = "Pihlajamaa_CubatureRules", authors = ["Ilian Pihlajamaa"],
+                                  title = "CubatureRules.jl: quadrature and cubature rules computed on demand, " *
+                                          "at any degree and precision",
+                                  journal = "GitHub", year = 2026, kind = :software,
+                                  url = "https://github.com/IlianPihlajamaa/CubatureRules.jl")
+
 """
     Derived()
     Seeded()
@@ -48,6 +56,10 @@ Where a rule came from: family, derivation class and path, seed source, citation
 licence of any data used, and — when chosen by the selector — the selection record.
 `symmetry` is the [`SymmetryGroup`](@ref) the rule claims (`NoSymmetry()`, `SymmetricGroup{3}()`, …), which
 verification checks.
+
+`citations` are the rule's sources: the publications or packages its numbers or its method
+come from. `comparisons` are published rules of the same class that it was compared with,
+for example by point count, but not made from: further reading, not sources.
 """
 Base.@kwdef struct Provenance
     family::String
@@ -55,6 +67,7 @@ Base.@kwdef struct Provenance
     path::Vector{String} = String[]
     seed_source::String = "none"
     citations::Vector{Citation} = Citation[]
+    comparisons::Vector{Citation} = Citation[]
     license::String = "MIT"
     selection::String = ""
     symmetry::SymmetryGroup = NoSymmetry()
@@ -67,7 +80,8 @@ A copy of `p` with the fields given as keywords replaced, e.g. `Provenance(p; li
 """
 function Provenance(p::Provenance; kw...)
     fields = (family = p.family, derivation = p.derivation, path = p.path, seed_source = p.seed_source,
-              citations = p.citations, license = p.license, selection = p.selection, symmetry = p.symmetry)
+              citations = p.citations, comparisons = p.comparisons, license = p.license,
+              selection = p.selection, symmetry = p.symmetry)
     return Provenance(; merge(fields, values(kw))...)
 end
 with_selection(p::Provenance, s::AbstractString) = Provenance(p; selection = String(s))

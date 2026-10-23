@@ -77,6 +77,7 @@ function build(f::WedgeProduct, dom::Wedge, degree::Int, ctx::BuildContext{T}) w
                                   ["triangle " * s for s in provenance(t).path]),
                       seed_source = join(unique((provenance(t).seed_source, provenance(l).seed_source)), "; "),
                       citations = unique(vcat(provenance(t).citations, provenance(l).citations)),
+                      comparisons = unique(vcat(provenance(t).comparisons, provenance(l).comparisons)),
                       license = join_licenses((provenance(t).license, provenance(l).license)))
     return QuadratureRule(xs, ws, Wedge(), claim, prov, cert)
 end

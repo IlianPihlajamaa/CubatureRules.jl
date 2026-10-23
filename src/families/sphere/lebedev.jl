@@ -216,6 +216,9 @@ function build(f::LebedevRule{InHouseSeeds}, dom::Sphere{3}, degree::Int, ctx::B
                                  "generated in-house by multistart from the orbit structure",
                         equations = "O_h-invariant moment system in orbit parameters (invariants p₄^a p₆^b, " *
                                     "4a + 6b ≤ $(e.degree))",
-                        citations = continued || pooled ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976],
+                        # the continuation started from Lebedev & Laikov's degree-131 rule; the
+                        # pooled search grew its rules from this package's own degree-17 rule
+                        citations = continued ? [LEBEDEV_1976, LEBEDEV_LAIKOV_1999] : [LEBEDEV_1976],
+                        comparisons = pooled ? [LEBEDEV_LAIKOV_1999] : Citation[],
                         license = "MIT (seeds generated in-house; no published tables are redistributed)")
 end

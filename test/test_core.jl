@@ -143,6 +143,7 @@ end
     q = CR.Provenance(p; license = "CC-BY-4.0", symmetry = CR.NoSymmetry())
     @test q.license == "CC-BY-4.0" && q.symmetry === CR.NoSymmetry()
     @test q.family == p.family && q.path == p.path && q.selection == p.selection && q.citations == p.citations
+    @test CR.Provenance(CR.Provenance(p; comparisons = p.citations); license = "x").comparisons == p.citations
     r2 = CR.with_provenance(r, q)
     @test nodes(r2) == nodes(r) && weights(r2) == weights(r) && provenance(r2) === q && certificate(r2) === certificate(r)
     @test last(CR.with_step(p, "a step").path) == "a step" && CR.with_selection(p, "chosen").selection == "chosen"

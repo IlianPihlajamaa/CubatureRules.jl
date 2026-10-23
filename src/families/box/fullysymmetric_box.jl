@@ -62,7 +62,7 @@ function build(f::FullySymmetric, dom::Orthotope{D}, degree::Int, ctx::BuildCont
     return build_seeded(e, ctx; seed, family = "FullySymmetric", domain = Orthotope{D}(), symmetry = box_symmetry(D),
                         table = box_table(D), origin = ORBIT_TABLE_ORIGIN,
                         equations = "B_$D-invariant moment system (symmetrised even Legendre products, degree ≤ $(e.degree))",
-                        citations = [WITHERDEN_VINCENT_2015],
-                        license = "MIT (seeds and point counts generated in-house; the citation is the published " *
-                                  "rules of the same class, for comparison, not a source)")
+                        # Witherden & Vincent tabulate the square and the cube, not the 4-cube
+                        comparisons = D <= 3 ? [WITHERDEN_VINCENT_2015] : Citation[],
+                        license = "MIT (seeds and point counts generated in-house)")
 end

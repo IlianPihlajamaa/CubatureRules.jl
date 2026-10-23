@@ -43,6 +43,6 @@ function build(f::FullySymmetric, dom::Wedge, degree::Int, ctx::BuildContext; se
                         table = WEDGE_TABLE, origin = ORBIT_TABLE_ORIGIN,
                         equations = "D₃ₕ-invariant moment system on the wedge (triangle invariants times even " *
                                     "Legendre polynomials in z, degree ≤ $(e.degree))",
-                        citations = [WITHERDEN_VINCENT_2015],
+                        comparisons = [WITHERDEN_VINCENT_2015],
                         license = "MIT (seeds generated in-house; point counts compared with Witherden & Vincent 2015)")
 end

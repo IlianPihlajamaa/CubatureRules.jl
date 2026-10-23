@@ -29,13 +29,14 @@ function Base.show(io::IO, ::MIME"text/plain", r::QuadratureRule{D,T}) where {D,
         rdig = c.residual_bits > 0 ? " at $(floor(Int, c.residual_bits * log10(2)))-digit arithmetic" : ""
         println(io, "  residual  : ", @sprintf("%.1e", c.residual), "  (defining equations", rdig, ": ", c.equations, ")")
     end
-    if !isempty(p.citations)
-        cit = first(p.citations)
-        print(io, "  reference : ", _short_author(cit), " (", cit.year, ")", isempty(cit.doi) ? "" : ", doi:" * cit.doi)
-    else
-        print(io, "  reference : —")
-    end
+    # the sources one per line; then the rules it was compared with, which are not sources
+    print(io, "  reference : ", isempty(p.citations) ? "—" : join(_short_citation.(p.citations), "\n              "))
+    isempty(p.comparisons) || print(io, "\n  compared  : ", join(_short_citation.(p.comparisons), "\n              "))
 end
+
+_short_citation(c::Citation) = _short_name(c) * " (" * string(c.year) * ")" * (isempty(c.doi) ? "" : ", doi:" * c.doi)
+# a package goes by its name, the part of the title before the colon
+_short_name(c::Citation) = c.kind === :software ? String(strip(first(split(c.title, ':')))) : _short_author(c)
 
 # A weight that underflowed to zero (Gauss–Laguerre at a few hundred points in Float64) is
 # not a negative one.
@@ -77,4 +78,5 @@ function Base.show(io::IO, ::MIME"text/plain", p::Provenance)
     println(io, "  licence   : ", p.license)
     isempty(p.selection) || println(io, "  selection : ", p.selection)
     print(io, "  cites     : ", join((c.key for c in p.citations), ", "))
+    isempty(p.comparisons) || print(io, "\n  compared  : ", join((c.key for c in p.comparisons), ", "))
 end

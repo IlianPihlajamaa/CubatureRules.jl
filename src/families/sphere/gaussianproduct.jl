@@ -111,7 +111,8 @@ function build(f::GaussianProduct, dom::GaussianDomain{D}, degree::Int, ctx::Bui
                               "odd degrees vanish through the angular factor, so only even ones " *
                               "reach the radial rule"],
                       seed_source = provenance(ang).seed_source,
-                      citations = vcat(provenance(ang).citations, [STROUD_1971]), symmetry = NoSymmetry(),
+                      citations = vcat(provenance(ang).citations, [STROUD_1971]),
+                      comparisons = provenance(ang).comparisons, symmetry = NoSymmetry(),
                       license = provenance(ang).license)
     return QuadratureRule(xout, wout, GaussianSpace(D), PolynomialDegree(claimed_degree(f, dom, degree)),
                           prov, cert)

@@ -13,7 +13,8 @@ p = provenance(rule(Simplex{2}(); degree = 17))
 | `derivation` | `Derived()` or `Seeded()` |
 | `path` | the steps of the construction: seed, refinement, guard, and any later transformation |
 | `seed_source` | where the starting values came from |
-| `citations` | the publications the rule is based on |
+| `citations` | the rule's sources: the publications or packages its numbers or its method come from |
+| `comparisons` | published rules of the same class that it was compared with, but not made from |
 | `license` | the licence of the numbers in the rule |
 | `selection` | why this family was chosen |
 | `symmetry` | the symmetry group of the rule, if any |
@@ -24,9 +25,18 @@ Operations that change a rule, such as `map_to` or `transform`, add a step to `p
 ## Citations
 
 `cite(r)` formats the citations of a rule as BibTeX, or as plain text or APA with
-`style = :plain` or `style = :apa`. Families attach their citations in `build`. For seeded
-families these are the papers that the point counts or the orbit structures come from, even
-though the numbers themselves were computed here.
+`style = :plain` or `style = :apa`. Families attach their citations in `build`.
+
+A rule from the package's own tables cites the package first: its numbers were computed
+here, by searches that start from orbit structures. After it come the methods the rules
+follow: Lebedev (1976) for the sphere and Xiao & Gimbutas (2010) for the triangle. The
+sphere rules of degrees 133–201 also cite Lebedev & Laikov (1999), because the search
+that found them started from their degree-131 rule.
+
+Published rules that a table was only compared with, by point count, are kept apart, as
+`comparisons`. `cite(r)` lists them after the sources under a heading that says they are
+not sources, as further reading on rules of the same class, and
+`cite(r; comparisons = false)` leaves them out.
 
 ## Licences
 
