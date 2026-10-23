@@ -1,6 +1,7 @@
 # CubatureRules.jl
 
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/)
 [![CI](https://github.com/IlianPihlajamaa/CubatureRules.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/IlianPihlajamaa/CubatureRules.jl/actions/workflows/CI.yml)
 
 Quadrature and cubature rules computed on demand, for any polynomial degree and at any
@@ -35,7 +36,7 @@ Verification: PASSED
 
 - **Rules at any precision.** The fully symmetric rules — on simplices, boxes, the disk and
   ball, the wedge and pyramid, and the sphere — are stored as checked `Float64` tables
-  ([which ones](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/catalogue/#Seed-tables)),
+  ([which ones](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/catalogue/#Seed-tables)),
   which the package's own searches produced; their point counts are the smallest found, not
   proven minima. A `Float64` request is served from the table immediately. Any higher
   precision is refined from it by Newton's method, with guard digits chosen from the
@@ -52,7 +53,7 @@ Verification: PASSED
   triangles, with `x₀` on, near or off the panel, on curved (quadratic) panels and in
   tetrahedra; a builder that makes them in `Float64` in microseconds for assembly; and
   Galerkin pairs through SauterSchwabQuadrature.jl
-  ([guide](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/tutorial/bem/)).
+  ([guide](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/tutorial/bem/)).
 
 ## When to use something else
 
@@ -70,22 +71,21 @@ Gauss–Kronrod rules come from QuadGK.jl, and Lobatto, Radau and Clenshaw–Cur
 
 ## Installation
 
-The package is not yet in the General registry; install it from the repository:
-
 ```julia
 using Pkg
-Pkg.add(url = "https://github.com/IlianPihlajamaa/CubatureRules.jl")
+Pkg.add("CubatureRules")
 ```
 
-Julia 1.11 or later. Once the first release is registered, `Pkg.add("CubatureRules")` will do.
+Julia 1.11 or later. `Pkg.add(name = "CubatureRules", rev = "main")` installs the development
+version.
 
 ## Documentation
 
-- [Tutorial](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/tutorial/first-rule/),
+- [Tutorial](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/tutorial/first-rule/),
   starting from "I just want a rule"
-- [Catalogue](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/catalogue/) of domains
+- [Catalogue](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/catalogue/) of domains
   and rule families
-- [Architecture & Design](https://ilianpihlajamaa.github.io/CubatureRules.jl/dev/design/pipeline/)
+- [Architecture & Design](https://ilianpihlajamaa.github.io/CubatureRules.jl/stable/design/pipeline/)
 
 ## Licence
 

@@ -1,6 +1,6 @@
 # News
 
-## v0.1.0 (unreleased)
+## v0.1.0
 
 The first release. Everything below is new; later entries list changes against the release
 before.
