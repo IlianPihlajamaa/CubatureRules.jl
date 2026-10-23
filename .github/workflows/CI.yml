@@ -22,14 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # No 'pre' job: on Julia 1.14.0-alpha1 a test dependency (GenericLinearAlgebra, through
+        # DoubleFloats) does not precompile, so it failed before testing anything. Restore it
+        # when it can test the package: it shows early a change in random streams, MPFR or
+        # LAPACK that would break the reproducibility contract.
         version: ['1.11', '1']
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          # the next Julia, to see early a change in random streams, MPFR or LAPACK that
-          # would break the reproducibility contract; allowed to fail
-          - version: 'pre'
-            os: ubuntu-latest
-    continue-on-error: ${{ matrix.version == 'pre' }}
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
