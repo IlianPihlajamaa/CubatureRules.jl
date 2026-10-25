@@ -136,3 +136,13 @@ end
         @test abs(v.sharp_residual - 1) < 1e-20
     end
 end
+
+@testset "exp-sinh and sinh-sinh in Float16 stay finite" begin
+    # 2^18, the range Float16's precision would allow, is above its largest number, 65504
+    for (f, dom) in ((ExpSinh(3), HalfLine()), (SinhSinh(3), RealLine()))
+        r = rule(f, dom; T = Float16)
+        @test numbertype(r) === Float16 && all(isfinite, nodes(r)) && all(isfinite, weights(r))
+    end
+    @test integrate(x -> exp(-x), rule(ExpSinh(3), HalfLine(); T = Float16)) ≈ 1 rtol = 1e-2
+    @test npoints(rule(ExpSinh(3), HalfLine())) == 73          # Float64 is not limited by its range
+end

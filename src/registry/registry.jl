@@ -198,12 +198,14 @@ end
 
 # Warn when the rule handed over is larger than one the caller could have had: one held back
 # by its licence, or one in a package that is not loaded.
-function _warn_suboptimal(dom, degree, T, chosen, copyleft::Bool, allc)
+function _warn_suboptimal(dom, degree, T, chosen, copyleft::Bool, allc; positive::Bool = false, interior::Bool = false)
     SELECTION_WARNINGS[] || return nothing
     silence = "`CubatureRules.selection_warnings!(false)` silences this."
     if !copyleft
-        # never suggest giving up positive weights for fewer points
-        blocked = filter(c -> !selectable(c.family) && (c.positive || !chosen.positive), allc)
+        # only a rule the call would have taken: one that passes its filters and its number
+        # type, and never one that gives up positive weights for fewer points
+        blocked = filter(c -> !selectable(c.family) && passes(c; positive, interior) && supports_type(c.family, T) &&
+                              (c.positive || !chosen.positive), allc)
         if !isempty(blocked)
             best = first(sort(blocked; by = rank_key))
             if best.npoints < chosen.npoints && _first_warning(:licence, best.name, degree)
@@ -292,7 +294,7 @@ function rule(dom::Domain; degree = nothing, npoints = nothing, T = nothing, dig
     ok = prefer_positive(filter(c -> passes(c; positive, interior) && supports_type(c.family, Tout), cands))
     isempty(ok) && throw(NoRuleError(unsatisfiable_message(dom, degree, Tout, positive, interior, cands)))
     chosen = first(ok)
-    _warn_suboptimal(dom, degree, Tout, chosen, copyleft, allc)
+    _warn_suboptimal(dom, degree, Tout, chosen, copyleft, allc; positive, interior)
     selection = "selected by rule(): " * join(("$(c.name) ($(_points(c)))" for c in ok), " < ") *
                 "; ranked by (npoints, derived before seeded, family name), a positive rule ahead of a " *
                 "smaller one with negative weights if within $(POSITIVE_PREFERENCE)× its points" *

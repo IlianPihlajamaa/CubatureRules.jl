@@ -176,6 +176,10 @@ sharpness_basis(basis, d, ::Type{S}) where {S} = basis
 sharpness_basis(basis::RecurrenceBasis, d, ::Type{S}) where {S} = ProductTop{S}(basis, d + 1)
 sharpness_basis(basis::JacobiBasis, d, ::Type{S}) where {S} = basis.normalize ? ProductTop{S}(basis, d + 1) : basis
 
+# Whether a rule's weights are positive, as every check reports it: a complex weight is not
+# (and cannot be compared), and a weight that underflowed to zero is zero, not negative.
+_nonnegative(w) = eltype(w) <: Real && all(>=(0), w)
+
 function verify(r::QuadratureRule, c::PolynomialDegree; degree = nothing, bits = nothing,
                 integrals = nothing, use_symmetry::Bool = true)
     d = degree === nothing ? c.d : Int(degree)
@@ -229,7 +233,7 @@ function verify(r::QuadratureRule, c::PolynomialDegree; degree = nothing, bits =
         wsum = sum(ws)
         wsum_ok = exact ? wsum == μ : abs(wsum - μ) <= 16ε * sum(abs, ws) + floor_tol
         interior = all(x -> isinterior(x, r.domain), r.nodes)
-        positive = eltype(r.weights) <: Real && all(>=(0), r.weights)   # an underflowed weight is zero, not negative
+        positive = _nonnegative(r.weights)
         # the orbit grouping is itself a complete invariance check, done in O(N log N)
         symmetric = orbits !== nothing ? true :
                     check_invariance(r.provenance.symmetry, xs, ws, exact ? big(0.0) : 64ε)
@@ -263,7 +267,7 @@ function verify(r::QuadratureRule, c::SpanOf; integrals = nothing, bits = nothin
         Verification(basis = "supplied basis ($(length(c.basis)) functions)", degree = -1, max_residual = mres,
                      tolerance = mtol, exact = ok, sharp = nothing, sharp_residual = big(0.0),
                      weights_sum_ok = true, interior = all(x -> isinterior(x, r.domain), r.nodes),
-                     positive = all(>(0), r.weights), symmetric = nothing, precision_bits = cbits)
+                     positive = _nonnegative(r.weights), symmetric = nothing, precision_bits = cbits)
     end
 end
 
@@ -305,7 +309,7 @@ function verify_convergence(rules::AbstractVector{<:QuadratureRule}, f, referenc
                         max_residual = last(errs), tolerance = target,
                         exact = decreasing && final_ok, sharp = nothing, sharp_residual = big(0.0),
                         weights_sum_ok = true, interior = all(r -> all(x -> isinterior(x, r.domain), r.nodes), rules),
-                        positive = all(r -> all(>(0), r.weights), rules), symmetric = nothing,
+                        positive = all(r -> _nonnegative(r.weights), rules), symmetric = nothing,
                         method = :convergence_sweep, empirical = true, precision_bits = wbits,
                         errors = errs, decreasing = decreasing)
 end

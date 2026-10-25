@@ -282,10 +282,17 @@ verification_basis(dom::Orthotope{D}, n, ::Type{S}, exact) where {D,S} =
     TensorBasis{D,S}(n; normalize = !exact),
     exact ? "tensor Legendre (unnormalised, exact arithmetic), graded by total degree" :
     "tensor orthonormal Legendre, graded by total degree"
-verification_basis(dom::Wedge, n, ::Type{S}, exact) where {S} = WedgeBasis{S}(n),
-    "orthonormal Dubiner on the triangle × orthonormal Legendre in z, graded by total degree"
-verification_basis(dom::Pyramid, n, ::Type{S}, exact) where {S} = PyramidBasis{S}(n),
-    "orthonormal Legendre on the bounding box, graded by total degree (integrals over the pyramid by slices)"
+# In exact arithmetic there are no square roots to normalise with, and so the monomials with
+# their exact moments, as on the ball.
+verification_basis(dom::Wedge, n, ::Type{S}, exact) where {S} =
+    exact || !(n isa Integer) ?
+    (MonomialTestSet{3,S}(_degrees(n), α -> monomial_moment(Wedge(), α)), "monomials (exact wedge moments)") :
+    (WedgeBasis{S}(n), "orthonormal Dubiner on the triangle × orthonormal Legendre in z, graded by total degree")
+verification_basis(dom::Pyramid, n, ::Type{S}, exact) where {S} =
+    exact || !(n isa Integer) ?
+    (MonomialTestSet{3,S}(_degrees(n), α -> monomial_moment(Pyramid(), α)), "monomials (exact pyramid moments)") :
+    (PyramidBasis{S}(n), "orthonormal Legendre on the bounding box, graded by total degree " *
+                         "(integrals over the pyramid by slices)")
 verification_basis(dom::LaguerreDomain, n, ::Type{S}, exact) where {S} =
     RecurrenceBasis{S,typeof(laguerre_recurrence(dom.weight.α))}(n, laguerre_recurrence(dom.weight.α)),
     "orthonormal Laguerre($(dom.weight.α))"

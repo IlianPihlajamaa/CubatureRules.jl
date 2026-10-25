@@ -23,6 +23,8 @@ compared with its exact integral. The basis depends on the domain:
 | `Simplex{2}` | orthonormal Dubiner polynomials |
 | `Simplex{D}`, `D ≥ 3` | orthonormal Dubiner polynomials of that dimension |
 | `Orthotope{D}` | tensor Legendre polynomials, graded by total degree |
+| `Wedge` | orthonormal Dubiner polynomials of the triangle times orthonormal Legendre in `z` |
+| `Pyramid` | orthonormal Legendre polynomials of its bounding box, integrated over the pyramid by slices |
 | `Sphere{2}` | Fourier modes on the circle |
 | `Sphere{3}` | real spherical harmonics |
 | `Sphere{D}`, `D ≥ 4` | monomials with exact sphere moments |
@@ -37,9 +39,11 @@ with monomials, functions that are nearly dependent can leave a large error in a
 orthonormal direction while every monomial residual sits at rounding level. Monomials remain
 where no orthonormal basis is implemented here: above the 2-sphere and the 3-ball there are
 no harmonics in this package, and `e^{-r}` has no classical orthogonal polynomials in `r²`.
-In exact arithmetic the simplices and boxes use the same polynomials unnormalised. On a
-sphere, monomials are linearly dependent (`Σxᵢ² = 1`), so there they are a spanning set
-rather than a basis; this costs redundant equations but does not affect the result.
+In exact arithmetic the simplices and boxes use the same polynomials unnormalised, and the
+wedge, the pyramid and the balls use monomials with exact moments, which need no square
+roots. On a sphere, monomials are linearly dependent (`Σxᵢ² = 1`), so there they are a
+spanning set rather than a basis; this costs redundant equations but does not affect the
+result.
 
 The check runs at twice the rule's precision. Each residual is compared with the error that
 rounding the delivered nodes and weights could cause, computed from the size of the basis

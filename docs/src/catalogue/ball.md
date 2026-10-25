@@ -38,11 +38,13 @@ A ball separates into a radius and a sphere:
 \int_{B^D} f \, dx = \int_0^1 r^{D-1} \int_{S^{D-1}} f(r\omega) \, d\sigma(\omega) \, dr .
 ```
 
-A polynomial of degree `d` restricted to a ray is `r^d` times a polynomial on the sphere, so
-the two factors can be treated separately: a Gauss–Jacobi rule for the weight `r^{D-1}` in
-the radius, and any sphere family for the angles. The selector tries every sphere family as
-the angular factor, so `Ball{3}()` gets a Lebedev angular rule where a Lebedev seed exists
-and a product rule elsewhere.
+A polynomial of degree `d` is a sum of `r^k` times polynomials of degree `k` on the sphere,
+so the two factors can be treated separately: any sphere family for the angles, and a
+Gauss–Jacobi rule in the radius. The angular rule integrates the odd `k` to zero, so only
+even powers of `r` reach the radial factor, polynomials of degree `⌊d/2⌋` in `u = r²`, and a
+Gauss–Jacobi rule in `u` needs `⌈(d+1)/4⌉` points, half as many as one in `r`. The selector
+tries every sphere family as the angular factor, so `Ball{3}()` gets a Lebedev angular rule
+where a Lebedev seed exists and a product rule elsewhere.
 
 ```@example ball
 npoints(rule(Ball{3}(); degree = 9)), npoints(rule(BallProduct(SphereProduct()), Ball{3}(); degree = 9))

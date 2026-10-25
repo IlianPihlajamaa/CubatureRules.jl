@@ -110,3 +110,28 @@ end
         @test out == kept && out != dub.φ
     end
 end
+
+@testset "exact rational rules on the wedge and the pyramid" begin
+    # verified against monomials with exact moments: there are no square roots to normalise with
+    hand(xs, ws, dom, d) = QuadratureRule(xs, ws, dom, PolynomialDegree(d), CR.Provenance(family = "hand", derivation = CR.Derived()))
+    t = rule(GrundmannMöller(), Simplex{2}(); degree = 3, T = Rational{BigInt})
+    l = rule(NewtonCotes(), Interval(); degree = 3, T = Rational{BigInt})
+    w = hand([SVector(p[1], p[2], z) for p in nodes(t) for z in nodes(l)],
+             [wt * wl for wt in weights(t) for wl in weights(l)], Wedge(), 3)
+    v = check(w)
+    @test passed(v) && iszero(v.max_residual) && v.sharp === true && occursin("exact wedge moments", v.basis)
+    p = hand([SVector(0 // 1, 0 // 1, big(1) // 4)], [big(4) // 3], Pyramid(), 1)    # the centroid
+    vp = check(p)
+    @test passed(vp) && iszero(vp.max_residual) && vp.sharp === true
+end
+
+@testset "positivity is reported the same way by every check" begin
+    # complex weights are not positive, and cannot be compared; a zero weight is not negative
+    l = rule(Interval(); degree = 3)
+    span = SpanOf([x -> one(x), x -> x^2])
+    c = QuadratureRule(nodes(l), complex.(weights(l)), domain(l), span, provenance(l))
+    vc = verify(c; integrals = [2, 2 // 3])
+    @test vc.exact && !vc.positive
+    z = QuadratureRule(vcat(nodes(l), 0.0), vcat(weights(l), 0.0), domain(l), span, provenance(l))
+    @test verify(z; integrals = [2, 2 // 3]).positive
+end

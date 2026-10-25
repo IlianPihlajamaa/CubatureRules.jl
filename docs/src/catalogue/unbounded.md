@@ -71,8 +71,9 @@ family_table(GaussianSpace(3))
 
 In polar coordinates the Gaussian weight separates into a radial and an angular part. With
 `u = r²` the radial factor becomes a generalised Gauss–Laguerre problem with `α = (D - 2)/2`,
-and odd degrees vanish through the angular factor, so only `⌈(d + 2)/4⌉` radial points are
-needed.
+and odd degrees vanish through the angular factor. What reaches the radial factor is a
+polynomial of degree `⌊d/2⌋` in `u`, and `n` Gauss points are exact to degree `2n − 1`, so
+`⌈(d + 1)/4⌉` radial points are enough.
 
 ## Exponentially weighted space
 
@@ -89,7 +90,7 @@ the Gaussian one, and odd degrees again vanish through the angular factor. With 
 radial factor becomes `u^{(D-2)/2} e^{-√u}`, which has no classical family. Its ordinary
 moments are the integers `2 (2j + D - 1)!`, so its modified moments against the Laguerre
 polynomials are computed exactly and its Gauss rule comes from
-[`ModifiedChebyshev`](@ref). The radial factor then needs `⌈(d+2)/4⌉` points, half as many
+[`ModifiedChebyshev`](@ref). The radial factor then needs `⌈(d + 1)/4⌉` points, half as many
 as Gauss–Laguerre in `r` would.
 
 Checked against `∫_{ℝ³} ‖x‖^{2j} e^{-‖x‖} dx = 4π (2j+2)!`, which depends only on the radial

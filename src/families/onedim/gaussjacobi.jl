@@ -48,6 +48,11 @@ gj_symmetry(f::GaussJacobi) = f.α == f.β ? Reflection() : NoSymmetry()
 degree_for_npoints(::GaussJacobi, dom, n::Integer) = 2n - 1
 
 gj_domain(f::GaussJacobi) = iszero(f.α) && iszero(f.β) ? Interval() : WeightedDomain(Interval(), JacobiWeight(f.α, f.β))
+# On the domain that was asked for: JacobiWeight(0, 0) is the plain interval's measure, but a
+# rule asked for on the weighted interval belongs on it, where `map_to` and the explicit-family
+# domain check expect it.
+gj_domain(f::GaussJacobi, dom::JacobiInterval) = WeightedDomain(Interval(), JacobiWeight(f.α, f.β))
+gj_domain(f::GaussJacobi, dom) = gj_domain(f)
 
 const SZEGO_1939 = Citation(key = "Szego1939", authors = ["Gábor Szegő"],
                             title = "Orthogonal Polynomials", journal = "American Mathematical Society Colloquium Publications",
@@ -94,5 +99,5 @@ function build(f::GaussJacobi, dom, degree::Int, ctx::BuildContext{T}) where {T}
                               "weights: Christoffel function"],
                       seed_source = "Golub–Welsch (Float64)",
                       citations = [GOLUB_WELSCH_1969, SZEGO_1939], symmetry = gj_symmetry(f))
-    return QuadratureRule(xs, ws, gj_domain(f), PolynomialDegree(2n - 1), prov, cert)
+    return QuadratureRule(xs, ws, gj_domain(f, dom), PolynomialDegree(2n - 1), prov, cert)
 end

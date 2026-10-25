@@ -267,3 +267,17 @@ end
     @test res.degree == -1                                     # no polynomial degree to report
     @test res.error_estimate >= abs(res.value - π) / 10
 end
+
+@testset "JacobiWeight(0, 0) is a weighted interval like any other" begin
+    # the weight is the plain interval's measure, but a rule asked for on the weighted interval
+    # belongs on it: map_to carries it from there, and a named family is held to it
+    w = JacobiWeight(0, 0)
+    r = rule(WeightedDomain(Interval(0, 2), w); degree = 5)
+    @test domain(r) isa CR.JacobiInterval && CR.endpoints(domain(r).base) == (0, 2)
+    @test npoints(r) == 3 && integrate(x -> x^5, r) ≈ 2^6 / 6
+    ref = WeightedDomain(Interval(), w)
+    @test domain(rule(ref; degree = 5)) == ref
+    @test domain(rule(GaussJacobi(0, 0), ref; degree = 5)) == ref
+    @test passed(check(rule(ref; degree = 5)))
+    @test domain(rule(GaussLegendre(), Interval(); degree = 5)) == Interval()     # the plain interval as before
+end

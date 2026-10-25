@@ -46,7 +46,7 @@ end
     # the angular factor can be any sphere family, and Lebedev is the cheap one
     r = rule(BallProduct(LebedevRule()), Ball{3}(); degree = 9)
     @test passed(check(r))
-    @test npoints(r) == 5 * 38
+    @test npoints(r) == 3 * 38                     # ⌈(9+1)/4⌉ radial points
     @test occursin("Lebedev", CR.describe_family(BallProduct(LebedevRule())))
     @test npoints(r) < npoints(rule(BallProduct(SphereProduct()), Ball{3}(); degree = 9))
     # the selector ranks the combinations for you: Lebedev the best angular factor, and the
@@ -84,4 +84,16 @@ end
     @test integrate(x -> 1.0, s) ≈ 4π / 3 * 2.5^3 rtol = 1e-12
     # the mean of |x - c|² over a ball of radius R is 3R²/5
     @test integrate(x -> sum(abs2, x .- [1.0, 2.0, 3.0]), s) / (4π / 3 * 2.5^3) ≈ 3 * 2.5^2 / 5 rtol = 1e-12
+end
+
+@testset "BallProduct: the radial rule is in u = r²" begin
+    # as for the Gaussian weight, only even degrees reach the radial factor, and in u = r² a
+    # Gauss–Jacobi rule of ⌈(d+1)/4⌉ points is exact on them: half the points of a rule in r
+    @test [CR.ball_radial_points(d) for d in 0:12] == [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4]
+    for (D, d) in ((2, 9), (3, 7), (4, 11), (5, 5))
+        r = rule(BallProduct(SphereProduct()), Ball{D}(); degree = d)
+        @test npoints(r) == cld(d + 1, 4) * npoints(SphereProduct(), Sphere{D}(), d)
+        v = check(r)
+        @test passed(v) && v.sharp === true && v.positive && v.interior
+    end
 end

@@ -3,10 +3,15 @@
 #
 #     ∫_{B^D} f dx = ∫₀¹ r^{D-1} ∫_{S^{D-1}} f(rω) dσ(ω) dr.
 #
-# A monomial of degree d restricted to a ray is r^d times a monomial on the sphere, so the
-# radial rule needs exactness to degree d in r and the angular rule to degree d on the
-# sphere; nothing couples them. The radial factor is Gauss–Jacobi with weight r^{D-1},
-# which is the Jacobi weight (1+t)^{D-1} after r = (1+t)/2.
+# A polynomial of degree d is Σ_k r^k p_k(ω) with p_k homogeneous of degree k, and a sphere
+# moment of odd degree vanishes, so an angular rule exact to degree d annihilates every odd k
+# and only the even powers r^k = u^{k/2}, k ≤ d, reach the radial factor. With u = r²,
+#
+#     ∫₀¹ r^{D-1} g(r) dr = ½ ∫₀¹ u^{(D-2)/2} g(√u) du,
+#
+# a Jacobi weight in u, whose n-point Gauss rule is exact to degree 2n − 1 in u, so
+# ⌈(d+1)/4⌉ radial points suffice, as for the Gaussian weight (gaussianproduct.jl), where a
+# rule in r would need ⌈(d+1)/2⌉.
 #
 # The angular factor is any sphere family, which is why this is a combinator: with Lebedev
 # inside it inherits Lebedev's node counts, and the selector ranks the combinations for you.
@@ -15,7 +20,8 @@
     BallProduct(angular = SphereProduct())
 
 Product rules on a [`Ball`](@ref): a Gauss–Jacobi rule in the radius against the sphere
-family `angular` on the surface. With `n = ⌈(d+1)/2⌉` radial points it has `n` times the
+family `angular` on the surface. The radial rule is in `u = r²`: odd degrees vanish through
+the angular factor, so `n = ⌈(d+1)/4⌉` radial points suffice, and the rule has `n` times the
 angular rule's node count, all interior, all positive.
 
 `BallProduct(LebedevRule())` is the cheap one wherever a Lebedev seed exists; the selector
@@ -41,11 +47,12 @@ function candidates(::Type{<:BallProduct}, dom::Ball{D}, c::PolynomialDegree) wh
     return out
 end
 
-ball_radial_points(degree) = max(1, cld(degree + 1, 2))
+"Gauss–Jacobi points in u = r²: only even degrees reach the radial factor."
+ball_radial_points(degree) = max(1, cld(degree + 1, 4))
 npoints(f::BallProduct, dom::Ball{D}, degree::Integer) where {D} =
     ball_radial_points(degree) * npoints(f.angular, Sphere{D}(), degree)
 claimed_degree(f::BallProduct, dom::Ball{D}, degree) where {D} =
-    min(2ball_radial_points(degree) - 1, claimed_degree(f.angular, Sphere{D}(), degree))
+    min(2 * (2ball_radial_points(degree) - 1) + 1, claimed_degree(f.angular, Sphere{D}(), degree))
 degree_range(f::BallProduct, dom::Ball{D}) where {D} = degree_range(f.angular, Sphere{D}())
 degree_range(::BallProduct, dom) = 1:0
 properties(f::BallProduct, dom::Ball{D}, degree) where {D} =
@@ -56,15 +63,20 @@ cost_estimate(f::BallProduct, dom::Ball{D}, degree, T) where {D} =
 """
     ball_radial_work(D, n, bits) -> (r, w)
 
-The `n`-point Gauss–Jacobi rule for the radial weight `r^{D-1}` on `[0, 1]`, at precision
-`bits`: `∫₀¹ r^{D-1} g(r) dr = Σ wᵢ g(rᵢ)` for `g` of degree `≤ 2n-1`. It is the Jacobi rule
-with `β = D - 1` mapped by `r = (1+t)/2`, whose weights pick up `2^{-D}`.
+The `n`-point rule for the radial weight `r^{D-1}` on `[0, 1]`, at precision `bits`, in
+`u = r²`: `∫₀¹ r^{D-1} g(r) dr = Σ wᵢ g(rᵢ)` for every even polynomial `g` of degree
+`≤ 4n - 2`. It is the Gauss–Jacobi rule with `α = 0`, `β = (D-2)/2` mapped by
+`u = (1+t)/2`, with nodes `√u` and weights scaled by `2^{-β-2}`.
 """
 function ball_radial_work(D::Int, n::Int, bits::Int)
-    t, v, _ = gauss_jacobi_work(n, 0, D - 1, bits)
+    # an integer exponent for even D; for odd D a half-integer, which as a BigFloat is exact,
+    # where a Rational would send the Gamma functions of the weight's mass through Float64
+    β = iseven(D) ? (D - 2) ÷ 2 : with_bits(() -> BigFloat(D - 2) / 2, bits)
+    t, v, _ = gauss_jacobi_work(n, 0, β, bits)
     return with_bits(bits) do
-        r = [(1 + ti) / 2 for ti in t]
-        w = [vi / big(2)^D for vi in v]
+        r = [sqrt((1 + ti) / 2) for ti in t]
+        scale = BigFloat(2)^(-(β + 2))
+        w = [vi * scale for vi in v]
         r, w
     end
 end
@@ -94,15 +106,15 @@ function build(f::BallProduct, dom::Ball{D}, degree::Int, ctx::BuildContext{T}) 
     resid = with_bits(2wbits) do
         abs(sum(BigFloat.(wout)) - measure(Ball{D}()))
     end
-    cert = Certificate(equations = "radial Gauss–Jacobi (weight r^$(D-1)) × $(family_name(f.angular)) " *
+    cert = Certificate(equations = "radial Gauss–Jacobi (β = (D-2)/2 in u = r²) × $(family_name(f.angular)) " *
                                    "on the sphere (deviation of Σw from the volume)",
                        residual = BigFloat(resid; precision = 64), residual_bits = 2wbits,
                        digits = target_digits(ctx), guard_digits = floor(Int, guard * log10(2)),
                        cond = certificate(ang).cond, iterations = certificate(ang).iterations)
     prov = Provenance(family = "BallProduct", derivation = Derived(),
-                      path = ["radial: $(n)-point Gauss–Jacobi for r^$(D-1) on [0,1]",
+                      path = ["radial: $(n)-point Gauss–Jacobi in u = r² for r^$(D-1) on [0,1]",
                               "angular: " * describe_family(f.angular) * ", $(npoints(ang)) points",
-                              "claim: min(2n-1, angular degree) = $(claimed_degree(f, dom, degree))"],
+                              "claim: min(4n-1, angular degree) = $(claimed_degree(f, dom, degree))"],
                       seed_source = provenance(ang).seed_source,
                       citations = vcat(provenance(ang).citations, [STROUD_1971]),
                       comparisons = provenance(ang).comparisons, symmetry = NoSymmetry(),

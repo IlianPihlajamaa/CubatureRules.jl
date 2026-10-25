@@ -92,3 +92,13 @@ end
     @test passed(check(r))
     @test occursin("conservative total degree", join(provenance(r).path, " "))
 end
+
+@testset "tensor products round each weight once" begin
+    # the factors come with guard digits, so a Float64 weight is the rounding of the product
+    f = TensorProduct((GaussLegendre(), GaussLegendre()))
+    r, h = rule(f, Orthotope{2}(); degree = 21), rule(f, Orthotope{2}(); degree = 21, digits = 60)
+    @test maximum(abs(Float64(big(w) - wh)) / eps(w) for (w, wh) in zip(weights(r), weights(h))) <= 0.5 + 1e-6
+    # exact rational factors are multiplied exactly
+    q = rule(TensorProduct((NewtonCotes(), NewtonCotes())), Orthotope{2}(); degree = 3, T = Rational{BigInt})
+    @test sum(weights(q)) == 4
+end

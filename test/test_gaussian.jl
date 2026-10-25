@@ -132,3 +132,14 @@ end
         @test abs(got - factorial(big(k + 2))) / factorial(big(k + 2)) < 1e-50
     end
 end
+
+@testset "radial points: what reaches the radial factor has degree ⌊d/2⌋ in u = r²" begin
+    # n points in u are exact to total degree 4n - 1
+    @test [CR.gaussian_radial_points(d) for d in 0:12] == [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4]
+    m = npoints(SphereProduct(), Sphere{3}(), 11)
+    r = rule(GaussianProduct(SphereProduct()), GaussianSpace(3); degree = 11)
+    v = check(r)
+    @test npoints(r) == 3m && passed(v) && v.sharp === true                    # three points, not four
+    e = rule(ExponentialProduct(SphereProduct()), ExponentialSpace(3); degree = 11)
+    @test npoints(e) == 3m && passed(check(e))
+end

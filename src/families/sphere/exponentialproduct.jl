@@ -9,7 +9,7 @@
 #
 #     ∫₀^∞ r^{D-1} e^{-r} g(r) dr = ½ ∫₀^∞ u^{(D-2)/2} e^{-√u} g(√u) du,
 #
-# and a Gauss rule in u needs half as many points as one in r — ⌈(d+2)/4⌉ for degree d, as for
+# and a Gauss rule in u needs half as many points as one in r — ⌈(d+1)/4⌉ for degree d, as for
 # the Gaussian weight. The difference is that u^{(D-2)/2} e^{-√u} has no classical family. It
 # does have exact moments,
 #
@@ -26,7 +26,7 @@ Rules on [`ExponentialSpace`](@ref)`(D)`, the whole of `R^D` weighted by `e^{-|x
 Gauss rule against the sphere family `angular`. Stroud's `E_n^r`, derived rather than
 tabulated — available at every degree and dimension `D ≥ 2`, with positive weights.
 
-The radial factor needs only `⌈(d+2)/4⌉` points: odd degrees vanish through the angular
+The radial factor needs only `⌈(d+1)/4⌉` points: odd degrees vanish through the angular
 factor, and in `u = r²` the even ones are polynomials, integrated by a Gauss rule for
 `u^{(D-2)/2} e^{-√u}`. That weight has no classical family; its rule is built from exact
 modified moments by [`ModifiedChebyshev`](@ref).

@@ -91,3 +91,21 @@ end
     @test sum(weights(st)) ≈ measure(t)
     @test check(st).exact
 end
+
+@testset "subdivide: a tetrahedron's pieces break its symmetry, a triangle's keep it" begin
+    # the inner octahedron is split along one diagonal, so the composite rule is not S₄-invariant
+    s = subdivide(rule(GrundmannMöller(), Simplex{3}(); degree = 3), Simplex{3}(), 2)
+    @test provenance(s).symmetry === CR.NoSymmetry() && passed(check(s))
+    t = subdivide(rule(Simplex{2}(); degree = 5), Simplex{2}(), 3)
+    @test provenance(t).symmetry !== CR.NoSymmetry()
+    v = check(t)
+    @test passed(v) && v.symmetric === true
+end
+
+@testset "duffy on a 1-simplex" begin
+    # its nodes are numbers, not SVectors; x ↦ x², w ↦ 2xw grades them towards 0
+    r = rule(Simplex{1}(); degree = 5)
+    d = duffy(r; power = 2)
+    @test npoints(d) == npoints(r) && eltype(nodes(d)) == eltype(nodes(r)) && exactness(d) isa NoClaim
+    @test integrate(x -> 1 / sqrt(x), d) ≈ 2 rtol = 1e-12           # ∫₀¹ x^(-1/2) dx, now a constant integrand
+end

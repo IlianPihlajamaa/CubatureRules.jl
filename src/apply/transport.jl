@@ -70,8 +70,9 @@ _composed_jacobian(::JacobiInterval, A, Jd, Js) = Jd / Js                     # 
 Composite rule: `domain` split into pieces, with `r` mapped affinely onto each. The claim is
 preserved. An interval is split into `n` equal intervals and a triangle into `n²` congruent
 triangles; a tetrahedron is bisected `log₂ n` times into `n³` tetrahedra of equal volume (four
-corners and four from the inner octahedron each time), so `n` must be a power of two. Other
-domains, and rules for a weight, cannot be subdivided.
+corners and four from the inner octahedron each time), so `n` must be a power of two. The
+octahedron is split along one diagonal, so a subdivided tetrahedron rule records no
+symmetry. Other domains, and rules for a weight, cannot be subdivided.
 """
 subdivide(r::QuadratureRule, n::Integer) = subdivide(r, r.domain, n)
 
@@ -111,7 +112,8 @@ function subdivide(r::QuadratureRule{3,T,<:Simplex}, dom::Simplex{3}, n::Integer
             cells = reduce(vcat, map(bisect_tetrahedron, cells))
         end
         pieces = [map_to(r, c) for c in cells]
-        _concat(pieces, r, convert_domain(S, dom), "subdivide: $(n^3) tetrahedra")
+        # the inner octahedron is split along one diagonal, which breaks the symmetry
+        _concat(pieces, r, convert_domain(S, dom), "subdivide: $(n^3) tetrahedra"; symmetry = NoSymmetry())
     end
 end
 
@@ -138,10 +140,10 @@ function bisect_tetrahedron(t::Simplex{3})
             Simplex(m12, m24, m23, m34), Simplex(m12, m23, m13, m34)]
 end
 
-function _concat(pieces, r, dom, step)
+function _concat(pieces, r, dom, step; symmetry::SymmetryGroup = r.provenance.symmetry)
     xs = reduce(vcat, [p.nodes for p in pieces])
     ws = reduce(vcat, [p.weights for p in pieces])
-    return QuadratureRule(xs, ws, dom, r.exactness, with_step(r.provenance, step), r.certificate)
+    return QuadratureRule(xs, ws, dom, r.exactness, with_step(r.provenance, step; symmetry), r.certificate)
 end
 
 # ---------------------------------------------------------------------------------------
@@ -185,7 +187,7 @@ function duffy(r::QuadratureRule{D,T,<:Simplex}; power::Integer = 2) where {D,T}
     power >= 1 || throw(ArgumentError("power must be ≥ 1"))
     q = power
     return _at_rule_precision(r) do
-        xs = SVector{D,T}[]
+        xs = empty(r.nodes)                       # SVectors, or numbers on a 1-simplex
         ws = T[]
         for (x, w) in zip(r.nodes, r.weights)
             u = sum(x)

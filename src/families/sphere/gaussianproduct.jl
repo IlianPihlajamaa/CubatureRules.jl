@@ -17,8 +17,9 @@
 # Half-integer powers of u would spoil that — g(r) = r^d is u^{d/2} — but they never arise.
 # A monomial of odd total degree has some odd exponent, and a sphere moment with an odd
 # exponent is zero, so the *angular* factor annihilates every odd degree whatever the radial
-# rule does. Only even d reaches the radial factor, where u^{d/2} is a polynomial, so ⌈(d+2)/4⌉
-# Laguerre points suffice: a degree-11 rule in three dimensions needs three of them.
+# rule does. Only the even powers r^k = u^{k/2}, k ≤ d, reach the radial factor, polynomials in
+# u of degree ⌊d/2⌋; n Laguerre points are exact to degree 2n − 1 in u, so ⌈(d+1)/4⌉ suffice:
+# a degree-11 rule in three dimensions needs three of them.
 
 """
     GaussianProduct(angular = SphereProduct())
@@ -28,7 +29,7 @@ generalised Gauss–Laguerre rule in the radius against the sphere family `angul
 angle. Stroud's `E_n^{r²}`, derived rather than tabulated — available at every degree and
 dimension, with positive weights throughout.
 
-The radial factor needs only `⌈(d+2)/4⌉` points, because odd degrees are annihilated by the
+The radial factor needs only `⌈(d+1)/4⌉` points, because odd degrees are annihilated by the
 angular factor and never reach it.
 """
 struct GaussianProduct{F<:RuleFamily} <: CombinatorFamily
@@ -51,7 +52,7 @@ function candidates(::Type{<:GaussianProduct}, dom::GaussianDomain{D}, c::Polyno
 end
 
 "Laguerre points in u = r²: only even degrees reach the radial factor."
-gaussian_radial_points(degree) = max(1, cld(degree + 2, 4))
+gaussian_radial_points(degree) = max(1, cld(degree + 1, 4))
 
 npoints(f::GaussianProduct, dom::GaussianDomain{D}, degree::Integer) where {D} =
     gaussian_radial_points(degree) * npoints(f.angular, Sphere{D}(), degree)

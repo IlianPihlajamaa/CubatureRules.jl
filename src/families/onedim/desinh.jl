@@ -33,7 +33,8 @@ integrable singularity at the origin, `∫₀^∞ x^{-1/2} e^{-x} dx` being the 
 Nodes span `[2^-2(p-2), 2^2(p-2)]` in magnitude at output precision `p`; the head and tail
 beyond are assumed negligible, which is exactly the assumption that `f` decays. The range is
 chosen so that an integrand behaving like `x^(-1/2)` at either end leaves a remainder at
-roundoff. Reports [`NoClaim`](@ref), so it is never
+roundoff. In `Float16`, whose largest number is 65504, it is narrower, so that every node and
+weight is finite. Reports [`NoClaim`](@ref), so it is never
 offered for a `degree` request and must be asked for by name,
 `rule(ExpSinh(5), HalfLine())`. Verify it with `CubatureRules.verify_convergence` over a
 sequence of levels; consecutive levels are nested, so [`EmbeddedRule`](@ref) gives an error
@@ -55,8 +56,8 @@ transformed variable. Suited to integrands that decay in both directions, `∫_�
 being the model case.
 
 The same truncation caveat as [`ExpSinh`](@ref) applies: nodes span `[2^-2(p-2), 2^2(p-2)]`
-in magnitude and the tails beyond are assumed negligible. Reports [`NoClaim`](@ref); ask for it
-by name, `rule(SinhSinh(5), RealLine())`.
+in magnitude, narrower in `Float16`, and the tails beyond are assumed negligible. Reports
+[`NoClaim`](@ref); ask for it by name, `rule(SinhSinh(5), RealLine())`.
 """
 struct SinhSinh <: RuleFamily
     level::Int
@@ -93,15 +94,24 @@ candidates(::Type{SinhSinh}, dom::RealLine, ::PolynomialDegree) = SinhSinh[]
     de_work(family, bits, outbits) -> (x, w)
 
 Exp-sinh or sinh-sinh nodes and weights in BigFloat of precision `bits`, truncated to the
-dynamic range that `outbits` can resolve. Nodes ascend; `t = k h` runs symmetrically about
-zero, so halving `h` retains every node of the previous level.
+dynamic range that `outbits` can resolve and, when `maxvalue` is given, to nodes and weights
+below it: the largest finite number of the output type, which for `Float16` (65504) is the
+tighter of the two. Nodes ascend; `t = k h` runs symmetrically about zero, so halving `h`
+retains every node of the previous level.
 """
-function de_work(f::DoubleExponentialUnbounded, bits::Integer, outbits::Integer = bits)
+function de_work(f::DoubleExponentialUnbounded, bits::Integer, outbits::Integer = bits; maxvalue = nothing)
     return with_bits(bits) do
         h = ldexp(BigFloat(1), -f.level)
         halfπ = BigFloat(π) / 2
         # |x| ≤ 2^2(outbits-2) for both maps, since sinh(u) ≈ e^u/2 for large u
         tmax = asinh(2 * (outbits - 2) * log(BigFloat(2)) / halfπ)
+        if maxvalue !== nothing
+            # the node is at most e^u and the weight h π/2 cosh(t) times that; keep both a
+            # factor e below `maxvalue`, with cosh(t) bounded at the precision's limit
+            cmax = max(h * halfπ * cosh(tmax), one(BigFloat))
+            umax = log(BigFloat(maxvalue)) - log(cmax) - 1
+            tmax = min(tmax, asinh(umax / halfπ))
+        end
         K = floor(Int, tmax / h)
         K > 1 << 22 && throw(RefinementError(family_name(f), "level $(f.level) at $(outbits) bits would take $(2K + 1) nodes; " *
                                                              "the limit is $(2 * (1 << 22) + 1): ask for a lower level"))
@@ -130,8 +140,8 @@ deviation of the rounded nodes and weights from `x = exp(π/2 sinh kh)` (or `sin
 weight formula, recomputed at precision `bits`. `outbits` must be the precision the rule was
 emitted at, so that the same nodes are compared.
 """
-function de_residual(f::DoubleExponentialUnbounded, xhat, what, bits::Integer, outbits::Integer)
-    x, w = de_work(f, bits, outbits)
+function de_residual(f::DoubleExponentialUnbounded, xhat, what, bits::Integer, outbits::Integer; maxvalue = nothing)
+    x, w = de_work(f, bits, outbits; maxvalue)
     length(x) == length(xhat) || throw(ArgumentError("the reference sum has a different length"))
     return with_bits(bits) do
         res = zero(BigFloat)
@@ -146,20 +156,22 @@ end
 function build(f::DoubleExponentialUnbounded, dom::Domain, degree::Int, ctx::BuildContext{T}) where {T}
     isexact(ctx) && throw(ArgumentError("$(family_name(f)) nodes are irrational; $(T) is not supported"))
     guard = 32 + 2f.level
-    x, w = de_work(f, ctx.bits + guard, ctx.bits)
+    # a finite range for the fixed-size float types; BigFloat's exponent range is never the limit
+    maxvalue = T <: BigFloat ? nothing : floatmax(T)
+    x, w = de_work(f, ctx.bits + guard, ctx.bits; maxvalue)
     xs = [finalize_number(ctx, xi) for xi in x]
     ws = [finalize_number(ctx, wi) for wi in w]
-    span = floor(Int, 2 * (ctx.bits - 2) * log10(2))
+    span = floor(Int, log10(Float64(maximum(abs, x))))
     cert = Certificate(equations = f isa ExpSinh ?
                                    "x = exp(π/2 sinh kh), w = h π/2 cosh(kh) x (largest relative deviation)" :
                                    "x = sinh(π/2 sinh kh), w = h π/2 cosh(kh) cosh(π/2 sinh kh) " *
                                    "(largest relative deviation)",
-                       residual = BigFloat(de_residual(f, xs, ws, ctx.bits + guard, ctx.bits); precision = 64),
+                       residual = BigFloat(de_residual(f, xs, ws, ctx.bits + guard, ctx.bits; maxvalue); precision = 64),
                        residual_bits = ctx.bits + guard, digits = target_digits(ctx),
                        guard_digits = floor(Int, guard * log10(2)))
     prov = Provenance(family = family_name(f), derivation = Derived(),
                       path = ["h = 2^-$(f.level), $(length(xs)) nodes",
-                              "truncated at 1e-$(span) ≤ |x| ≤ 1e$(span), set by the output precision",
+                              "truncated at 1e-$(span) ≤ |x| ≤ 1e$(span), set by the output precision and range",
                               "claim: none — the rule converges but is exact on no polynomial space"],
                       seed_source = "none (closed form)", citations = [TAKAHASI_MORI_1974],
                       symmetry = properties(f, dom, degree).symmetry)

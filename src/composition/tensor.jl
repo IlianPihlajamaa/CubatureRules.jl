@@ -54,18 +54,30 @@ end
 cost_estimate(f::TensorProduct, dom, degree, T) =
     sum(cost_estimate(fi, Interval(), degree, T) for fi in f.families)        # each already includes the precision factor
 
+# The context a product rule builds its factors in: BigFloat at the target precision,
+# delivered with 32 guard bits, so that the products of their weights are rounded once, into
+# the output type. Built in that type instead, the factors' weights would be rounded first and
+# their products again. Exact rationals need no guard, and a factor that cannot produce
+# BigFloat keeps the output type.
+function _factor_context(ctx::BuildContext)
+    isexact(ctx) && return _ -> ctx
+    big = BuildContext{BigFloat}(ctx.bits; output_bits = ctx.bits + 32, cancel = ctx.cancel,
+                                 verbose = max(ctx.verbose - 1, 0))
+    return fi -> supports_type(fi, BigFloat) ? big : ctx
+end
+
 function build(f::TensorProduct, dom::Orthotope{D}, degree::Int, ctx::BuildContext{T}) where {D,T}
     length(f.families) == D ||
         throw(ArgumentError("TensorProduct with $(length(f.families)) factors cannot build on $(dom)"))
-    parts = [_stamp_license(fi, build(fi, Interval(), degree, ctx)) for fi in f.families]
+    fctx = _factor_context(ctx)
+    parts = [_stamp_license(fi, build(fi, Interval(), degree, fctx(fi))) for fi in f.families]
     ms = [npoints(p) for p in parts]
     xs = Vector{SVector{D,T}}(undef, prod(ms))
     ws = Vector{T}(undef, prod(ms))
-    # the product of the factors' weights is formed with guard digits and rounded once, so
-    # the result carries the precision of the factors rather than the ambient one
+    # the factors come with guard digits, so each product of weights is rounded once, into T
     with_bits(ctx.bits + 32) do
         for (k, I) in enumerate(CartesianIndices(Tuple(ms)))
-            xs[k] = SVector{D,T}(ntuple(j -> nodes(parts[j])[I[j]], D))
+            xs[k] = SVector{D,T}(ntuple(j -> finalize_number(ctx, nodes(parts[j])[I[j]]), D))
             ws[k] = finalize_number(ctx, prod(ntuple(j -> big(weights(parts[j])[I[j]]), D)))
         end
     end

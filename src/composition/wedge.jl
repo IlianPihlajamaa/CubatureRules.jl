@@ -52,18 +52,22 @@ cost_estimate(f::WedgeProduct, dom, degree, T) =
     cost_estimate(f.tri, Simplex{2}(), degree, T) + cost_estimate(f.line, Interval(), degree, T)
 
 function build(f::WedgeProduct, dom::Wedge, degree::Int, ctx::BuildContext{T}) where {T}
-    t = _stamp_license(f.tri, build(f.tri, Simplex{2}(), degree, ctx))
-    l = _stamp_license(f.line, build(f.line, Interval(), degree, ctx))
+    # Both factors with guard digits, as in TensorProduct, so each product of weights is rounded
+    # once. A seeded triangle family at Float64 precision still delivers its stored table: its
+    # weights are the table's correctly rounded values, and refining them would turn an
+    # instant rule into a Newton solve for half an ulp.
+    fctx = _factor_context(ctx)
+    t = _stamp_license(f.tri, build(f.tri, Simplex{2}(), degree, fctx(f.tri)))
+    l = _stamp_license(f.line, build(f.line, Interval(), degree, fctx(f.line)))
     nt, nl = npoints(t), npoints(l)
     xs = Vector{SVector{3,T}}(undef, nt * nl)
     ws = Vector{T}(undef, nt * nl)
-    # the products are formed with guard digits and rounded once, as in TensorProduct
     with_bits(ctx.bits + 32) do
         k = 0
         for i in 1:nt, j in 1:nl
             k += 1
             p = node_vector(t, i)
-            xs[k] = SVector{3,T}(p[1], p[2], nodes(l)[j])
+            xs[k] = SVector{3,T}(finalize_number(ctx, p[1]), finalize_number(ctx, p[2]), finalize_number(ctx, nodes(l)[j]))
             ws[k] = finalize_number(ctx, big(weights(t)[i]) * big(weights(l)[j]))
         end
     end
