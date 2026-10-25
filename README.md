@@ -89,10 +89,9 @@ version.
 
 ## Citing
 
-If you use the package, please cite it: [CITATION.cff](CITATION.cff) has the details, and
+If you want to cite the package, [CITATION.cff](CITATION.cff) has the details, and
 GitHub's "Cite this repository" gives them as BibTeX. `cite(r)` gives the references of a
-single rule: the package for the rules of its own tables, the method they follow, and the
-published rules of the same class they were compared with.
+single rule.
 
 ## Licence
 
